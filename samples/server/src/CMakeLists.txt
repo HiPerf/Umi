@@ -1,3 +1,25 @@
+${glm_SOURCE_DIR}
+
+set(KUMO_SOURCE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/queues.kumo
+    ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/movement.kumo
+)
+set(KUMO_OUTPUT_FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/marshal.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/marshal.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc_detail.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc_detail.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/opcodes.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/structs.hpp
+)
+add_custom_command(
+    OUTPUT   ${KUMO_OUTPUT_FILES}
+    COMMAND  ${Python3_EXECUTABLE} ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_SOURCE_DIR}/src/network/autogen --lang kaminari-cpp
+    DEPENDS  ${KUMO_SOURCE_FILES}
+)
+
 add_executable(docos_sample_server 
     common/definitions.hpp
     core/client.hpp
@@ -6,6 +28,7 @@ add_executable(docos_sample_server
     core/server.cpp
     maps/map.hpp
     maps/map.cpp
+    ${KUMO_OUTPUT_FILES}
     main.cpp)
 
 target_include_directories(docos_sample_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
