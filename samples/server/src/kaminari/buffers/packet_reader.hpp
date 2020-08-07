@@ -58,24 +58,7 @@ namespace kaminari
         template <typename T>
         T peek_ptr(const uint8_t* ptr) const
         {
-            if constexpr (std::is_same_v<vec3, T>)
-            {
-                if constexpr (SwitchZCoordinate)
-                {
-                    auto x = peek_ptr<map::CoordType>(ptr);
-                    auto z = peek_ptr<map::CoordType>(ptr + sizeof(map::CoordType));
-                    auto y = peek_ptr<map::CoordType>(ptr + sizeof(map::CoordType)*2);
-                    return vec3 {x, y, z};
-                }
-                else
-                {
-                    auto x = peek_ptr<map::CoordType>(ptr);
-                    auto y = peek_ptr<map::CoordType>(ptr + sizeof(map::CoordType));
-                    auto z = peek_ptr<map::CoordType>(ptr + sizeof(map::CoordType)*2);
-                    return vec3 {x, y, z};
-                }
-            }
-            else if constexpr (std::is_same_v<float, T>)
+            if constexpr (std::is_same_v<float, T>)
             {
                 float v;
                 memcpy(&v, ptr, sizeof(float));

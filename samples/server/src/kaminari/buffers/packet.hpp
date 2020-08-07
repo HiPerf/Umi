@@ -99,26 +99,11 @@ namespace kaminari
         template <typename T>
         inline packet& write(uint8_t*& ptr, const T& v)
         {
-            if constexpr (std::is_base_of_v<packet::Ptr, T>)
+            if constexpr (std::is_base_of_v<packet::ptr, T>)
             {
                 uint8_t size = v->length() - DataStart;
                 memcpy(ptr, v->_data + DataStart, size);
                 ptr += size;
-            }
-            else if constexpr (std::is_same_v<vec3, T>)
-            {
-                if constexpr (SwitchZCoordinate)
-                {
-                    *this << static_cast<map::CoordType>(v.x);
-                    *this << static_cast<map::CoordType>(v.z);
-                    *this << static_cast<map::CoordType>(v.y);
-                }
-                else
-                {
-                    *this << static_cast<map::CoordType>(v.x);
-                    *this << static_cast<map::CoordType>(v.y);
-                    *this << static_cast<map::CoordType>(v.z);
-                }
             }
             else if constexpr (std::is_same_v<float, T>)
             {
