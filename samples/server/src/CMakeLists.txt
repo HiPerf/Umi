@@ -1,22 +1,26 @@
-${glm_SOURCE_DIR}
+
+find_package (Python3 COMPONENTS Interpreter)
+message("Using python ${Python3_EXECUTABLE}")
 
 set(KUMO_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/queues.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/movement.kumo
 )
 set(KUMO_OUTPUT_FILES 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/marshal.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/marshal.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc_detail.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/rpc_detail.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/opcodes.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kumo/structs.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/marshal.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/marshal.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc_detail.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc_detail.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/opcodes.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/protocol_queues.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/structs.hpp
 )
+
 add_custom_command(
     OUTPUT   ${KUMO_OUTPUT_FILES}
-    COMMAND  ${Python3_EXECUTABLE} ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_SOURCE_DIR}/src/network/autogen --lang kaminari-cpp
+    COMMAND  ${Python3_EXECUTABLE} ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp
     DEPENDS  ${KUMO_SOURCE_FILES}
 )
 
