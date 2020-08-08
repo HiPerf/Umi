@@ -17,22 +17,22 @@ namespace kaminari
         using packer<immediate_packer<Marshal, Allocator>, packet::ptr, Allocator>::packer;
 
         template <typename T, typename... Args>
-        void add(rpc::Opcode opcode, T&& data, Args&&... args);
+        void add(uint16_t opcode, T&& data, Args&&... args);
         void add(const packet::ptr& packet);
         void process(uint16_t block_id, uint16_t& remaining, detail::packets_by_block& by_block);
 
     protected:
-        inline void on_ack(const pending_vector_t::iterator& part);
+        inline void on_ack(const typename packer_t::pending_vector_t::iterator& part);
         inline void clear();
     };
 
 
     template <class Marshal, class Allocator>
     template <typename T, typename... Args>
-    void immediate_packer<Marshal, Allocator>::add(rpc::Opcode opcode, T&& data, Args&&... args)
+    void immediate_packer<Marshal, Allocator>::add(uint16_t opcode, T&& data, Args&&... args)
     {
         // Immediate mode means that the structure is packed right now
-        packet::ptr packet = Packet::make(opcode, std::forward<Args>(args)...);
+        packet::ptr packet = packet::make(opcode, std::forward<Args>(args)...);
         Marshal::pack(packet, data);
 
         // Add to pending
@@ -43,15 +43,15 @@ namespace kaminari
     void immediate_packer<Marshal, Allocator>::add(const packet::ptr& packet)
     {
         // Add to pending
-        auto ptr = _allocator.allocate(1);
+        auto ptr = packer_t::_allocator.allocate(1);
         auto pending = new (ptr) detail::pending_data<packet::ptr>(packet);
-        _pending.push_back(pending);
+        packer_t::_pending.push_back(pending);
     }
 
     template <class Marshal, class Allocator>
     void immediate_packer<Marshal, Allocator>::process(uint16_t block_id, uint16_t& remaining, detail::packets_by_block& by_block)
     {
-        for (auto& pending : _pending)
+        for (auto& pending : packer_t::_pending)
         {
             if (!is_pending(pending->blocks, block_id, false))
             {
@@ -93,7 +93,7 @@ namespace kaminari
     }
 
     template <class Marshal, class Allocator>
-    inline void immediate_packer<Marshal, Allocator>::on_ack(const pending_vector_t::iterator& part)
+    inline void immediate_packer<Marshal, Allocator>::on_ack(const typename packer_t::pending_vector_t::iterator& part)
     {
         // Nothing to do here
         (void)part;

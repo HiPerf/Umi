@@ -21,7 +21,7 @@ namespace kumo
         if (static_cast<bool>(data.w))
         {
             *packet << static_cast<uint8_t>((*data.w).size());
-            for (const auto& val : *data.w)
+            for (const bool& val : data.w.value())
             {
                 *packet << val;
             }
@@ -29,7 +29,7 @@ namespace kumo
     }
     uint8_t marshal::packet_size(const complex& data)
     {
-        uint8_t size = 0;
+        int8_t size = 0;
         size += sizeof(bool);
         if (static_cast<bool>(data.x))
         {
@@ -61,7 +61,12 @@ namespace kumo
     }
     bool marshal::unpack(::kaminari::packet_reader* packet, movement& data)
     {
-        data.direction = packet->read<int8>();
+        if (packet->bytes_read() + sizeof_int8() >= packet->buffer_size())
+        {
+            return false;;
+        }
+        data.direction = packet->read<int8_t>();
+        return true;
     }
     uint8_t marshal::packet_size(const movement& data)
     {

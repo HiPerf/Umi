@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kaminari/detail/detail.hpp>
 #include <kaminari/cx/overflow.hpp>
 #include <kaminari/buffers/packet.hpp>
 
@@ -12,8 +13,6 @@ namespace kaminari
 {
     namespace detail
     {
-        using packets_by_block = std::map<uint32_t, std::vector<packet::ptr>>;
-
         template <typename Pending>
         struct pending_data
         {
@@ -28,7 +27,7 @@ namespace kaminari
     class packer
     {
     protected:
-        using pending_vector_t = std::vector<pending_data<Pending>*>;
+        using pending_vector_t = std::vector<detail::pending_data<Pending>*>;
 
     public:
         using pending_t = Pending;
@@ -93,8 +92,8 @@ namespace kaminari
         // Free memory
         for (auto pending : _pending)
         {
-            std::destroy_at(*it);
-            _allocator.deallocate(*it, 1);
+            std::destroy_at(pending);
+            _allocator.deallocate(pending, 1);
         }
 
         // Clear

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <kaminari/detail/detail.hpp>
+
 #include <inttypes.h>
 
 
@@ -57,7 +59,7 @@ namespace kaminari
             else
             {
                 // Call base and ack some packets
-                queue<Packer>::ack(block_id);
+                Packer::ack(block_id);
             }
         }
     };

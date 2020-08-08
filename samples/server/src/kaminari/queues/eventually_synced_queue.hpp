@@ -8,6 +8,7 @@ namespace kaminari
     template <typename Packer>
     class eventually_synced_queue : public Packer
     {
-        friend class rpc::protocol_queues;
+    public:
+        using Packer::Packer;
     };
 }
