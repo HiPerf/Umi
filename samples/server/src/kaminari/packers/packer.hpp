@@ -74,8 +74,9 @@ namespace kaminari
         // Free memory
         for (auto it = part; it != _pending.end(); ++it)
         {
-            std::destroy_at(*it);
-            _allocator.deallocate(*it, 1);
+            auto ptr = *it;
+            _allocator.destroy(ptr);
+            _allocator.deallocate(ptr, 1);
         }
 
         // Erase from vector
@@ -90,7 +91,7 @@ namespace kaminari
         // Free memory
         for (auto pending : _pending)
         {
-            std::destroy_at(pending);
+            _allocator.destroy(pending);
             _allocator.deallocate(pending, 1);
         }
 

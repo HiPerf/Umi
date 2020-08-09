@@ -5,8 +5,10 @@
 
 namespace kaminari
 {
+    using ordered_packer_allocator_t = detail::pending_data<packet::ptr>;
+
     template <class Marshal, class Allocator = std::allocator<detail::pending_data<packet::ptr>>>
-    class ordered_packer : protected packer<ordered_packer<Marshal, Allocator>, packet::ptr, Allocator>
+    class ordered_packer : public packer<ordered_packer<Marshal, Allocator>, packet::ptr, Allocator>
     {
         friend class packer<ordered_packer<Marshal, Allocator>, packet::ptr, Allocator>;
 
@@ -48,8 +50,7 @@ namespace kaminari
     void ordered_packer<Marshal, Allocator>::add(const packet::ptr& packet)
     {
         // Add to pending
-        auto ptr = packer_t::_allocator.allocate(1);
-        auto pending = new (ptr) detail::pending_data<packet::ptr>(packet);
+        auto pending = packer_t::_allocator.construct(packer_t::_allocator.allocate(1), packet);
         packer_t::_pending.push_back(pending);
         _has_new_packet = true;
     }

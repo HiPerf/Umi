@@ -19,7 +19,7 @@ namespace kaminari
     };
 
     template <class Marshal, class Allocator = std::allocator<detail::pending_data<packet_with_id>>>
-    class most_recent_packer_with_id : protected packer<most_recent_packer_with_id<Marshal, Allocator>, packet_with_id, Allocator>
+    class most_recent_packer_with_id : public packer<most_recent_packer_with_id<Marshal, Allocator>, packet_with_id, Allocator>
     {
         friend class packer<most_recent_packer_with_id<Marshal, Allocator>, packet_with_id, Allocator>;
 
@@ -70,8 +70,7 @@ namespace kaminari
         else
         {
             // Add to pending
-            auto ptr = _allocator.allocate(1);
-            auto pending = new (ptr) detail::pending_data<packet_with_id>(packet, id);
+            auto pending = packer_t::_allocator.construct(packer_t::_allocator.allocate(1), packet_with_id { packet, id };
             packer_t::_pending.push_back(pending);
             _id_map.emplace(id, pending);
         }

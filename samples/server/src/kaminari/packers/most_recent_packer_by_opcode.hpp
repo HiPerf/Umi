@@ -20,7 +20,7 @@ namespace kaminari
 
 
     template <class Marshal, class Allocator = std::allocator<detail::pending_data<packet_by_opcode>>>
-    class most_recent_packer_by_opcode : protected packer<most_recent_packer_by_opcode<Marshal, Allocator>, packet_by_opcode, Allocator>
+    class most_recent_packer_by_opcode : public packer<most_recent_packer_by_opcode<Marshal, Allocator>, packet_by_opcode, Allocator>
     {
         friend class packer<most_recent_packer_by_opcode<Marshal, Allocator>, packet_by_opcode, Allocator>;
 
@@ -71,8 +71,7 @@ namespace kaminari
         else
         {
             // Add to pending
-            auto ptr = packer_t::_allocator.allocate(1);
-            auto pending = new (ptr) detail::pending_data<packet_by_opcode>({ packet, opcode });
+            auto pending = packer_t::_allocator.construct(packer_t::_allocator.allocate(1), packet_by_opcode { packet, opcode });
             packer_t::_pending.push_back(pending);
             _opcode_map.emplace(opcode, pending);
         }

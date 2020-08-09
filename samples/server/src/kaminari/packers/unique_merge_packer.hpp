@@ -8,7 +8,7 @@
 namespace kaminari
 {
     template <typename Id, typename Global, typename Detail, uint16_t opcode, class Marshal, class Allocator = std::allocator<detail::pending_data<Detail>>>
-    class unique_merge_packer : protected packer<unique_merge_packer<Id, Global, Detail, opcode, Marshal, Allocator>, Detail, Allocator>
+    class unique_merge_packer : public packer<unique_merge_packer<Id, Global, Detail, opcode, Marshal, Allocator>, Detail, Allocator>
     {
         friend class packer<unique_merge_packer<Id, Global, Detail, opcode, Marshal, Allocator>, Detail, Allocator>;
 
@@ -49,8 +49,7 @@ namespace kaminari
         }
         else
         {
-            auto ptr = packer_t::_allocator.allocate(1);
-            auto pending = new (ptr) detail::pending_data<Detail>(data);
+            auto pending = packer_t::_allocator.construct(packer_t::_allocator.allocate(1), data);
             packer_t::_pending.push_back(pending);
             _id_map.emplace(id, pending);
         }
