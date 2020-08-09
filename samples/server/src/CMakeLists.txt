@@ -11,8 +11,6 @@ set(KUMO_OUTPUT_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/marshal.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc_detail.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc_detail.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/opcodes.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/protocol_queues.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/structs.hpp
@@ -20,7 +18,7 @@ set(KUMO_OUTPUT_FILES
 
 add_custom_command(
     OUTPUT   ${KUMO_OUTPUT_FILES}
-    COMMAND  ${Python3_EXECUTABLE} ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp
+    COMMAND  ${Python3_EXECUTABLE} ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/config.json
     DEPENDS  ${KUMO_SOURCE_FILES}
 )
 

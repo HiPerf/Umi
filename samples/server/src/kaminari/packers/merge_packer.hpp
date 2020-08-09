@@ -53,7 +53,7 @@ namespace kaminari
         Global global;
 
         // TODO(gpascualg): MAGIC NUMBERS, 2 is vector size
-        uint16_t size = Packet::DataStart + 2 + packer_t::new_block_cost(block_id, by_block);
+        uint16_t size = packet::DataStart + 2 + packer_t::new_block_cost(block_id, by_block);
 
         // Populate it as big as we can
         for (auto& pending : packer_t::_pending)
@@ -64,7 +64,7 @@ namespace kaminari
             }
 
             // If this one won't fit, neither will the rest
-            auto next_size = size + rpc::marshal::message_size<Detail>(pending->data);
+            auto next_size = size + Marshal::packet_size(pending->data);
             if (next_size > remaining)
             {
                 break;
@@ -81,7 +81,7 @@ namespace kaminari
             return;
         }
 
-        Packet::Ptr packet = Packet::make(opcode);
+        packet::ptr packet = packet::make(opcode);
         Marshal::pack(packet, global);
         remaining -= size;
 
@@ -91,7 +91,7 @@ namespace kaminari
         }
         else
         {
-            by_block.emplace(block_id, std::initializer_list<Packet::Ptr> { packet });
+            by_block.emplace(block_id, std::initializer_list<packet::ptr> { packet });
         }
     }
 

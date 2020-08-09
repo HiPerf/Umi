@@ -3,6 +3,9 @@
 #include "common/definitions.hpp"
 #include <entity/entity.hpp>
 
+#include <kaminari/super_packet.hpp>
+#include <kumo/protocol_queues.hpp>
+
 #include <boost/asio.hpp>
 
 
@@ -18,4 +21,5 @@ public:
 
 private:
     udp::endpoint _endpoint;
+    kaminari::super_packet<kumo::protocol_queues> _super_packet;
 };

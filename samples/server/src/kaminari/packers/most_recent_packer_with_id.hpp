@@ -30,7 +30,7 @@ namespace kaminari
         using packer<most_recent_packer_with_id<Marshal, Allocator>, packet_with_id, Allocator>::packer;
         
         template <typename T, typename... Args>
-        void add(rpc::Opcode opcode, T&& data, Args&&... args);
+        void add(uint16_t opcode, T&& data, Args&&... args);
         void process(uint16_t block_id, uint16_t& remaining, detail::packets_by_block& by_block);
 
     private:
@@ -47,10 +47,10 @@ namespace kaminari
 
     template <class Marshal, class Allocator>
     template <typename T, typename... Args>
-    void most_recent_packer_with_id<Marshal, Allocator>::add(rpc::Opcode opcode, T&& data, Args&&... args)
+    void most_recent_packer_with_id<Marshal, Allocator>::add(uint16_t opcode, T&& data, Args&&... args)
     {
         // Immediate mode means that the structure is packed right now
-        packet::ptr packet = Packet::make(opcode, std::forward<Args>(args)...);
+        packet::ptr packet = packet::make(opcode, std::forward<Args>(args)...);
         Marshal::pack(packet, data);
 
         // Add to pending

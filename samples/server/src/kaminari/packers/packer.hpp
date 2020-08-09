@@ -26,10 +26,8 @@ namespace kaminari
     template <typename Derived, typename Pending, class Allocator = std::allocator<detail::pending_data<Pending>>>
     class packer
     {
-    protected:
-        using pending_vector_t = std::vector<detail::pending_data<Pending>*>;
-
     public:
+        using pending_vector_t = std::vector<detail::pending_data<Pending>*>;
         using pending_t = Pending;
 
     public:

@@ -47,13 +47,14 @@ namespace kaminari
 
         inline uint8_t length() const { return peek<uint8_t>(0); }
         inline uint8_t id() const { return peek<uint8_t>(1); }
-        inline uint8_t size() const { return static_cast<uint8_t>(_ptr - &_data[0]); }
+        inline uint16_t bytes_read() const { return static_cast<uint16_t>(_ptr - &_data[0]); }
         inline uint16_t opcode() const { return peek<uint16_t>(2); }
         inline uint8_t offset() const { return peek<uint8_t>(5); }
         inline uint64_t timestamp() const;
+        inline uint16_t buffer_size() const;
 
     private:
-        packet_reader(const uint8_t* data, uint64_t block_timestamp);
+        packet_reader(const uint8_t* data, uint64_t block_timestamp, uint16_t buffer_size);
 
         template <typename T>
         T peek_ptr(const uint8_t* ptr) const
@@ -79,6 +80,7 @@ namespace kaminari
         const uint8_t* _data;
         const uint8_t* _ptr;
         const uint64_t _block_timestamp;
+        const uint16_t _buffer_size;
     };
 
 
@@ -87,4 +89,9 @@ namespace kaminari
         return _block_timestamp - offset();
     }
 
+
+    inline uint16_t packet_reader::buffer_size() const
+    {
+        return _buffer_size;
+    }
 }

@@ -12,7 +12,7 @@ namespace kumo
             *packet << *data.x;
         }
         *packet << static_cast<uint8_t>((data.y).size());
-        for (const auto& val : data.y)
+        for (const spawn_data& val : data.y)
         {
             pack(packet, val);
         }
@@ -21,7 +21,7 @@ namespace kumo
         if (static_cast<bool>(data.w))
         {
             *packet << static_cast<uint8_t>((*data.w).size());
-            for (const bool& val : data.w.value())
+            for (const bool& val : *data.w)
             {
                 *packet << val;
             }
@@ -29,7 +29,7 @@ namespace kumo
     }
     uint8_t marshal::packet_size(const complex& data)
     {
-        int8_t size = 0;
+        uint8_t size = 0;
         size += sizeof(bool);
         if (static_cast<bool>(data.x))
         {
@@ -77,12 +77,27 @@ namespace kumo
     {
         return sizeof(movement);
     }
-    bool marshal::handle_packet(::kaminari::packet_reader* packet, client* client)
+    bool marshal::handle_packet(::kaminari::packet_reader* packet, ::kaminari::client* client)
     {
         switch (static_cast<::kumo::opcode>(packet->opcode()))
         {
             case opcode::move:
                 return handle_move(packet, client);
+            default:
+                return false;
         }
+    }
+    bool marshal::handle_move(::kaminari::packet_reader* packet, ::kaminari::client* client)
+    {
+        if (!check_client_status(client, 0))
+        {
+            return handle_client_error(client, static_cast<::kumo::opcode>(packet->opcode()));
+        }
+        ::kumo::movement data;
+        if (!unpack(packet, data))
+        {
+            return false;
+        }
+        return on_move(client, data, packet->timestamp());
     }
 }

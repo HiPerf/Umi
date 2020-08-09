@@ -16,7 +16,7 @@ namespace kaminari
 
     class packet
     {
-        friend class super_packet;
+        template <typename Q> friend class super_packet;
         friend inline void intrusive_ptr_add_ref(packet* x);
         friend inline void intrusive_ptr_release(packet* x);
 

@@ -17,13 +17,13 @@ namespace kaminari
         using packer<ordered_packer<Marshal, Allocator>, packet::ptr, Allocator>::packer;
 
         template <typename T, typename... Args>
-        void add(rpc::Opcode opcode, T&& data, Args&&... args);
+        void add(uint16_t opcode, T&& data, Args&&... args);
         void add(const packet::ptr& packet);
         void process(uint16_t block_id, uint16_t& remaining, detail::packets_by_block& by_block);
 
     protected:
         bool is_pending(uint16_t block_id);
-        inline void on_ack(const pending_vector_t::iterator& part);
+        inline void on_ack(const typename packer_t::pending_vector_t::iterator& part);
         inline void clear();
 
     protected:
@@ -34,10 +34,10 @@ namespace kaminari
 
     template <class Marshal, class Allocator>
     template <typename T, typename... Args>
-    void ordered_packer<Marshal, Allocator>::add(rpc::Opcode opcode, T&& data, Args&&... args)
+    void ordered_packer<Marshal, Allocator>::add(uint16_t opcode, T&& data, Args&&... args)
     {
         // Immediate mode means that the structure is packed right now
-        packet::ptr packet = Packet::make(opcode, std::forward<Args>(args)...);
+        packet::ptr packet = packet::make(opcode, std::forward<Args>(args)...);
         Marshal::pack(packet, data);
 
         // Add to pending
@@ -45,12 +45,12 @@ namespace kaminari
     }
 
     template <class Marshal, class Allocator>
-    void ordered_packer<Marshal, Allocator>::add(const Packet::Ptr& packet)
+    void ordered_packer<Marshal, Allocator>::add(const packet::ptr& packet)
     {
         // Add to pending
-        auto ptr = _allocator.allocate(1);
+        auto ptr = packer_t::_allocator.allocate(1);
         auto pending = new (ptr) detail::pending_data<packet::ptr>(packet);
-        _pending.push_back(pending);
+        packer_t::_pending.push_back(pending);
         _has_new_packet = true;
     }
 
@@ -65,7 +65,7 @@ namespace kaminari
 
         // Insert from older to newer, all of them
         auto num_inserted = 0;
-        for (auto it = _pending.rbegin(); it != _pending.rend(); ++it, ++num_inserted)
+        for (auto it = packer_t::_pending.rbegin(); it != packer_t::_pending.rend(); ++it, ++num_inserted)
         {
             auto& pending = *it;
             uint16_t actual_block = get_actual_block(pending->blocks, block_id);
@@ -94,7 +94,7 @@ namespace kaminari
                     break;
                 }
 
-                by_block.emplace(actual_block, std::initializer_list<Packet::Ptr> { pending->data });
+                by_block.emplace(actual_block, std::initializer_list<packet::ptr> { pending->data });
             }
 
             pending->blocks.push_back(block_id);
@@ -112,7 +112,7 @@ namespace kaminari
     template <class Marshal, class Allocator>
     bool ordered_packer<Marshal, Allocator>::is_pending(uint16_t block_id)
     {
-        if (_pending.empty())
+        if (packer_t::_pending.empty())
         {
             return false;
         }
@@ -120,11 +120,11 @@ namespace kaminari
         // Pending inclusions are those forced, not yet included in any block or
         // which have expired without an ack
         return _has_new_packet ||
-            cx::overflow::sub(block_id, _last_block) >= ResendThreshold; // We do want 0s here
+            cx::overflow::sub(block_id, _last_block) >= packer_t::resend_threshold; // We do want 0s here
     }
 
     template <class Marshal, class Allocator>
-    void ordered_packer<Marshal, Allocator>::on_ack(const pending_vector_t::iterator& part)
+    void ordered_packer<Marshal, Allocator>::on_ack(const typename packer_t::pending_vector_t::iterator& part)
     {
         // TODO: A lot to do here
         (void)part;
