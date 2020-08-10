@@ -5,6 +5,7 @@
 
 #include <kaminari/client/client.hpp>
 #include <kaminari/super_packet_reader.hpp>
+#include <kaminari/types/data_wrapper.hpp>
 #include <kumo/protocol_queues.hpp>
 
 #include <boost/asio.hpp>
@@ -35,8 +36,6 @@ public:
     
     void construct(const udp::endpoint& endpoint);
     void update(const base_time& diff);
-
-    void push_data(udp_buffer* buffer, uint16_t size);
 
 private:
     udp::endpoint _endpoint;

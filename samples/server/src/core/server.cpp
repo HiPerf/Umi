@@ -1,5 +1,7 @@
 #include "core/server.hpp"
 
+#include <kaminari/types/data_wrapper.hpp>
+
 #include <containers/plain_pool.hpp>
 #include <fiber/exclusive_shared_work.hpp>
 #include <fiber/yield.hpp>
@@ -27,7 +29,8 @@ server::server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_wo
     instance = this;
 
     // Create pools
-    singleton_pool<udp_buffer>::make(sizeof(udp_buffer));
+    singleton_pool<::kaminari::data_wrapper>::make(sizeof(::kaminari::data_wrapper));
+    singleton_pool<::kaminari::packet>::make(sizeof(::kaminari::packet));
 
     // Spawn network threads
     spawn_network_threads(num_network_workers);
@@ -118,31 +121,43 @@ void server::handle_connections()
     while (!_stop)
     {
         // Get a new client
-        udp_buffer* buffer = singleton_pool<udp_buffer>::instance->get();
+        ::kaminari::data_wrapper* buffer = singleton_pool<::kaminari::data_wrapper>::instance->get();
         udp::endpoint acceptEndpoint;
         boost::system::error_code error;
 
-        std::size_t bytes = _socket.async_receive_from(
-            boost::asio::buffer(buffer->buffer, 500),
-            acceptEndpoint,
-            0,
-            boost::fibers::asio::yield[error]);
+        buffer->size = static_cast<uint16_t>(_socket.async_receive_from(boost::asio::buffer(buffer->data, 500),
+            acceptEndpoint, 0, boost::fibers::asio::yield[error]));
 
         if (!error)
         {
-            bool client_creation = server::instance->get_or_create_client(acceptEndpoint, [buffer, bytes](auto client) {
-                client->push_data(buffer, static_cast<uint16_t>(bytes));
+            bool client_creation = server::instance->get_or_create_client(acceptEndpoint, [buffer](auto client) {
+                client->received_packet(boost::intrusive_ptr<::kaminari::data_wrapper>(buffer));
                 return std::tuple(client);
             });
 
             if (!client_creation)
             {
-                singleton_pool<udp_buffer>::instance->free(buffer);
+                singleton_pool<::kaminari::data_wrapper>::instance->free(buffer);
             }
         }
         else
         {
-            singleton_pool<udp_buffer>::instance->free(buffer);
+            singleton_pool<::kaminari::data_wrapper>::instance->free(buffer);
         }
     }
+}
+
+void release_data_wrapper(::kaminari::data_wrapper* x)
+{
+    singleton_pool<::kaminari::data_wrapper>::instance->free(x);
+}
+
+::kaminari::packet* get_kaminari_packet(uint16_t opcode)
+{
+    return singleton_pool<::kaminari::packet>::instance->get(opcode);
+}
+
+void release_kaminari_packet(::kaminari::packet* packet)
+{
+    singleton_pool<::kaminari::packet>::instance->free(packet);
 }

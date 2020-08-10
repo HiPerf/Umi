@@ -9,7 +9,7 @@ client::client() :
             test_allocator<kaminari::immediate_packer_allocator_t>, 
             test_allocator<kaminari::ordered_packer_allocator_t>
         >
-    >(5, 9, 9, 99)
+    >(5, test_allocator<kaminari::immediate_packer_allocator_t>(2), test_allocator<kaminari::ordered_packer_allocator_t>(5))
 {}
 
 void client::construct(const udp::endpoint& endpoint)
@@ -23,9 +23,4 @@ void client::update(const base_time& diff)
     {
         // TODO(gpascualg): Disconnect client
     }
-}
-
-void client::push_data(udp_buffer* buffer, uint16_t size)
-{
-    
 }

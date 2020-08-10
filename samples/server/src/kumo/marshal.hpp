@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <boost/intrusive_ptr.hpp>
 #include <kumo/structs.hpp>
+#include <kumo/structs.hpp>
 #include <kaminari/buffers/packet.hpp>
 #include <kaminari/buffers/packet_reader.hpp>
 #include "core/handler.hpp"
@@ -15,6 +16,7 @@ namespace kumo
     class marshal:public handler
     {
     public:
+        using opcode = ::kumo::opcode;
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data);
         static uint8_t packet_size(const complex& data);
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const spawn_data& data);
