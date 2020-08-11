@@ -50,7 +50,7 @@ public:
                     _updates_mutex.lock();
                     _pending_updates += vec->size();
                     _updates_mutex.unlock();
-
+                    
                     boost::fibers::fiber([this, &vec, ...args{ std::forward<Args>(args) }]() mutable {
                         update_impl(vec, std::forward<std::decay_t<Args>>(args)...);
                     }).detach();

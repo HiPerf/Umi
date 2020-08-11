@@ -31,6 +31,7 @@ server::server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_wo
     // Create pools
     singleton_pool<::kaminari::data_wrapper>::make(sizeof(::kaminari::data_wrapper));
     singleton_pool<::kaminari::packet>::make(sizeof(::kaminari::packet));
+    singleton_pool<udp::endpoint>::make(sizeof(udp::endpoint));
 
     // Spawn network threads
     spawn_network_threads(num_network_workers);
@@ -44,7 +45,7 @@ void server::mainloop()
 #endif
 
     auto map_updater = _map_scheme.make_updater(false);
-    auto client_updater = _map_scheme.make_updater(true);
+    auto client_updater = _client_scheme.make_updater(true);
 
     get_or_create_client(udp::endpoint(), [](auto client) {
         return std::tuple(client);
@@ -87,6 +88,13 @@ void server::stop()
 {
     _stop = true;
     executor::stop();
+
+    for (auto& t : _network_threads)
+    {
+        t.join();
+    }
+
+    _work.reset();
 }
 
 client* server::get_client(const udp::endpoint& endpoint) const
@@ -114,40 +122,30 @@ void server::send_client_outputs(client* client)
 
 void server::spawn_network_threads(uint8_t count)
 {
-    boost::fibers::barrier network_barrier(count + 1);
-    boost::fibers::barrier network_algo_barrier(count + 1);
-
     for (int i = 0; i < count; ++i)
     {
-        _network_threads.push_back(std::thread([this, &network_barrier, &network_algo_barrier, count] {
-            network_barrier.wait();
-
-            boost::fibers::use_scheduling_algorithm<boost::fibers::algo::exclusive_shared_work<int(FiberID::NetworkWorker)>>(count);
-            network_algo_barrier.wait();
-
-            boost::fibers::fiber([this]() { handle_connections(); }).join();
+        _network_threads.push_back(std::thread([this] {
+            _context.run();
         }));
-    }
 
-    network_barrier.wait();
-    network_algo_barrier.wait();
+        handle_connections();
+    }
 }
 
 void server::handle_connections()
 {
-    while (!_stop)
-    {
-        // Get a new client
-        ::kaminari::data_wrapper* buffer = singleton_pool<::kaminari::data_wrapper>::instance->get();
-        udp::endpoint acceptEndpoint;
-        boost::system::error_code error;
+    // Get a new buffer
+    ::kaminari::data_wrapper* buffer = singleton_pool<::kaminari::data_wrapper>::instance->get();
+    udp::endpoint* accept_endpoint = singleton_pool<udp::endpoint>::instance->get();
 
-        buffer->size = static_cast<uint16_t>(_socket.async_receive_from(boost::asio::buffer(buffer->data, 500),
-            acceptEndpoint, 0, boost::fibers::asio::yield[error]));
-
-        if (!error)
+    _socket.async_receive_from(boost::asio::buffer(buffer->data, 500), *accept_endpoint, 0, [this, buffer, accept_endpoint](const auto& error, std::size_t bytes) {
+        if (error)
         {
-            bool client_creation = server::instance->get_or_create_client(acceptEndpoint, [buffer](auto client) {
+            singleton_pool<::kaminari::data_wrapper>::instance->free(buffer);
+        }
+        else
+        {
+            bool client_creation = server::instance->get_or_create_client(*accept_endpoint, [buffer](auto client) {
                 client->received_packet(boost::intrusive_ptr<::kaminari::data_wrapper>(buffer));
                 return std::tuple(client);
             });
@@ -157,11 +155,11 @@ void server::handle_connections()
                 singleton_pool<::kaminari::data_wrapper>::instance->free(buffer);
             }
         }
-        else
-        {
-            singleton_pool<::kaminari::data_wrapper>::instance->free(buffer);
-        }
-    }
+
+        // Handle again
+        singleton_pool<udp::endpoint>::instance->free(accept_endpoint);
+        handle_connections();
+    });
 }
 
 void release_data_wrapper(::kaminari::data_wrapper* x)
