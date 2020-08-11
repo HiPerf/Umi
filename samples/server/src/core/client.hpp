@@ -23,6 +23,13 @@ public:
 
 using udp = boost::asio::ip::udp;
 
+
+struct update_inputs_t { explicit update_inputs_t() = default; };
+struct update_outputs_t { explicit update_outputs_t() = default; };
+
+inline constexpr update_inputs_t update_inputs{};
+inline constexpr update_outputs_t update_outputs{};
+
 class client : public entity<client>, 
     public kaminari::client<
         kumo::protocol_queues<
@@ -35,8 +42,17 @@ public:
     client();
     
     void construct(const udp::endpoint& endpoint);
-    void update(const base_time& diff);
+    void update(update_inputs_t, const base_time& diff);
+    void update(update_outputs_t, const base_time& diff);
+
+    inline const udp::endpoint& endpoint() const;
 
 private:
     udp::endpoint _endpoint;
 };
+
+
+inline const udp::endpoint& client::endpoint() const
+{
+    return _endpoint;
+}

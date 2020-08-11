@@ -56,9 +56,16 @@ void server::mainloop()
         auto diff = elapsed(_last_tick, now);
         _diff_mean = 0.95f * _diff_mean + 0.05f * diff.count();
 
-        executor::update_many(std::forward_as_tuple(diff), map_updater, client_updater);
-        executor::sync(map_updater, diff);
+        // Execute client inputs
+        executor::update(client_updater, update_inputs, std::ref(diff));
+
+        // Update maps and execute tasks
+        executor::update(map_updater, std::ref(diff));
+        executor::sync(map_updater, std::ref(diff));
         executor::execute_tasks();
+
+        // Execute client outputs
+        executor::update(client_updater, update_outputs, std::ref(diff));
 
         _last_tick = now;
         auto update_time = elapsed(now, std_clock_t::now());
@@ -93,6 +100,16 @@ client* server::get_client(const udp::endpoint& endpoint) const
     }
     
     return nullptr;
+}
+
+void server::send_client_outputs(client* client)
+{
+    _socket.async_send_to(client->super_packet()->buffer(), client->endpoint(), [](const boost::system::error_code& error, std::size_t bytes) {
+        if (error)
+        {
+            // TODO(gpascualg): Do something in case of error
+        }
+    });
 }
 
 void server::spawn_network_threads(uint8_t count)

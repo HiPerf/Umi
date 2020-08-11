@@ -2,6 +2,19 @@
 find_package (Python3 COMPONENTS Interpreter)
 message("Using python ${Python3_EXECUTABLE}")
 
+
+# We need Kumo now
+FetchContent_Declare(
+    kumo
+    GIT_REPOSITORY https://github.com/AErbis/Kumo.git
+    GIT_TAG        master
+)
+
+FetchContent_GetProperties(kumo)
+if(NOT kumo_POPULATED)
+    FetchContent_Populate(kumo)
+endif()
+
 set(KUMO_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/queues.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/movement.kumo

@@ -29,11 +29,6 @@ namespace kumo
     class protocol_queues;
 }
 
-template <int I, class... Ts>
-decltype(auto) get(Ts&&... ts) {
-  return std::get<I>(std::forward_as_tuple(ts...));
-}
-
 namespace kumo
 {
     template <class ReliableAllocator, class OrderedAllocator>

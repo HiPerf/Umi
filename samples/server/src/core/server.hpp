@@ -48,6 +48,8 @@ public:
     template <typename C>
     bool get_or_create_client(const udp::endpoint& endpoint, C&& callback);
 
+    void send_client_outputs(client* client);
+
 private:
     void spawn_network_threads(uint8_t count);
     void handle_connections();

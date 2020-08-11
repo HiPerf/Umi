@@ -41,7 +41,7 @@ public:
             std::visit([this, ...args { std::forward<Args>(args) }](auto& vec) mutable {
                 using E = typename std::remove_pointer<std::decay_t<decltype(vec)>>::type;
 
-                if constexpr (!E::derived_t::template has_update<Args...>())
+                if (!E::derived_t::template has_update<std::decay_t<Args>...>())
                 {
                     return;
                 }
@@ -52,7 +52,7 @@ public:
                     _updates_mutex.unlock();
 
                     boost::fibers::fiber([this, &vec, ...args{ std::forward<Args>(args) }]() mutable {
-                        update_impl(vec, std::forward<Args>(args)...);
+                        update_impl(vec, std::forward<std::decay_t<Args>>(args)...);
                     }).detach();
                 }
                 

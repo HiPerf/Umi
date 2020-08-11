@@ -18,18 +18,6 @@ target_link_libraries(docos_sample_server PUBLIC glm)
 
 
 FetchContent_Declare(
-    kumo
-    GIT_REPOSITORY https://github.com/AErbis/Kumo.git
-    GIT_TAG        master
-)
-
-FetchContent_GetProperties(kumo)
-if(NOT kumo_POPULATED)
-    FetchContent_Populate(kumo)
-endif()
-
-
-FetchContent_Declare(
     kaminari
     GIT_REPOSITORY https://github.com/AErbis/Kaminari-cpp.git
     GIT_TAG        master

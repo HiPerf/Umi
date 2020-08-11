@@ -1,4 +1,5 @@
 #include "core/client.hpp"
+#include "core/server.hpp"
 
 #include <iostream>
 
@@ -17,10 +18,19 @@ void client::construct(const udp::endpoint& endpoint)
     _endpoint = endpoint;
 }
 
-void client::update(const base_time& diff)
+void client::update(update_inputs_t, const base_time& diff)
 {
     if (!_protocol.read<kumo::marshal>(this, super_packet()))
     {
         // TODO(gpascualg): Disconnect client
     }
 }
+
+void client::update(update_outputs_t, const base_time& diff)
+{
+    if (_protocol.update(this, super_packet()))
+    {
+        server::instance->send_client_outputs(this);
+    }
+}
+
