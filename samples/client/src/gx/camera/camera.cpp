@@ -18,9 +18,9 @@ void camera::construct(const glm::vec3& scene_dimensions)
     
     _model = glm::scale(glm::mat4(1.0), glm::vec3(2 / scene_dimensions[0], 2 / scene_dimensions[1], 2 / scene_dimensions[2]));
     
-    _vup = glm::vec3(0, 0, -1);
-    _dir = glm::vec3(0, -1, 0); // _vrp = (0, 0, 0) = (1, 1, 0) + (-1, -1, 0)
-    _obs = glm::vec3(0, 1, 0);
+    _vup = glm::vec3(0, 1, 0);
+    _dir = glm::normalize(glm::vec3(-1, 0, -1)); // _vrp = (0, 0, 0) = (1, 1, 0) + (-1, -1, 0)
+    _obs = glm::vec3(1, 0, 1);
 
     calculate_view();
     calculate_proj();
@@ -53,7 +53,7 @@ void camera::schedule()
     {
         _scheduled = true;
         
-        executor::instance->schedule([this]() {
+        executor::last->schedule([this]() {
             _mvp = _proj * _view * _model;
 
             glBindBuffer(GL_UNIFORM_BUFFER, _matrices_ubo);

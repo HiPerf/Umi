@@ -9,10 +9,10 @@
 class transform : public entity<transform>
 {
 public:
-    void construct(float tx, float ty)
+    void construct(float tx, float tz)
     {
         _parent = nullptr;
-        _global = glm::translate(glm::mat4(1.0), glm::vec3(tx, 0, ty));
+        _global = glm::translate(glm::mat4(1.0), glm::vec3(tx, 0, tz));
         _local = glm::mat4(1.0);
     }
 

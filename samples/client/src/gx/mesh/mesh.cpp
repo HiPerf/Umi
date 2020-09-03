@@ -2,7 +2,7 @@
 #include "containers/dictionary.hpp"
 
 
-void mesh::construct(float* vertices, std::size_t vertices_size, float* indices, std::size_t indices_size,
+void mesh::construct(float* vertices, std::size_t vertices_size, int* indices, std::size_t indices_size,
     std::initializer_list<program*>&& progams)
 {
     unsigned int VBO, EBO;
@@ -12,10 +12,10 @@ void mesh::construct(float* vertices, std::size_t vertices_size, float* indices,
     glBindVertexArray(_VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)vertices_size, (const void*)vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)indices_size, (const void*)indices, GL_STATIC_DRAW);
 
     _programs = std::move(progams);
     for (auto progam : _programs)
@@ -27,6 +27,7 @@ void mesh::construct(float* vertices, std::size_t vertices_size, float* indices,
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0); 
 
+    _num_indices = indices_size / sizeof(int);
 }
 
 void mesh::scheme_created()
@@ -42,6 +43,6 @@ void mesh::sync()
         program->use_uniforms(this);
 
         glBindVertexArray(_VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, _num_indices, GL_UNSIGNED_INT, 0);
     }
 }

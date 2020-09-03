@@ -30,7 +30,7 @@ public:
 
     void update()
     {
-        std::cout << "XXX Update at " << std::this_thread::get_id() << std::endl;
+        //std::cout << "XXX Update at " << std::this_thread::get_id() << std::endl;
     }
 };
 
@@ -42,7 +42,7 @@ public:
 
     void update()
     {
-        std::cout << "YYY Update at " << std::this_thread::get_id() << std::endl;
+        //std::cout << "YYY Update at " << std::this_thread::get_id() << std::endl;
     }
 };
 
@@ -51,16 +51,16 @@ constexpr uint32_t prereserved_size = 256;
 constexpr uint32_t alloc_num = 1000;
 
 
-float vertices[] = {
-    0.5f,  0.5f, 0.0f,  // top right
-    0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left 
-};
-unsigned int indices[] = {  // note that we start from 0!
-    0, 1, 3,  // first Triangle
-    1, 2, 3   // second Triangle
-};
+//float vertices[] = {
+//    0.5f,  0.5f, 0.0f,  // top right
+//    0.5f, -0.5f, 0.0f,  // bottom right
+//    -0.5f, -0.5f, 0.0f,  // bottom left
+//    -0.5f,  0.5f, 0.0f   // top left 
+//};
+//unsigned int indices[] = {  // note that we start from 0!
+//    0, 1, 3,  // first Triangle
+//    1, 2, 3   // second Triangle
+//};
 
 static void error_callback(int error, const char* description)
 {
@@ -93,7 +93,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
         // proj = proj / proj.w;
 
         auto dir = proj - glm::vec4(cam->obs(), 1.0);
-        cam->look_towards(glm::normalize(glm::vec3(dir)));
+        //cam->look_towards(glm::normalize(glm::vec3(dir)));
     }
 }
 
@@ -152,15 +152,18 @@ public:
 
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
-        glDepthFunc(GL_LEQUAL);
+        glDepthFunc(GL_LESS);
         glDepthRange(0.0f, 1.0f);
+        glEnable(GL_CULL_FACE);
+        glFrontFace(GL_CCW);
+        glCullFace(GL_BACK);
     }
 
     void run()
     {
         auto executor = new ::executor(12, false);
         auto overlap_scheme = overlap(store, obj_scheme, camera_scheme);
-        auto updater = overlap_scheme.make_updater();
+        auto updater = overlap_scheme.make_updater(true);
 
         executor->create_with_callback(camera_scheme, [](auto camera){
                 CAMERA_ID = camera->id();
@@ -169,6 +172,30 @@ public:
             }, 
             camera_scheme.args<camera>(glm::vec3(20, 20, 20))
         );
+
+        std::vector<glm::vec3> vertices_vec;
+        std::vector<int> indices_vec;
+        geometry_provider::icosahedron(vertices_vec, indices_vec);
+
+        for (int i = 0; i < 2; ++i)
+            geometry_provider::subdivide(vertices_vec, indices_vec, true);
+
+        /// normalize vectors to "inflate" the icosahedron into a sphere.
+        for (int i = 0; i < vertices_vec.size(); i++)
+            vertices_vec[i] = glm::normalize(vertices_vec[i]);
+
+        int num_indices = indices_vec.size();
+        int* indices = new int[num_indices];
+        for (int i = 0; i < num_indices; ++i) indices[i] = indices_vec[i];
+
+        int num_vertices = vertices_vec.size();
+        float* vertices = new float[num_vertices * 3];
+        for (int i = 0; i < num_vertices; i++)
+        {
+            vertices[i * 3 + 0] = vertices_vec[i].x;
+            vertices[i * 3 + 1] = vertices_vec[i].y;
+            vertices[i * 3 + 2] = vertices_vec[i].z;
+        }
 
         executor->create_with_callback(obj_scheme,
             [](auto x, auto y, auto transform, auto mesh)
@@ -179,26 +206,26 @@ public:
             obj_scheme.args<X>(),
             obj_scheme.args<Y>(),
             obj_scheme.args<transform>(-10.0f, -10.0f),
-            obj_scheme.args<mesh>((float*)vertices, (std::size_t)sizeof(vertices), (float*)indices, (std::size_t)sizeof(indices), std::initializer_list<program*> { &_program })
+            obj_scheme.args<mesh>((float*)vertices, (std::size_t)(num_vertices * sizeof(float) * 3), (int*)indices, (std::size_t)(num_indices * sizeof(int)), std::initializer_list<program*> { &_program })
         );
 
         executor->create(obj_scheme,
             obj_scheme.args<X>(),
             obj_scheme.args<Y>(),
             obj_scheme.args<transform>(-2.0f, 0.0f),
-            obj_scheme.args<mesh>((float*)vertices, (std::size_t)sizeof(vertices), (float*)indices, (std::size_t)sizeof(indices), std::initializer_list<program*> { &_program })
+            obj_scheme.args<mesh>((float*)vertices, (std::size_t)(num_vertices * sizeof(float) * 3), (int*)indices, (std::size_t)(num_indices * sizeof(int)), std::initializer_list<program*> { &_program })
         );
 
         auto id = executor->create_with_callback(obj_scheme,
             [](auto x, auto y, auto transform, auto mesh)
             {
-                transform->local_scale({2, 1, 2});
+                transform->local_scale({ 2, 1, 2 });
                 return std::tuple(x, y, transform, mesh);
             },
-            obj_scheme.args<X>(), 
-            obj_scheme.args<Y>(),
-            obj_scheme.args<transform>(1.0f, -4.0f),
-            obj_scheme.args<mesh>((float*)vertices, (std::size_t)sizeof(vertices), (float*)indices, (std::size_t)sizeof(indices), std::initializer_list<program*> { &_program })
+            obj_scheme.args<X>(),
+                obj_scheme.args<Y>(),
+                obj_scheme.args<transform>(-1.0f, -4.0f),
+                obj_scheme.args<mesh>((float*)vertices, (std::size_t)(num_vertices * sizeof(float) * 3), (int*)indices, (std::size_t)(num_indices * sizeof(int)), std::initializer_list<program*> { &_program })
         );
 
             executor->execute_tasks();
@@ -216,7 +243,7 @@ public:
                 glClearDepth(1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                std::cout << "----------------" << std::endl;
+                //std::cout << "----------------" << std::endl;
                 executor->update(updater);
                 executor->execute_tasks();
                 executor->sync(updater);

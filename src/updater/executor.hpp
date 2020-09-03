@@ -16,6 +16,7 @@
 class executor
 {
 public:
+    static inline executor* last;
     static inline std::list<executor*> instance;
     static constexpr std::size_t buffer_size = 1024;
 
@@ -23,6 +24,8 @@ public:
     executor(uint8_t num_workers, bool suspend) :
         _threads_joined(num_workers)
     {
+        last = this;
+
         for (uint8_t thread_id = 1; thread_id < num_workers; ++thread_id)
         {
             _workers.push_back(std::thread(
@@ -65,6 +68,8 @@ public:
 
     void execute_tasks()
     {
+        instance.push_back(this);
+
         for (auto ts : thread_local_storage<tasks>::get())
         {
             ts->execute();
@@ -74,6 +79,8 @@ public:
         {
             ts->execute();
         }
+
+        instance.pop_back();
     }
 
     template <typename U, typename... Args>
