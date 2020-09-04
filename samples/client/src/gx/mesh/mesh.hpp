@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entity/entity.hpp"
-#include "entity/transform.hpp"
+#include "gx/transform/transform.hpp"
 #include "gx/shader/program.hpp"
 #include "gx/common.hpp"
 

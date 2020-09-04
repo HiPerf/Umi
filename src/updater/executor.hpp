@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/tao.hpp"
 #include "containers/thread_local_tasks.hpp"
 #include "ids/generator.hpp"
 #include "traits/shared_function.hpp"
@@ -8,9 +9,10 @@
 #include <boost/fiber/fiber.hpp>
 #include <boost/fiber/barrier.hpp>
 
+#include <tao/tuple/tuple.hpp>
+
 #include <iostream>
 #include <list>
-#include <tuple>
 
 
 class executor
@@ -63,7 +65,7 @@ public:
     template <typename C>
     void schedule(C&& callback) 
     {
-        get_scheduler().schedule(make_shared_function(std::move(callback))); // ;
+        get_scheduler().schedule(fu2::unique_function<void()>(std::move(callback))); // ;
     }
 
     void execute_tasks()
@@ -97,12 +99,12 @@ public:
     }
 
     template <typename... U, typename... Args>
-    void update_many(std::tuple<Args...>&& args, U&... updaters)
+    void update_many(tao::tuple<Args...>&& args, U&... updaters)
     {
         instance.push_back(this);
 
-        boost::fibers::fiber([... updaters{ &updaters }, args{ std::forward<std::tuple<Args...>>(args) }]() mutable {
-            std::apply([&](auto&&... args) {
+        boost::fibers::fiber([... updaters{ &updaters }, args{ std::forward<tao::tuple<Args...>>(args) }]() mutable {
+            tao::apply([&](auto&&... args) {
                 ((updaters->update(std::forward<decltype(args)>(args)...)), ...);
             }, args);
             
@@ -123,13 +125,13 @@ public:
     template <template <typename...> typename S, typename... A, typename... vecs>
     constexpr uint64_t create(S<vecs...>& scheme, A&&... scheme_args)
     {
-        return create_with_callback(scheme, [](auto&&... e) { return std::tuple(e...); }, std::forward<A>(scheme_args)...);
+        return create_with_callback(scheme, [](auto&&... e) { return tao::tuple(e...); }, std::forward<A>(scheme_args)...);
     }
 
     template <template <typename...> typename S,typename... Args, typename... vecs>
     constexpr uint64_t create_with_args(S<vecs...>& scheme, Args&&... args)
     {
-        return create_with_callback(scheme, [](auto&&... e) { return std::tuple(e...); }, 
+        return create_with_callback(scheme, [](auto&&... e) { return tao::tuple(e...); }, 
             scheme.template args<vecs>(std::forward<Args>(args)...)...
         );
     }
@@ -141,24 +143,65 @@ public:
         return create_with_callback(id, scheme, std::move(callback), std::forward<A>(scheme_args)...);
     }
 
+    //template <template <typename...> typename S, typename C, typename... A, typename... vecs>
+    //__declspec(noinline) constexpr uint64_t create_with_callback(uint64_t id, S<vecs...>& scheme, C&& callback, A&&... scheme_args)
+    //{
+    //    static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
+
+    //    schedule([id, callback{ std::move(callback) }, ...scheme_args{ std::move(scheme_args) }, &scheme] () {
+    //        auto entities = callback(tao::apply([&](auto&&... args) {
+    //            auto component = scheme_args.comp.alloc(id, std::forward<decay_t<decltype(args)>>(args)...);
+    //            component->base()->scheme_information(scheme);
+    //            return component;
+    //        }, scheme_args.args)...);
+
+    //        tao::apply([](auto&&... entities) {
+    //            (..., entities->base()->scheme_created());
+    //        }, std::move(entities));
+    //    });
+
+    //    return id;
+    //}
+
     template <template <typename...> typename S, typename C, typename... A, typename... vecs>
     constexpr uint64_t create_with_callback(uint64_t id, S<vecs...>& scheme, C&& callback, A&&... scheme_args)
+        requires (... && !std::is_lvalue_reference<A>::value)
     {
         static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
 
-        schedule([id, callback{ std::move(callback) }, ...scheme_args{ std::move(scheme_args) }, &scheme]{
-            auto entities = callback(std::apply([&](auto&&... args) {
-                auto component = scheme_args.comp.alloc(id, std::forward<decltype(args)>(args)...);
-                component->base()->scheme_information(scheme);
-                return component;
-            }, std::move(scheme_args.args))...);
+        schedule([
+            this,
+                id,
+                &scheme,
+                callback = std::move(callback),
+                ... scheme_args = std::forward<A>(scheme_args)
+        ] () mutable {
+            // Create entities by using each allocator and arguments
+            // Call callback now too
+            auto entities = tao::apply(std::move(callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
 
-            std::apply([](auto&&... entities) {
+            // Notify of complete scheme creation
+            tao::apply([](auto&&... entities) {
                 (..., entities->base()->scheme_created());
             }, std::move(entities));
         });
 
         return id;
+    }
+
+private:
+    template <template <typename...> typename S, typename... vecs, typename T>
+    constexpr auto create(uint64_t id, S<vecs...>& scheme, T&& scheme_args)
+    {
+        // Create by invoking with arguments
+        auto entity = tao::apply([&scheme_args, &id](auto&&... args) {
+            return scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+        }, scheme_args.args);
+
+        // Notify of creation
+        entity->base()->scheme_information(scheme);
+
+        return entity;
     }
 
 protected:

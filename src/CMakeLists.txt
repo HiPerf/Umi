@@ -2,6 +2,7 @@ find_package (Threads REQUIRED)
 
 add_library(docos_core STATIC 
     common/result_of.hpp
+    common/tao.hpp
     common/types.hpp
     containers/concepts.hpp
     containers/dictionary.hpp
@@ -13,7 +14,6 @@ add_library(docos_core STATIC
     containers/ticket.hpp
     entity/entity.hpp
     entity/scheme.hpp
-    entity/transform.hpp
     fiber/exclusive_work_stealing.hpp
     fiber/exclusive_work_stealing_impl.hpp
     fiber/exclusive_shared_work.hpp
@@ -41,5 +41,5 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_link_options(docos_core INTERFACE -stdlib=libc++ -lc++abi -lc++)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_definitions(docos_core PUBLIC _UNICODE UNICODE)
-    target_compile_options(docos_core PUBLIC /MP)
+    target_compile_options(docos_core PUBLIC /MP /Zc:__cplusplus)
 endif()

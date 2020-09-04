@@ -5,6 +5,7 @@
 #include "traits/has_type.hpp"
 #include "traits/without_duplicates.hpp"
 
+#include <tao/tuple/tuple.hpp>
 
 
 template <typename... vectors>
@@ -20,7 +21,7 @@ namespace detail
     struct scheme_arguments
     {
         component& comp;
-        std::tuple<Args...> args;
+        tao::tuple<Args...> args;
     };
 }
 
@@ -28,7 +29,7 @@ namespace detail
 template <typename... vectors>
 struct scheme_store
 {
-    template <typename T> using dic_t = typename base_dic<T, std::tuple<vectors...>>::type;
+    template <typename T> using dic_t = typename base_dic<T, tao::tuple<vectors...>>::type;
 
     constexpr scheme_store()
     {}
@@ -36,10 +37,10 @@ struct scheme_store
     template <typename T>
     constexpr inline T& get()
     {
-        return std::get<T>(components);
+        return tao::get<T>(components);
     }
 
-    std::tuple<vectors...> components;
+    tao::tuple<vectors...> components;
 };
 
 template <typename... vectors>
@@ -48,7 +49,7 @@ class scheme
     template <typename... T> friend class scheme;
 
 public:
-    std::tuple<std::add_lvalue_reference_t<vectors>...> components;
+    tao::tuple<std::add_lvalue_reference_t<vectors>...> components;
 
     constexpr updater<std::add_pointer_t<vectors>...> make_updater(bool contiguous_component_execution)
     {
@@ -58,30 +59,30 @@ public:
     template <typename T>
     constexpr inline T& get()
     {
-        return std::get<T&>(components);
+        return tao::get<T&>(components);
     }
 
     template <typename T>
     constexpr inline bool has() const
     {
-        return has_type<T, std::tuple<vectors...>>::value;
+        return has_type<T, tao::tuple<vectors...>>::value;
     }
 
     template <typename T>
     constexpr inline void require() const
     {
-        static_assert(has_type<T, std::tuple<vectors...>>::value, "Requirement not met");
+        static_assert(has_type<T, tao::tuple<vectors...>>::value, "Requirement not met");
     }
 
     template <typename T, typename... Args>
-    constexpr auto args(Args&&... args) -> detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, std::tuple<vectors...>>::type>, decltype(args)...>
+    constexpr auto args(Args&&... args) -> detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>, std::decay_t<Args>...>
     {
-        using D = typename base_dic<T, std::tuple<vectors...>>::type;
+        using D = typename base_dic<T, tao::tuple<vectors...>>::type;
         require<D>();
 
         return {
-            .comp = std::get<std::add_lvalue_reference_t<D>>(components),
-            .args = std::forward_as_tuple(std::forward<Args>(args)...)
+            .comp = tao::get<std::add_lvalue_reference_t<D>>(components),
+            .args = tao::make_tuple(std::forward<std::decay_t<Args>>(args)...)
         };
     }
 

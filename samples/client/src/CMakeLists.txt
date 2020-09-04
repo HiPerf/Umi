@@ -5,6 +5,8 @@ add_executable(docos_sample_client
     gx/mesh/mesh.cpp
     gx/shader/program.hpp
     gx/shader/program.cpp
+    gx/transform/transform.hpp
+    gl_safe.hpp
     main.cpp)
 
 target_include_directories(docos_sample_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

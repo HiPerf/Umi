@@ -1,7 +1,11 @@
 #pragma once
 
+#include "traits/shared_function.hpp"
+
 #include <boost/fiber/mutex.hpp>
 #include <boost/fiber/fiber.hpp>
+
+#include <function2/function2.hpp>
 
 #include <vector>
 
@@ -33,12 +37,15 @@ private:
 class tasks
 {
 public:
-    using task_t = std::function<void()>;
+    using task_t = fu2::unique_function<void()>;
     using container_t = std::vector<task_t>;
 
 public:
     tasks();
-    void schedule(task_t&& task);
+
+    template <typename T>
+    void schedule(T&& task);
+
     void execute();
 
 protected:
@@ -51,14 +58,31 @@ protected:
 };
 
 
+template <typename T>
+void tasks::schedule(T&& task)
+{
+    _current_buffer->emplace_back(std::move(task));
+}
+
+
 class async_tasks : public tasks
 {
 public:
     using tasks::tasks;
 
-    void schedule(task_t&& task);
+    template <typename T>
+    void schedule(T&& task);
     void execute();
 
 private:
     boost::fibers::mutex _mutex;
 };
+
+
+template <typename T>
+void async_tasks::schedule(T&& task)
+{
+    std::lock_guard<boost::fibers::mutex> lock{ _mutex };
+
+    _current_buffer->emplace_back(std::move(task));
+}

@@ -1,7 +1,8 @@
 #pragma once
 
 // TODO(gpascualg): I don't really like this include here
-#include "entity/transform.hpp"
+#include "gl_safe.hpp"
+#include "gx/transform/transform.hpp"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -80,7 +81,7 @@ private:
 
 inline void program::create()
 {
-    _program = glCreateProgram();
+    _program = GL_SAFE_EX(tao::tuple(0), glCreateProgram);
 }
 
 inline GLuint program::prog() const
@@ -101,14 +102,14 @@ inline GLuint program::uniform_location(const char* unif)
         return ret->second;
     }
 
-    GLuint unif_location = glGetUniformLocation(this->_program, unif);
+    GLuint unif_location = GL_SAFE_EX(tao::tuple(-1), glGetUniformLocation, this->_program, unif);
     _uniforms.insert(std::make_pair(unif, unif_location));
     return unif_location;
 }
 
 inline bool program::bind()
 {
-    glUseProgram(_program);
+    GL_SAFE(glUseProgram, _program);
     return glGetError() == 0;
 }
 
@@ -132,17 +133,17 @@ void program::use_uniforms(T* entity)
 
             if (uniform.type == uniform_type::transform)
             {
-                glUniformMatrix4fv(uniform.pos, 1, GL_FALSE, glm::value_ptr(entity->template get<transform>()->mat()));
+                GL_SAFE(glUniformMatrix4fv, uniform.pos, 1, GL_FALSE, glm::value_ptr(entity->template get<transform>()->mat()));
             }
             else
             {
                 if constexpr (std::is_same_v<E, glm::mat4>)
                 {
-                    glUniformMatrix4fv(uniform.pos, 1, GL_FALSE, glm::value_ptr(*uniform.data));
+                    GL_SAFE(glUniformMatrix4fv, uniform.pos, 1, GL_FALSE, glm::value_ptr(*uniform.data));
                 }
                 else if constexpr (std::is_same_v<E, glm::vec4>)
                 {
-                    glUniform4fv(uniform.pos, 1, glm::value_ptr(*uniform.data));
+                    GL_SAFE(glUniform4fv, uniform.pos, 1, glm::value_ptr(*uniform.data));
                 }
             }
         }, variant);

@@ -1,10 +1,13 @@
 #pragma once
 
+#include "common/tao.hpp"
 #include "fiber/exclusive_work_stealing.hpp"
 
 #include <boost/fiber/fiber.hpp>
 #include <boost/fiber/mutex.hpp>
 #include <boost/fiber/condition_variable.hpp>
+
+#include <tao/tuple/tuple.hpp>
 
 #include <variant>
 #include <vector>
@@ -20,10 +23,10 @@ public:
     {}
 
     template <typename... vectors>
-    updater(bool contiguous_component_execution, std::tuple<vectors...>& components) :
+    updater(bool contiguous_component_execution, tao::tuple<vectors...>& components) :
         updater{ contiguous_component_execution }
     {
-        std::apply([this](auto&... comps) {
+        tao::apply([this](auto&... comps) {
             (register_vector(&comps), ...);
         }, components);
     }

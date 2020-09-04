@@ -1,3 +1,4 @@
+#include "gl_safe.hpp"
 #include "containers/pooled_static_vector.hpp"
 #include "containers/dictionary.hpp"
 #include "entity/entity.hpp"
@@ -11,6 +12,8 @@
 
 #include <boost/fiber/mutex.hpp>
 #include <boost/fiber/condition_variable.hpp>
+
+#include <tao/tuple/tuple.hpp>
 
 #include <glm/gtx/string_cast.hpp>
 
@@ -93,7 +96,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
         // proj = proj / proj.w;
 
         auto dir = proj - glm::vec4(cam->obs(), 1.0);
-        //cam->look_towards(glm::normalize(glm::vec3(dir)));
+        cam->look_towards(glm::normalize(glm::vec3(dir)));
     }
 }
 
@@ -102,6 +105,9 @@ class quick_test
 {
     template <typename T, uint32_t S=prereserved_size> using vec = pooled_static_vector<T, entity<T>, S>;
     template <typename T, uint32_t S=prereserved_size> using dic = dictionary<T, entity<T>, S>;
+
+    std::vector<glm::vec3> vertices;
+    std::vector<int> indices;
 
 public:
     quick_test() :
@@ -135,7 +141,7 @@ public:
             exit(EXIT_FAILURE);
         }
         
-        glfwSwapInterval(1);
+        glfwSwapInterval(0);
 
         glViewport(0, 0, 800, 600);
     
@@ -144,113 +150,98 @@ public:
         _program.create();
         _program.attach(GL_VERTEX_SHADER, "resources/sample.vs");
         _program.attach(GL_FRAGMENT_SHADER, "resources/sample.fs");
-        _program.bind_attribute("vCol", 0);
-        _program.bind_attribute("vPos", 1);
+        _program.bind_attribute("vCol", 1);
+        _program.bind_attribute("vPos", 2);
         _program.link();
         _program.attribute_pointer("vPos", 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
         _program.uniform_pointer("transform", program::uniform_type::transform, (void*)nullptr);
 
-        glEnable(GL_DEPTH_TEST);
-        glDepthMask(GL_TRUE);
-        glDepthFunc(GL_LESS);
-        glDepthRange(0.0f, 1.0f);
-        glEnable(GL_CULL_FACE);
-        glFrontFace(GL_CCW);
-        glCullFace(GL_BACK);
+        GL_SAFE(glEnable, GL_DEPTH_TEST);
+        GL_SAFE(glDepthMask, GL_TRUE);
+        GL_SAFE(glDepthFunc, GL_LESS);
+        GL_SAFE(glDepthRange, 0.0f, 1.0f);
+        GL_SAFE(glEnable, GL_CULL_FACE);
+        GL_SAFE(glFrontFace, GL_CCW);
+        GL_SAFE(glCullFace, GL_BACK);
     }
 
     void run()
     {
-        auto executor = new ::executor(12, false);
+        auto executor = new ::executor(12, true);
         auto overlap_scheme = overlap(store, obj_scheme, camera_scheme);
         auto updater = overlap_scheme.make_updater(true);
 
         executor->create_with_callback(camera_scheme, [](auto camera){
                 CAMERA_ID = camera->id();
                 std::cout << "HABEMUS CAMERA" << std::endl;
-                return std::tuple(camera);
+                return tao::tuple(camera);
             }, 
             camera_scheme.args<camera>(glm::vec3(20, 20, 20))
         );
 
-        std::vector<glm::vec3> vertices_vec;
-        std::vector<int> indices_vec;
-        geometry_provider::icosahedron(vertices_vec, indices_vec);
+        geometry_provider::icosahedron(vertices, indices);
 
         for (int i = 0; i < 2; ++i)
-            geometry_provider::subdivide(vertices_vec, indices_vec, true);
+            geometry_provider::subdivide(vertices, indices, true);
 
         /// normalize vectors to "inflate" the icosahedron into a sphere.
-        for (int i = 0; i < vertices_vec.size(); i++)
-            vertices_vec[i] = glm::normalize(vertices_vec[i]);
-
-        int num_indices = indices_vec.size();
-        int* indices = new int[num_indices];
-        for (int i = 0; i < num_indices; ++i) indices[i] = indices_vec[i];
-
-        int num_vertices = vertices_vec.size();
-        float* vertices = new float[num_vertices * 3];
-        for (int i = 0; i < num_vertices; i++)
-        {
-            vertices[i * 3 + 0] = vertices_vec[i].x;
-            vertices[i * 3 + 1] = vertices_vec[i].y;
-            vertices[i * 3 + 2] = vertices_vec[i].z;
-        }
+        for (int i = 0; i < vertices.size(); i++)
+            vertices[i] = glm::normalize(vertices[i]);
 
         executor->create_with_callback(obj_scheme,
             [](auto x, auto y, auto transform, auto mesh)
             {
-                transform->local_scale({10, 1, 10});
-                return std::tuple(x, y, transform, mesh);
+                transform->local_scale({10, 10, 10});
+                return tao::tuple(x, y, transform, mesh);
             },
             obj_scheme.args<X>(),
             obj_scheme.args<Y>(),
             obj_scheme.args<transform>(-10.0f, -10.0f),
-            obj_scheme.args<mesh>((float*)vertices, (std::size_t)(num_vertices * sizeof(float) * 3), (int*)indices, (std::size_t)(num_indices * sizeof(int)), std::initializer_list<program*> { &_program })
+            obj_scheme.args<mesh>((float*)vertices.data(), (std::size_t)(vertices.size() * sizeof(float) * 3), (int*)indices.data(), (std::size_t)(indices.size() * sizeof(int)), std::initializer_list<program*> { &_program })
         );
 
         executor->create(obj_scheme,
             obj_scheme.args<X>(),
             obj_scheme.args<Y>(),
             obj_scheme.args<transform>(-2.0f, 0.0f),
-            obj_scheme.args<mesh>((float*)vertices, (std::size_t)(num_vertices * sizeof(float) * 3), (int*)indices, (std::size_t)(num_indices * sizeof(int)), std::initializer_list<program*> { &_program })
+            obj_scheme.args<mesh>((float*)vertices.data(), (std::size_t)(vertices.size() * sizeof(float) * 3), (int*)indices.data(), (std::size_t)(indices.size() * sizeof(int)), std::initializer_list<program*> { &_program })
         );
 
         auto id = executor->create_with_callback(obj_scheme,
             [](auto x, auto y, auto transform, auto mesh)
             {
-                transform->local_scale({ 2, 1, 2 });
-                return std::tuple(x, y, transform, mesh);
+                transform->local_scale({ 2, 2, 2 });
+                return tao::tuple(x, y, transform, mesh);
             },
             obj_scheme.args<X>(),
-                obj_scheme.args<Y>(),
-                obj_scheme.args<transform>(-1.0f, -4.0f),
-                obj_scheme.args<mesh>((float*)vertices, (std::size_t)(num_vertices * sizeof(float) * 3), (int*)indices, (std::size_t)(num_indices * sizeof(int)), std::initializer_list<program*> { &_program })
+            obj_scheme.args<Y>(),
+            obj_scheme.args<transform>(-1.0f, -4.0f),
+            obj_scheme.args<mesh>((float*)vertices.data(), (std::size_t)(vertices.size() * sizeof(float) * 3), (int*)indices.data(), (std::size_t)(indices.size() * sizeof(int)), std::initializer_list<program*> { &_program })
         );
 
+        executor->execute_tasks();
+
+        while (!glfwWindowShouldClose(_window))
+        {
+            float ratio;
+            int width, height;
+
+            glfwGetFramebufferSize(_window, &width, &height);
+            ratio = width / (float)height;
+
+            GL_SAFE(glViewport, 0, 0, width, height);
+            GL_SAFE(glClearColor, 0.2f, 0.3f, 0.3f, 1.0f);
+            GL_SAFE(glClearDepth, 1.0f);
+            GL_SAFE(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            //std::cout << "----------------" << std::endl;
+            executor->update(updater);
             executor->execute_tasks();
+            executor->sync(updater);
 
-            while (!glfwWindowShouldClose(_window))
-            {
-                float ratio;
-                int width, height;
-
-                glfwGetFramebufferSize(_window, &width, &height);
-                ratio = width / (float)height;
-
-                glViewport(0, 0, width, height);
-                glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-                glClearDepth(1.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                //std::cout << "----------------" << std::endl;
-                executor->update(updater);
-                executor->execute_tasks();
-                executor->sync(updater);
-
-                glfwSwapBuffers(_window);
-                glfwPollEvents();
-            }
+            glfwSwapBuffers(_window);
+            glfwPollEvents();
+        }
  
         glfwDestroyWindow(_window);
         glfwTerminate();
@@ -270,87 +261,11 @@ private:
     decltype(scheme<camera>::make(store)) camera_scheme;
 };
 
-void sub_fiber(int id)
-{
-    auto h = std::hash<decltype(std::this_thread::get_id())>()(std::this_thread::get_id());
-    std::cout << (std::string("SUBFIBER ") + std::to_string(id) + " THREAD " +std::to_string(h) + "\n");
-
-    auto ctx = boost::fibers::context::active();
-    reinterpret_cast<exclusive_work_stealing<0>*>(ctx->get_scheduler())->start_bundle();
-
-    int num_fibers = 0;
-    boost::fibers::mutex mtx;
-    boost::fibers::condition_variable_any cv{};
-
-    for (int i = 0; i < 5; ++i)
-    {
-        ++num_fibers;
-
-        boost::fibers::fiber([id, i, &mtx, &cv, &num_fibers]() {
-            auto h = std::hash<decltype(std::this_thread::get_id())>()(std::this_thread::get_id());
-            std::cout << "Pre yield\n";
-            boost::this_fiber::sleep_for(std::chrono::seconds(2));
-            std::cout << (std::string("SUBFIBER ") + std::to_string(id) + std::string("STEP ") + std::to_string(i) + " THREAD " + std::to_string(h) + "\n");
-
-            mtx.lock();
-            --num_fibers;
-            mtx.unlock();
-            if (0 == num_fibers)
-            {
-                cv.notify_all();
-            }
-        }).detach();
-    }
-
-    reinterpret_cast<exclusive_work_stealing<0>*>(ctx->get_scheduler())->end_bundle();
-
-    mtx.lock();
-    cv.wait(mtx, [&num_fibers]() { return 0 == num_fibers; });
-    mtx.unlock();
-}
-
-void main_fiber()
-{
-    int num_fibers = 0;
-    boost::fibers::mutex mtx;
-    boost::fibers::condition_variable_any cv{};
-
-    for (int i = 0; i < 2; ++i)
-    {
-        ++num_fibers;
-
-        boost::fibers::fiber([i, &mtx, &cv, &num_fibers]() {
-            sub_fiber(i); 
-
-            mtx.lock();
-            --num_fibers;
-            mtx.unlock();
-            if (0 == num_fibers)
-            {
-                cv.notify_all();
-            }
-        }).detach();
-    }
-
-    mtx.lock();
-    cv.wait(mtx, [&num_fibers]() { return 0 == num_fibers; });
-    mtx.unlock();
-
-    std::cout << "-------------------------------------------------------" << std::endl;
-
-    for (int i = 0; i < 4; ++i)
-    {
-        boost::fibers::fiber([i]() { sub_fiber(i); }).detach();
-    }
-
-    while (true)
-    {
-        boost::this_fiber::yield();
-    }
-}
 
 int main()
 {
+    static_assert(std::is_trivially_copyable_v<tao::tuple<int>>, "NOT TRIVIAL");
+
     quick_test test;
     test.run();
 

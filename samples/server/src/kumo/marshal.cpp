@@ -62,7 +62,7 @@ namespace kumo
     {
         if (packet->bytes_read() + sizeof_int8() >= packet->buffer_size())
         {
-            return false;;
+            return false;
         }
         data.direction = packet->read<int8_t>();
         return true;

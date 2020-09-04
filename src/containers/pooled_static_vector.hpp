@@ -12,6 +12,8 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/join.hpp>
 
+#include <tao/tuple/tuple.hpp>
+
 
 template <typename T, typename B, uint16_t InitialSize, typename Track=void>
 class pooled_static_vector
@@ -126,7 +128,7 @@ T* pooled_static_vector<T, B, InitialSize, Track>::alloc(Args&&... args)
     // Track it if necessary
     if constexpr (!std::is_same_v<Track, void>)
     {
-        static_cast<Track&>(*this).register_alloc(std::get<0>(std::forward_as_tuple(args...)), object);
+        static_cast<Track&>(*this).register_alloc(tao::get<0>(tao::forward_as_tuple(args...)), object);
     }
 
     return object;

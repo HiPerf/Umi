@@ -31,27 +31,27 @@ GLuint program::compile(GLenum type, const std::filesystem::path& path)
         return 0;
     }
 
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, (const char **)&file_mapping->addr, &file_mapping->length);
-    glCompileShader(shader);
+    GLuint shader = GL_SAFE_EX(tao::tuple(0), glCreateShader, type);
+    GL_SAFE(glShaderSource, shader, 1, (const char **)&file_mapping->addr, &file_mapping->length);
+    GL_SAFE(glCompileShader, shader);
     
     unmap_file(*file_mapping);
 
     /* Make sure the compilation was successful */
     GLint result;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+    GL_SAFE(glGetShaderiv, shader, GL_COMPILE_STATUS, &result);
     if (result == GL_FALSE)
     {
         /* get the shader info log */
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &file_mapping->length);
+        GL_SAFE(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &file_mapping->length);
         char* log = new char[file_mapping->length];
-        glGetShaderInfoLog(shader, file_mapping->length, &result, log);
+        GL_SAFE(glGetShaderInfoLog, shader, file_mapping->length, &result, log);
 
         /* print an error message and the info log */
         //LOGD("Unable to compile %s: %s", path.c_str(), log);
         delete[] log;
 
-        glDeleteShader(shader);
+        GL_SAFE(glDeleteShader, shader);
         return 0;
     }
 
@@ -61,38 +61,40 @@ GLuint program::compile(GLenum type, const std::filesystem::path& path)
 bool program::bind_attribute(const char* attrib, GLuint index)
 {
     _attribs.emplace(attrib, index);
-    glBindAttribLocation(_program, index, attrib);
+    GL_SAFE(glBindAttribLocation, _program, index, attrib);
     return true;
 }
+
+#include <iostream>
 
 bool program::link()
 {
     GLint result;
 
     /* link the program and make sure that there were no errors */
-    glLinkProgram(_program);
-    glGetProgramiv(_program, GL_LINK_STATUS, &result);
+    GL_SAFE(glLinkProgram, _program);
+    GL_SAFE(glGetProgramiv, _program, GL_LINK_STATUS, &result);
     if (result == GL_FALSE)
     {
         GLint length;
 
         /* get the program info log */
-        glGetProgramiv(_program, GL_INFO_LOG_LENGTH, &length);
+        GL_SAFE(glGetProgramiv, _program, GL_INFO_LOG_LENGTH, &length);
         char* log = new char[length];
-        glGetProgramInfoLog(_program, length, &result, log);
+        GL_SAFE(glGetProgramInfoLog, _program, length, &result, log);
 
         /* print an error message and the info log */
         //LOGD("Program linking failed: %s", log);
         delete[] log;
 
         /* delete the program */
-        glDeleteProgram(_program);
+        GL_SAFE(glDeleteProgram, _program);
         _program = 0;
     }
 
     // Before linking, bind global matrices
-    auto matrices_loc = glGetUniformBlockIndex(_program, "GlobalMatrices");
-	glUniformBlockBinding(_program, matrices_loc, GlobalMatricesIndex);
+    auto matrices_loc = GL_SAFE_EX(tao::tuple(GL_INVALID_INDEX), glGetUniformBlockIndex, _program, "GlobalMatrices");
+	GL_SAFE(glUniformBlockBinding, _program, matrices_loc, GlobalMatricesIndex);
 
     return _program != 0;
 }
@@ -115,7 +117,7 @@ void program::use_attributes()
 {
     for (auto& attr : _stored_attributes)
     {
-        glEnableVertexAttribArray(attr.pos);
-        glVertexAttribPointer(attr.pos, attr.size, attr.type, attr.normalized, attr.stride, attr.ptr);
+        GL_SAFE(glEnableVertexAttribArray, attr.pos);
+        GL_SAFE(glVertexAttribPointer, attr.pos, attr.size, attr.type, attr.normalized, attr.stride, attr.ptr);
     }
 }

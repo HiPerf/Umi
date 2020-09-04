@@ -9,11 +9,6 @@ tasks::tasks()
     thread_local_storage<tasks>::store(this);
 }
 
-void tasks::schedule(task_t&& task)
-{
-    _current_buffer->push_back(task);
-}
-
 void tasks::execute()
 {
     auto old = _current_buffer;
@@ -25,19 +20,12 @@ void tasks::execute()
 
 void tasks::execute(container_t* buffer)
 {
-    for (auto&& task : *buffer)
+    for (auto it = buffer->begin(); it != buffer->end(); ++it)
     {
-        task();
+        std::move(*it)();
     }
 
     buffer->clear();
-}
-
-void async_tasks::schedule(task_t&& task)
-{
-    std::lock_guard<boost::fibers::mutex> lock{ _mutex };
-
-    _current_buffer->push_back(task);
 }
 
 void async_tasks::execute()
