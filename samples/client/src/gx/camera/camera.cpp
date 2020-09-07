@@ -16,11 +16,16 @@ void camera::construct(const glm::vec3& scene_dimensions)
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	glBindBufferRange(GL_UNIFORM_BUFFER, GlobalMatricesIndex, _matrices_ubo, 0, sizeof(glm::mat4));
     
-    _model = glm::scale(glm::mat4(1.0), glm::vec3(2 / scene_dimensions[0], 2 / scene_dimensions[1], 2 / scene_dimensions[2]));
-    
-    _vup = glm::vec3(0, 1, 0);
-    _dir = glm::normalize(glm::vec3(-1, 0, -1)); // _vrp = (0, 0, 0) = (1, 1, 0) + (-1, -1, 0)
-    _obs = glm::vec3(1, 0, 1);
+    // Global scaling
+    _model = glm::scale(glm::mat4(1.0), 2.0f / scene_dimensions);
+
+    // Camera position
+    _obs = _model * glm::vec4(0, 349600000, 0, 1);
+    _dir = glm::normalize(_obs - glm::vec3(0, 0, 0)); // Target origin
+
+    // World up is Z
+    _right = glm::normalize(glm::cross(glm::vec3(1, 0, 0), _dir));
+    _vup = glm::cross(_dir, _right);
 
     calculate_view();
     calculate_proj();
@@ -35,15 +40,29 @@ void camera::look_towards(glm::vec3 dir)
     calculate_view();
 }
 
+void camera::look_to(glm::vec3 dir)
+{
+    _dir = -dir;
+    //_right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), _dir));
+    //_vup = glm::cross(_dir, _right);
+    calculate_view();
+}
+
+void camera::move(glm::vec3 amount)
+{
+    _obs += amount;
+    calculate_view();
+}
+
 void camera::calculate_view()
 {
-    _view = glm::lookAt(_obs, _obs + _dir, _vup);
+    _view = glm::lookAt(_obs, _obs - _dir, _vup);
     schedule();
 }
 
 void camera::calculate_proj()
 {
-    _proj = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+    _proj = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 149600000.0f * 100.0f);
     schedule();
 }
 

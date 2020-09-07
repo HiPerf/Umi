@@ -16,7 +16,7 @@ public:
 
     void scheme_created();
 
-    void sync();
+    void sync(const std::chrono::milliseconds& diff);
 
     template <template <typename...> typename S, typename... components>
     constexpr inline void scheme_information(const S<components...>& scheme)

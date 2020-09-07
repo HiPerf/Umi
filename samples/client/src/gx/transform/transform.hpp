@@ -9,10 +9,10 @@
 class transform : public entity<transform>
 {
 public:
-    void construct(float tx, float tz)
+    void construct(glm::vec3 pos)
     {
         _parent = nullptr;
-        _global = glm::translate(glm::mat4(1.0), glm::vec3(tx, 0, tz));
+        _global = glm::translate(glm::mat4(1.0), pos);
         _local = glm::mat4(1.0);
     }
 
@@ -49,6 +49,11 @@ public:
     ::ticket<entity<transform>>::ptr parent()
     {
         return _parent;
+    }
+
+    glm::vec3 position() const
+    {
+        return mat()[3];
     }
 
 private:

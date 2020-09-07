@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 template <typename F, typename... Args>
-auto inline GL_SAFE(F&& f, Args&&... args) -> decltype(f(std::forward<Args>(args)...))
+inline auto GL_SAFE(F&& f, Args&&... args) -> decltype(f(std::forward<Args>(args)...))
 {
     using ret_t = decltype(f(std::forward<Args>(args)...));
 
@@ -43,7 +43,7 @@ constexpr bool GL_SAFE_EX_impl(T x, Tuple&& t, std::index_sequence<I...>)
 }
 
 template <typename F, typename... TP, typename... Args>
-auto inline GL_SAFE_EX(tao::tuple<TP...> err, F&& f, Args&&... args) -> decltype(f(std::forward<Args>(args)...))
+inline auto GL_SAFE_EX(tao::tuple<TP...> err, F&& f, Args&&... args) -> decltype(f(std::forward<Args>(args)...))
 {
     auto x = GL_SAFE(std::forward<F>(f), std::forward<Args>(args)...);
 

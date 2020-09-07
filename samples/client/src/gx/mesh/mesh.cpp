@@ -36,7 +36,7 @@ void mesh::scheme_created()
     _transform = store<entity<transform>>::get(id());
 }
 
-void mesh::sync()
+void mesh::sync(const std::chrono::milliseconds& diff)
 {
     for (auto program : _programs)
     {
