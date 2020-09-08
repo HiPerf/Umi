@@ -5,6 +5,7 @@
 
 #include <entity/scheme.hpp>
 #include <updater/executor.hpp>
+#include <pools/thread_local_pool.hpp>
 
 #include <boost/asio.hpp>
 
@@ -31,7 +32,7 @@ namespace std
 
 constexpr uint32_t prereserved_size = 256;
 
-class server : protected executor
+class server : protected base_executor<server>
 {
     template <typename T, uint32_t S = prereserved_size> using dic = dictionary<T, entity<T>, S>;
 
@@ -41,6 +42,7 @@ public:
 public:
     server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_workers);
 
+    void on_worker_thread();
     void mainloop();
     void stop();
 
@@ -75,6 +77,12 @@ private:
     udp::socket _socket;
 
     bool _stop;
+
+    // For convinience, all pools are public
+public:
+    thread_local_pool<::kaminari::data_wrapper, 255> kaminari_data_pool;
+    thread_local_pool<::kaminari::packet, 255> kaminari_packets_pool;
+    thread_local_pool<udp::endpoint, 255> endpoints_pool;
 };
 
 
@@ -88,14 +96,14 @@ bool server::get_or_create_client(const udp::endpoint& endpoint, C&& callback)
 
     if (auto client = get_client(endpoint))
     {
-        executor::schedule([client, callback{ std::move(callback) }](){
+        base_executor<server>::schedule([client, callback{ std::move(callback) }](){
             callback(client);
         });
 
         return true;
     }
 
-    executor::create_with_callback(_client_scheme, std::move(callback),
+    base_executor<server>::create_with_callback(_client_scheme, std::move(callback),
         _client_scheme.args<client>(std::cref(endpoint)));
 
     return true;

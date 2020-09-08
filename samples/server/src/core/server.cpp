@@ -6,6 +6,8 @@
 #include <fiber/exclusive_shared_work.hpp>
 #include <fiber/yield.hpp>
 
+#include <mutex>
+#include <condition_variable>
 
 #ifdef _MSC_VER 
     #include <timeapi.h>
@@ -15,7 +17,7 @@
 
 
 server::server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_workers) :
-    executor(num_server_workers, false),
+    base_executor<server>(),
     _store(),
     _map_scheme(_map_scheme.make(_store)),
     _client_scheme(_client_scheme.make(_store)),
@@ -26,17 +28,20 @@ server::server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_wo
     _socket(_context, udp::endpoint(udp::v4(), port)),
     _stop(false)
 {
+    // Set instance
     instance = this;
 
-    // Create pools
-    singleton_pool<::kaminari::data_wrapper>::make(sizeof(::kaminari::data_wrapper));
-    singleton_pool<::kaminari::packet>::make(sizeof(::kaminari::packet));
-    singleton_pool<udp::endpoint>::make(sizeof(udp::endpoint));
+    // Spawn executor threads
+    base_executor<server>::start(num_server_workers, false);
 
     // Spawn network threads
     spawn_network_threads(num_network_workers);
 }
 
+void server::on_worker_thread()
+{
+    kaminari_packets_pool.this_thread_sinks();
+}
 
 void server::mainloop()
 {
@@ -58,15 +63,20 @@ void server::mainloop()
         _diff_mean = 0.95f * _diff_mean + 0.05f * diff.count();
 
         // Execute client inputs
-        executor::update(client_updater, update_inputs, std::ref(diff));
+        base_executor<server>::update(client_updater, update_inputs, std::ref(diff));
 
         // Update maps and execute tasks
-        executor::update(map_updater, std::ref(diff));
-        executor::sync(map_updater, std::ref(diff));
-        executor::execute_tasks();
+        base_executor<server>::update(map_updater, std::ref(diff));
+        base_executor<server>::sync(map_updater, std::ref(diff));
+        base_executor<server>::execute_tasks();
 
         // Execute client outputs
-        executor::update(client_updater, update_outputs, std::ref(diff));
+        base_executor<server>::update(client_updater, update_outputs, std::ref(diff));
+
+        // Rebalance pools
+        kaminari_data_pool.rebalance();
+        kaminari_packets_pool.rebalance();
+        endpoints_pool.rebalance();
 
         _last_tick = now;
         auto update_time = elapsed(now, std_clock_t::now());
@@ -87,7 +97,7 @@ void server::mainloop()
 void server::stop()
 {
     _stop = true;
-    executor::stop();
+    base_executor<server>::stop();
 
     for (auto& t : _network_threads)
     {
@@ -122,26 +132,42 @@ void server::send_client_outputs(client* client)
 
 void server::spawn_network_threads(uint8_t count)
 {
+    std::mutex m;
+    std::condition_variable cv;
+    uint8_t waiting = count;
+
     for (int i = 0; i < count; ++i)
     {
-        _network_threads.push_back(std::thread([this] {
+        _network_threads.push_back(std::thread([this, &waiting, &m, &cv] {
+            // This is a sink for endpoints and data
+            endpoints_pool.this_thread_sinks();
+            kaminari_data_pool.this_thread_sinks();
+
+            std::unique_lock<std::mutex> lk(m);
+            --waiting;
+            cv.notify_one();
+            lk.unlock();
+
             _context.run();
         }));
 
         handle_connections();
     }
+
+    std::unique_lock<std::mutex> lk(m);
+    cv.wait(lk, [&] { return waiting == 0; });
 }
 
 void server::handle_connections()
 {
     // Get a new buffer
-    ::kaminari::data_wrapper* buffer = singleton_pool<::kaminari::data_wrapper>::instance->get();
-    udp::endpoint* accept_endpoint = singleton_pool<udp::endpoint>::instance->get();
+    ::kaminari::data_wrapper* buffer = kaminari_data_pool.get();
+    udp::endpoint* accept_endpoint = endpoints_pool.get();
 
     _socket.async_receive_from(boost::asio::buffer(buffer->data, 500), *accept_endpoint, 0, [this, buffer, accept_endpoint](const auto& error, std::size_t bytes) {
         if (error)
         {
-            singleton_pool<::kaminari::data_wrapper>::instance->free(buffer);
+            kaminari_data_pool.release(buffer);
         }
         else
         {
@@ -152,27 +178,27 @@ void server::handle_connections()
 
             if (!client_creation)
             {
-                singleton_pool<::kaminari::data_wrapper>::instance->free(buffer);
+                kaminari_data_pool.release(buffer);
             }
         }
 
         // Handle again
-        singleton_pool<udp::endpoint>::instance->free(accept_endpoint);
+        endpoints_pool.release(accept_endpoint);
         handle_connections();
     });
 }
 
 void release_data_wrapper(::kaminari::data_wrapper* x)
 {
-    singleton_pool<::kaminari::data_wrapper>::instance->free(x);
+    server::instance->kaminari_data_pool.release(x);
 }
 
 ::kaminari::packet* get_kaminari_packet(uint16_t opcode)
 {
-    return singleton_pool<::kaminari::packet>::instance->get(opcode);
+    return server::instance->kaminari_packets_pool.get(opcode);
 }
 
 void release_kaminari_packet(::kaminari::packet* packet)
 {
-    singleton_pool<::kaminari::packet>::instance->free(packet);
+    server::instance->kaminari_packets_pool.release(packet);
 }

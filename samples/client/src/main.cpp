@@ -276,7 +276,9 @@ public:
 
     void run()
     {
-        auto executor = new ::executor(12, true);
+        auto executor = new ::executor();
+        executor->start(12, true);
+
         auto overlap_scheme = overlap(store, obj_scheme, camera_scheme);
         auto updater = overlap_scheme.make_updater(true);
 

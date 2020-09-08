@@ -10,7 +10,7 @@ class entity : public pool_item<entity<derived_t>>
 {
     template <typename D, typename E, uint16_t I, typename R> friend class pooled_static_vector;
     template <typename... types> friend class updater;
-    friend class executor;
+    template <typename D> friend class base_executor;
 
 public:
     inline entity_id_t id();

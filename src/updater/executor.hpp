@@ -15,19 +15,31 @@
 #include <list>
 
 
-class executor
+
+template <typename D>
+class base_executor;
+
+template <typename D>
+concept has_on_worker_thread = requires() {
+    { std::declval<D>().on_worker_thread() };
+};
+
+template <typename D>
+class base_executor
 {
 public:
-    static inline executor* last;
-    static inline std::list<executor*> instance;
+    static inline base_executor* last;
+    static inline std::list<base_executor*> instance;
     static constexpr std::size_t buffer_size = 1024;
 
 public:
-    executor(uint8_t num_workers, bool suspend) noexcept :
-        _threads_joined(num_workers)
+    base_executor() noexcept
     {
         last = this;
+    }
 
+    void start(uint8_t num_workers, bool suspend) noexcept
+    {
         for (uint8_t thread_id = 1; thread_id < num_workers; ++thread_id)
         {
             _workers.push_back(std::thread(
@@ -35,13 +47,16 @@ public:
                     // Set thread algo
                     public_scheduling_algorithm<exclusive_work_stealing<0>>(num_workers, suspend);
 
+                    // Custom behaviour, if any
+                    if constexpr (!std::is_same_v<D, void> && has_on_worker_thread<D>)
+                    {
+                        static_cast<D&>(*this).on_worker_thread();
+                    }
+
                     _mutex.lock();
                     // suspend main-fiber from the worker thread
                     _cv.wait(_mutex);
                     _mutex.unlock();
-
-                    // Wait all
-                    _threads_joined.wait();
                 })
             );
         }
@@ -54,7 +69,6 @@ public:
     {
         // Notify, wait and join workers
         _cv.notify_all();
-        _threads_joined.wait();
 
         for (auto& t : _workers)
         {
@@ -222,5 +236,8 @@ private:
     std::vector<std::thread> _workers;
     boost::fibers::mutex _mutex;
     boost::fibers::condition_variable_any _cv;
-    boost::fibers::barrier _threads_joined;
 };
+
+
+using executor = base_executor<void>;
+
