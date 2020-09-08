@@ -44,7 +44,7 @@ namespace kumo
     template <typename C>
     bool marshal::handle_move(::kaminari::packet_reader* packet, C* client)
     {
-        if (!check_client_status(client, InWorld))
+        if (!check_client_status(client, 0))
         {
             return handle_client_error(client, static_cast<::kumo::opcode>(packet->opcode()));
         }

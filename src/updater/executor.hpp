@@ -23,7 +23,7 @@ public:
     static constexpr std::size_t buffer_size = 1024;
 
 public:
-    executor(uint8_t num_workers, bool suspend) :
+    executor(uint8_t num_workers, bool suspend) noexcept :
         _threads_joined(num_workers)
     {
         last = this;
@@ -50,7 +50,7 @@ public:
         public_scheduling_algorithm<exclusive_work_stealing<0>>(num_workers, suspend);
     }
 
-    void stop()
+    void stop() noexcept
     {
         // Notify, wait and join workers
         _cv.notify_all();
@@ -63,12 +63,12 @@ public:
     }
 
     template <typename C>
-    void schedule(C&& callback) 
+    constexpr void schedule(C&& callback) noexcept
     {
         get_scheduler().schedule(fu2::unique_function<void()>(std::move(callback))); // ;
     }
 
-    void execute_tasks()
+    void execute_tasks() noexcept
     {
         instance.push_back(this);
 
@@ -86,7 +86,7 @@ public:
     }
 
     template <typename U, typename... Args>
-    void update(U& updater, Args&&... args)
+    constexpr void update(U& updater, Args&&... args) noexcept
     {
         instance.push_back(this);
 
@@ -99,7 +99,7 @@ public:
     }
 
     template <typename... U, typename... Args>
-    void update_many(tao::tuple<Args...>&& args, U&... updaters)
+    constexpr void update_many(tao::tuple<Args...>&& args, U&... updaters) noexcept
     {
         instance.push_back(this);
 
@@ -115,7 +115,7 @@ public:
     }
 
     template <typename U, typename... Args>
-    void sync(U& updater, Args&&... args)
+    constexpr void sync(U& updater, Args&&... args) noexcept
     {
         instance.push_back(this);
         updater.sync(std::forward<Args>(args)...);
@@ -123,13 +123,13 @@ public:
     }
 
     template <template <typename...> typename S, typename... A, typename... vecs>
-    constexpr uint64_t create(S<vecs...>& scheme, A&&... scheme_args)
+    constexpr uint64_t create(S<vecs...>& scheme, A&&... scheme_args) noexcept
     {
         return create_with_callback(scheme, [](auto&&... e) { return tao::tuple(e...); }, std::forward<A>(scheme_args)...);
     }
 
     template <template <typename...> typename S,typename... Args, typename... vecs>
-    constexpr uint64_t create_with_args(S<vecs...>& scheme, Args&&... args)
+    constexpr uint64_t create_with_args(S<vecs...>& scheme, Args&&... args) noexcept
     {
         return create_with_callback(scheme, [](auto&&... e) { return tao::tuple(e...); }, 
             scheme.template args<vecs>(std::forward<Args>(args)...)...
@@ -137,7 +137,7 @@ public:
     }
 
     template <template <typename...> typename S, typename C, typename... A, typename... vecs>
-    constexpr uint64_t create_with_callback(S<vecs...>& scheme, C&& callback, A&&... scheme_args)
+    constexpr uint64_t create_with_callback(S<vecs...>& scheme, C&& callback, A&&... scheme_args) noexcept
     {
         uint64_t id = id_generator<S<vecs...>>().next();
         return create_with_callback(id, scheme, std::move(callback), std::forward<A>(scheme_args)...);
@@ -164,7 +164,7 @@ public:
     //}
 
     template <template <typename...> typename S, typename C, typename... A, typename... vecs>
-    constexpr uint64_t create_with_callback(uint64_t id, S<vecs...>& scheme, C&& callback, A&&... scheme_args)
+    constexpr uint64_t create_with_callback(uint64_t id, S<vecs...>& scheme, C&& callback, A&&... scheme_args) noexcept
         requires (... && !std::is_lvalue_reference<A>::value)
     {
         static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
@@ -191,7 +191,7 @@ public:
 
 private:
     template <template <typename...> typename S, typename... vecs, typename T>
-    constexpr auto create(uint64_t id, S<vecs...>& scheme, T&& scheme_args)
+    constexpr auto create(uint64_t id, S<vecs...>& scheme, T&& scheme_args) noexcept
     {
         // Create by invoking with arguments
         auto entity = tao::apply([&scheme_args, &id](auto&&... args) {
@@ -205,14 +205,14 @@ private:
     }
 
 protected:
-    inline tasks& get_scheduler()
+    inline tasks& get_scheduler() noexcept
     {
         thread_local tasks ts;
         return ts;
     }
 
     template <typename T>
-    inline generator<T>& id_generator()
+    inline generator<T>& id_generator() noexcept
     {
         thread_local generator<T> gen;
         return gen;

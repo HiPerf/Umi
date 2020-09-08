@@ -96,7 +96,7 @@ bool server::get_or_create_client(const udp::endpoint& endpoint, C&& callback)
     }
 
     executor::create_with_callback(_client_scheme, std::move(callback),
-        _client_scheme.args<client>(endpoint));
+        _client_scheme.args<client>(std::cref(endpoint)));
 
     return true;
 } 

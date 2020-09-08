@@ -6,7 +6,6 @@ add_library(docos_core STATIC
     common/types.hpp
     containers/concepts.hpp
     containers/dictionary.hpp
-    containers/plain_pool.hpp
     containers/pool_item.hpp
     containers/pooled_static_vector.hpp
     containers/thread_local_tasks.cpp
@@ -23,10 +22,14 @@ add_library(docos_core STATIC
     ids/generator.hpp
     io/memmap.hpp
     io/memmap.cpp
+    pools/plain_pool.hpp
+    pools/singleton_pool.hpp
+    pools/thread_local_pool.hpp
     traits/base_dic.hpp
     traits/contains.hpp
     traits/has_type.hpp
     traits/shared_function.hpp
+    traits/tuple.hpp
     traits/without_duplicates.hpp
     updater/executor.hpp
     updater/updater.hpp

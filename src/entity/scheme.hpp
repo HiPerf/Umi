@@ -3,6 +3,7 @@
 #include "updater/updater.hpp"
 #include "traits/base_dic.hpp"
 #include "traits/has_type.hpp"
+#include "traits/tuple.hpp"
 #include "traits/without_duplicates.hpp"
 
 #include <tao/tuple/tuple.hpp>
@@ -52,66 +53,73 @@ class scheme
 public:
     tao::tuple<std::add_lvalue_reference_t<vectors>...> components;
 
-    constexpr updater<std::add_pointer_t<vectors>...> make_updater(bool contiguous_component_execution)
+    constexpr updater<std::add_pointer_t<vectors>...> make_updater(bool contiguous_component_execution) noexcept
     {
-        return updater<std::add_pointer_t<vectors>...>(contiguous_component_execution, components);
+        return updater<std::add_pointer_t<vectors>...>(contiguous_component_execution, components_ptr(tao::seq::make_index_sequence<sizeof...(vectors)> {}));
     }
 
     template <typename T>
-    constexpr inline auto get() const -> std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>
+    constexpr inline auto get() const noexcept -> std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>
     {
         using D = typename base_dic<T, tao::tuple<vectors...>>::type;
         return tao::get<std::add_lvalue_reference_t<D>>(components);
     }
 
     template <typename T>
-    constexpr inline bool has() const
+    constexpr inline bool has() const noexcept
     {
         return has_type<T, tao::tuple<vectors...>>::value;
     }
 
     template <typename T>
-    constexpr inline void require() const
+    constexpr inline void require() const noexcept
     {
         static_assert(has_type<T, tao::tuple<vectors...>>::value, "Requirement not met");
     }
 
     template <typename T, typename... Args>
-    constexpr auto args(Args&&... args) -> detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>, std::decay_t<Args>...>
+    constexpr auto args(Args&&... args) noexcept -> detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>, std::decay_t<Args>...>
     {
         using D = typename base_dic<T, tao::tuple<vectors...>>::type;
         require<D>();
 
-        return {
+        return detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>, std::decay_t<Args>...> {
             .comp = tao::get<std::add_lvalue_reference_t<D>>(components),
-            .args = tao::make_tuple(std::forward<std::decay_t<Args>>(args)...)
+            .args = tao::tuple(std::forward<std::decay_t<Args>>(args)...)
         };
     }
 
     template <typename... T, typename... D>
-    constexpr auto overlap(scheme_store<T...>& store, scheme<D...>& other)
+    constexpr auto overlap(scheme_store<T...>& store, scheme<D...>& other) noexcept
     {
         using W = without_duplicates<scheme, scheme<D..., vectors...>>;
         return W{ store };
     }
 
     template <typename... T>
-    static constexpr inline auto make(scheme_store<T...>& store)
+    static constexpr inline auto make(scheme_store<T...>& store) noexcept
     {
         using W = without_duplicates<scheme, scheme<typename scheme_store<T...>::template dic_t<vectors>...>>;
         return W{ store };
     }
 
 private:
+    template <std::size_t... I>
+    constexpr auto components_ptr(std::index_sequence<I...>) noexcept
+    {
+        return tao::tuple(&tao::get<I>(components)...);
+    }
+
+private:
     template <typename... T>
-    constexpr scheme(scheme_store<T...>& store) :
+    constexpr scheme(scheme_store<T...>& store) noexcept :
         components(store.template get<vectors>()...)
     {}
 };
 
 
 template <typename... T, typename A, typename B, typename... O>
-constexpr inline auto overlap(scheme_store<T...>& store, A&& a, B&& b, O&&... other)
+constexpr inline auto overlap(scheme_store<T...>& store, A&& a, B&& b, O&&... other) noexcept
 {
     if constexpr (sizeof...(other) == 0)
     {

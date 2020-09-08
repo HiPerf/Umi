@@ -2,7 +2,7 @@
 
 #include <kaminari/types/data_wrapper.hpp>
 
-#include <containers/plain_pool.hpp>
+#include <pools/singleton_pool.hpp>
 #include <fiber/exclusive_shared_work.hpp>
 #include <fiber/yield.hpp>
 
@@ -48,7 +48,7 @@ void server::mainloop()
     auto client_updater = _client_scheme.make_updater(true);
 
     get_or_create_client(udp::endpoint(), [](auto client) {
-        return std::tuple(client);
+        return tao::tuple(client);
     });
 
     while (!_stop)
@@ -147,7 +147,7 @@ void server::handle_connections()
         {
             bool client_creation = server::instance->get_or_create_client(*accept_endpoint, [buffer](auto client) {
                 client->received_packet(boost::intrusive_ptr<::kaminari::data_wrapper>(buffer));
-                return std::tuple(client);
+                return tao::tuple(client);
             });
 
             if (!client_creation)
