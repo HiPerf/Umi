@@ -78,6 +78,7 @@ void server::mainloop()
         kaminari_packets_pool.rebalance();
         endpoints_pool.rebalance();
 
+        // Sleep
         _last_tick = now;
         auto update_time = elapsed(now, std_clock_t::now());
         if (update_time < HeartBeat)
@@ -85,7 +86,14 @@ void server::mainloop()
             auto diff_mean = base_time(static_cast<uint64_t>(std::ceil(_diff_mean)));
             auto sleep_time = HeartBeat - update_time - (diff_mean - HeartBeat);
             std::cout << "Diff / Sleep / Mean = " << diff.count() << "/" << sleep_time.count() << "/" << _diff_mean << std::endl;
+
+#ifdef _MSC_VER
+            // SEE https://developercommunity.visualstudio.com/content/problem/58530/bogus-stdthis-threadsleep-for-implementation.html
+            // AND https://github.com/microsoft/STL/issues/718
+            Sleep(sleep_time.count());
+#else
             std::this_thread::sleep_for(sleep_time);
+#endif
         }
     }
 

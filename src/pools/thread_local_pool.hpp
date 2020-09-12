@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <boost/pool/pool.hpp>
-#include <boost/fiber/mutex.hpp>
+
 
 
 template <typename T, uint8_t max_threads>
@@ -42,7 +42,8 @@ public:
     void rebalance();
 
 private:
-    inline void decrease_worker_count() noexcept;
+    inline void decrease_worker_count(status expected) noexcept;
+    inline void decrease_worker_count_nonforced(status expected) noexcept;
     inline pool_node& get_node() noexcept;
 
 private:
@@ -53,7 +54,7 @@ private:
 
     bool _has_sink_thread;
     std::set<uint8_t> _sink_threads;
-    
+
     std::atomic<status> _status;
     std::atomic<uint8_t> _worker_count;
 };
@@ -107,13 +108,13 @@ T* thread_local_pool<T, max_threads>::get(Args&&... args)
             node.free_list.pop_back();
         }
 
-        decrease_worker_count();
+        decrease_worker_count(status::WORKING);
 
         auto object = new (ptr) T(std::forward<Args>(args)...);
         return object;
     }
 
-    decrease_worker_count();
+    decrease_worker_count_nonforced(status::WORKING);
 
     // Case B) Pool is currently rebalancing (might have ended by now, we do not care), simply alloc a new object
     // in any case, do not change status
@@ -143,19 +144,19 @@ void thread_local_pool<T, max_threads>::release(T* object)
         }
         node.freed_while_rebalancing.clear();
 
-        if (!_has_sink_thread || 
+        if (!_has_sink_thread ||
             !std::any_of(_sink_threads.begin(), _sink_threads.end(), [this](auto& val) { return _ids[val] == std::this_thread::get_id(); }))
         {
             _free_max_approx = std::max(_free_max_approx, (uint32_t)node.free_list.size());
         }
-    }
-    else
-    {
-        // Put them in a pending list
-        node.freed_while_rebalancing.push_back(object);
+
+        decrease_worker_count(status::WORKING);
+        return;
     }
 
-    decrease_worker_count();
+    // Put them in a pending list
+    node.freed_while_rebalancing.push_back(object);
+    decrease_worker_count_nonforced(status::WORKING);
 }
 
 template <typename T, uint8_t max_threads>
@@ -179,7 +180,7 @@ void thread_local_pool<T, max_threads>::this_thread_sinks()
 
 // TODO(gpascualg): Find a better place for this
 template<typename Iter, typename RandomGenerator>
-constexpr Iter select_randomly(Iter start, Iter end, RandomGenerator& g) noexcept 
+constexpr Iter select_randomly(Iter start, Iter end, RandomGenerator& g) noexcept
 {
     std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
     std::advance(start, dis(g));
@@ -234,16 +235,25 @@ void thread_local_pool<T, max_threads>::rebalance()
 }
 
 template <typename T, uint8_t max_threads>
-inline void thread_local_pool<T, max_threads>::decrease_worker_count() noexcept
+inline void thread_local_pool<T, max_threads>::decrease_worker_count(status expected) noexcept
 {
     // Change status back// We didn't change status, so do not account for us
     if (--_worker_count == 0)
     {
-        status expected_working = status::WORKING;
-        bool changed = _status.compare_exchange_strong(expected_working, status::IDLE);
+        bool changed = _status.compare_exchange_strong(expected, status::IDLE);
 
         // It might already be IDLE, if we are coming from a rebalancing state
-        assert(changed || expected_working == status::IDLE && "Changing during an unexpected state");
+        assert(changed || expected == status::IDLE && "Changing during an unexpected state");
+    }
+}
+
+template <typename T, uint8_t max_threads>
+inline void thread_local_pool<T, max_threads>::decrease_worker_count_nonforced(status expected) noexcept
+{
+    // Change status back// We didn't change status, so do not account for us
+    if (--_worker_count == 0)
+    {
+        _status.compare_exchange_strong(expected, status::IDLE);
     }
 }
 
