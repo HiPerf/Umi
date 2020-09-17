@@ -60,7 +60,7 @@ namespace kumo
     }
     bool marshal::unpack(::kaminari::packet_reader* packet, movement& data)
     {
-        if (packet->bytes_read() + sizeof_int8() >= packet->buffer_size())
+        if (packet->bytes_read() + sizeof_int8() > packet->buffer_size())
         {
             return false;
         }

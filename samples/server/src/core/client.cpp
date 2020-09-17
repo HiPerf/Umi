@@ -20,7 +20,7 @@ void client::construct(const udp::endpoint& endpoint)
 
 void client::update(update_inputs_t, const base_time& diff)
 {
-    if (!_protocol.read<kumo::marshal>(this, super_packet()))
+    if (!_protocol.read<kumo::marshal, base_time>(this, super_packet()))
     {
         // TODO(gpascualg): Disconnect client
     }

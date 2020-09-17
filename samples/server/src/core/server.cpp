@@ -179,19 +179,29 @@ void server::handle_connections()
         }
         else
         {
-            bool client_creation = server::instance->get_or_create_client(*accept_endpoint, [buffer](auto client) {
+            // Set read size
+            buffer->size = bytes;
+
+            // Create client
+            bool client_creation = server::instance->get_or_create_client(*accept_endpoint, [this, accept_endpoint, buffer](auto client) {
+                // TODO(gpascualg): This is safe, but is it the best way?
+                _clients.emplace(*accept_endpoint, client);
+                endpoints_pool.release(accept_endpoint);
+
+                // Add packet
                 client->received_packet(boost::intrusive_ptr<::kaminari::data_wrapper>(buffer));
                 return tao::tuple(client);
             });
 
+            // Free buffer it it failed
             if (!client_creation)
             {
                 kaminari_data_pool.release(buffer);
+                endpoints_pool.release(accept_endpoint);
             }
         }
 
         // Handle again
-        endpoints_pool.release(accept_endpoint);
         handle_connections();
     });
 }
