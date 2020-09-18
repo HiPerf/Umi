@@ -27,9 +27,10 @@ namespace kumo
         uint64_t id;
     };
 
-    struct spawn_data: public has_id
+    struct spawn_data
     {
     public:
+        uint64_t id;
         int8_t x;
         int8_t y;
     };

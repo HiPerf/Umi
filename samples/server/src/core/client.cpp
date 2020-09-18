@@ -20,14 +20,31 @@ void client::construct(const udp::endpoint& endpoint)
 
 void client::update(update_inputs_t, const base_time& diff)
 {
-    if (!_protocol.read<kumo::marshal, base_time>(this, super_packet()))
+    // Do nothing if it is pending disconnection
+    if (connexion_status() == basic_client::status::PENDING_DISCONNECTION)
     {
-        // TODO(gpascualg): Disconnect client
+        return;
+    }
+
+    // Read inputs
+    _protocol.read<kumo::marshal, base_time>(this, super_packet());
+
+    // Check if it needs disconnection now
+    if (connexion_status() == basic_client::status::PENDING_DISCONNECTION)
+    {
+        server::instance->disconnect_client(this);
     }
 }
 
 void client::update(update_outputs_t, const base_time& diff)
 {
+    // Do nothing if it is pending disconnection
+    if (connexion_status() == basic_client::status::PENDING_DISCONNECTION)
+    {
+        return;
+    }
+
+    // Send packet if any
     if (_protocol.update(this, super_packet()))
     {
         server::instance->send_client_outputs(this);

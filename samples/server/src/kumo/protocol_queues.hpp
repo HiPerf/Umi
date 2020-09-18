@@ -42,9 +42,13 @@ namespace kumo
         void process(uint16_t block_id, uint16_t& remaining, typename ::kaminari::detail::packets_by_block& by_block);
         template <typename D, typename T>
         void send_reliable(::kumo::opcode opcode, D&& data, T&& callback);
+        template <typename D>
+        void send_reliable(::kumo::opcode opcode, D&& data);
         void send_reliable(const boost::intrusive_ptr<::kaminari::packet>& packet);
         template <typename D, typename T>
         void send_ordered(::kumo::opcode opcode, D&& data, T&& callback);
+        template <typename D>
+        void send_ordered(::kumo::opcode opcode, D&& data);
         void send_ordered(const boost::intrusive_ptr<::kaminari::packet>& packet);
     private:
         ::kaminari::reliable_queue<::kaminari::immediate_packer<::kumo::marshal, ReliableAllocator>> _reliable;
@@ -80,7 +84,13 @@ namespace kumo
     template <typename D, typename T>
     void protocol_queues<ReliableAllocator, OrderedAllocator>::send_reliable(::kumo::opcode opcode, D&& data, T&& callback)
     {
-        _reliable.add(opcode, std::forward<D>(data), std::forward<T>(callback));
+        _reliable.add(static_cast<uint16_t>(opcode), std::forward<D>(data), std::forward<T>(callback));
+    }
+    template <class ReliableAllocator, class OrderedAllocator>
+    template <typename D>
+    void protocol_queues<ReliableAllocator, OrderedAllocator>::send_reliable(::kumo::opcode opcode, D&& data)
+    {
+        _reliable.add(static_cast<uint16_t>(opcode), std::forward<D>(data));
     }
     template <class ReliableAllocator, class OrderedAllocator>
     void protocol_queues<ReliableAllocator, OrderedAllocator>::send_reliable(const boost::intrusive_ptr<::kaminari::packet>& packet)
@@ -91,7 +101,13 @@ namespace kumo
     template <typename D, typename T>
     void protocol_queues<ReliableAllocator, OrderedAllocator>::send_ordered(::kumo::opcode opcode, D&& data, T&& callback)
     {
-        _ordered.add(opcode, std::forward<D>(data), std::forward<T>(callback));
+        _ordered.add(static_cast<uint16_t>(opcode), std::forward<D>(data), std::forward<T>(callback));
+    }
+    template <class ReliableAllocator, class OrderedAllocator>
+    template <typename D>
+    void protocol_queues<ReliableAllocator, OrderedAllocator>::send_ordered(::kumo::opcode opcode, D&& data)
+    {
+        _ordered.add(static_cast<uint16_t>(opcode), std::forward<D>(data));
     }
     template <class ReliableAllocator, class OrderedAllocator>
     void protocol_queues<ReliableAllocator, OrderedAllocator>::send_ordered(const boost::intrusive_ptr<::kaminari::packet>& packet)

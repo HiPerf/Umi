@@ -1,6 +1,7 @@
 #include "core/server.hpp"
 
 #include <kaminari/types/data_wrapper.hpp>
+#include <kumo/rpc.hpp>
 
 #include <pools/singleton_pool.hpp>
 #include <fiber/exclusive_shared_work.hpp>
@@ -62,10 +63,14 @@ void server::mainloop()
         auto diff = elapsed(_last_tick, now);
         _diff_mean = 0.95f * _diff_mean + 0.05f * diff.count();
 
+        // Execute tasks (basically, new clients and data)
+        base_executor<server>::execute_tasks();
+
+
         // Execute client inputs
         base_executor<server>::update(client_updater, update_inputs, std::ref(diff));
 
-        // Update maps and execute tasks
+        // Update maps and execute tasks (which will be maps related)
         base_executor<server>::update(map_updater, std::ref(diff));
         base_executor<server>::sync(map_updater, std::ref(diff));
         base_executor<server>::execute_tasks();
@@ -80,11 +85,11 @@ void server::mainloop()
 
         // Sleep
         _last_tick = now;
-        auto update_time = elapsed(now, std_clock_t::now());
+        auto diff_mean = base_time(static_cast<uint64_t>(std::ceil(_diff_mean)));
+        auto update_time = elapsed(now, std_clock_t::now()) + (diff_mean - HeartBeat);
         if (update_time < HeartBeat)
         {
-            auto diff_mean = base_time(static_cast<uint64_t>(std::ceil(_diff_mean)));
-            auto sleep_time = HeartBeat - update_time - (diff_mean - HeartBeat);
+            auto sleep_time = HeartBeat - update_time;
             std::cout << "Diff / Sleep / Mean = " << diff.count() << "/" << sleep_time.count() << "/" << _diff_mean << std::endl;
 
 #ifdef _MSC_VER
@@ -126,6 +131,18 @@ client* server::get_client(const udp::endpoint& endpoint) const
     }
     
     return nullptr;
+}
+
+void server::disconnect_client(client* client)
+{
+    base_executor<server>::schedule([this, ticket=client->ticket()]() {
+        if (auto client = ticket->get<class client>())
+        {
+            // TODO(gpascualg): DoCos::core could implement this functionality
+            _client_scheme.get<class client>().free(client);
+            _clients.erase(client->endpoint());
+        }
+    });
 }
 
 void server::send_client_outputs(client* client)
@@ -185,7 +202,12 @@ void server::handle_connections()
             // Create client
             bool client_creation = server::instance->get_or_create_client(*accept_endpoint, [this, accept_endpoint, buffer](auto client) {
                 // TODO(gpascualg): This is safe, but is it the best way?
-                _clients.emplace(*accept_endpoint, client);
+                if (_clients.try_emplace(*accept_endpoint, client).second)
+                {
+                    // This is a new client
+                    kumo::send_spawn(client->super_packet(), { .id = 55, .x = 1, .y = 5 });
+                }
+
                 endpoints_pool.release(accept_endpoint);
 
                 // Add packet

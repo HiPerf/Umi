@@ -49,6 +49,7 @@ public:
     client* get_client(const udp::endpoint& endpoint) const;
     template <typename C>
     bool get_or_create_client(const udp::endpoint& endpoint, C&& callback);
+    void disconnect_client(client* client);
 
     void send_client_outputs(client* client);
 
@@ -96,8 +97,13 @@ bool server::get_or_create_client(const udp::endpoint& endpoint, C&& callback)
 
     if (auto client = get_client(endpoint))
     {
-        base_executor<server>::schedule([client, callback{ std::move(callback) }](){
-            callback(client);
+        base_executor<server>::schedule([ticket=client->ticket(), callback{ std::move(callback) }](){
+            // TODO(gpascualg): What should we do in case the ticket is invalidated? 
+            // Right now it silently "fails"
+            if (auto client = ticket->get<class client>())
+            {
+                callback(client);
+            }
         });
 
         return true;
