@@ -20,8 +20,8 @@
 server::server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_workers) :
     base_executor<server>(),
     _store(),
-    _map_scheme(_map_scheme.make(_store)),
-    _client_scheme(_client_scheme.make(_store)),
+    _map_scheme(_store),
+    _client_scheme(_store),
     _last_tick(std_clock_t::now()),
     _diff_mean(static_cast<float>(HeartBeat.count())),
     _context(num_network_workers),
@@ -53,10 +53,6 @@ void server::mainloop()
     auto map_updater = _map_scheme.make_updater(false);
     auto client_updater = _client_scheme.make_updater(true);
 
-    get_or_create_client(udp::endpoint(), [](auto client) {
-        return tao::tuple(client);
-    });
-
     while (!_stop)
     {
         auto now = std_clock_t::now();
@@ -65,7 +61,6 @@ void server::mainloop()
 
         // Execute tasks (basically, new clients and data)
         base_executor<server>::execute_tasks();
-
 
         // Execute client inputs
         base_executor<server>::update(client_updater, update_inputs, std::ref(diff));
@@ -90,7 +85,7 @@ void server::mainloop()
         if (update_time < HeartBeat)
         {
             auto sleep_time = HeartBeat - update_time;
-            std::cout << "Diff / Sleep / Mean = " << diff.count() << "/" << sleep_time.count() << "/" << _diff_mean << std::endl;
+            //std::cout << "Diff / Sleep / Mean = " << diff.count() << "/" << sleep_time.count() << "/" << _diff_mean << std::endl;
 
 #ifdef _MSC_VER
             // SEE https://developercommunity.visualstudio.com/content/problem/58530/bogus-stdthis-threadsleep-for-implementation.html
@@ -135,18 +130,24 @@ client* server::get_client(const udp::endpoint& endpoint) const
 
 void server::disconnect_client(client* client)
 {
+    client->flag_disconnecting();
+
     base_executor<server>::schedule([this, ticket=client->ticket()]() {
         if (auto client = ticket->get<class client>())
         {
+            std::cout << "DISCONNECT AT " << client->endpoint() << std::endl;
+
+            _clients.erase(client->endpoint());
             // TODO(gpascualg): DoCos::core could implement this functionality
             _client_scheme.get<class client>().free(client);
-            _clients.erase(client->endpoint());
         }
     });
 }
 
 void server::send_client_outputs(client* client)
 {
+    std::cout << "SEND " << client->super_packet()->buffer().size() << "b TO " << client->endpoint() << std::endl;
+
     _socket.async_send_to(client->super_packet()->buffer(), client->endpoint(), [](const boost::system::error_code& error, std::size_t bytes) {
         if (error)
         {
@@ -190,6 +191,8 @@ void server::handle_connections()
     udp::endpoint* accept_endpoint = endpoints_pool.get();
 
     _socket.async_receive_from(boost::asio::buffer(buffer->data, 500), *accept_endpoint, 0, [this, buffer, accept_endpoint](const auto& error, std::size_t bytes) {
+        std::cout << "Incoming packet from " << *accept_endpoint << " [" << bytes << "b, " << static_cast<bool>(error) << "]" << std::endl;
+
         if (error)
         {
             kaminari_data_pool.release(buffer);
@@ -200,10 +203,12 @@ void server::handle_connections()
             buffer->size = bytes;
 
             // Create client
-            bool client_creation = server::instance->get_or_create_client(*accept_endpoint, [this, accept_endpoint, buffer](auto client) {
+            bool client_creation = server::instance->get_or_create_client(accept_endpoint, [this, accept_endpoint, buffer](auto client) {
+
                 // TODO(gpascualg): This is safe, but is it the best way?
                 if (_clients.try_emplace(*accept_endpoint, client).second)
                 {
+                    std::cout << "NEW CLIENT AT " << client->endpoint() << " (" << *accept_endpoint << ")" << std::endl;
                     // This is a new client
                     kumo::send_spawn(client->super_packet(), { .id = 55, .x = 1, .y = 5 });
                 }

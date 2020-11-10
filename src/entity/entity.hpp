@@ -5,12 +5,15 @@
 #include "containers/dictionary.hpp"
 
 
-template <typename derived_t>
-class entity : public pool_item<entity<derived_t>>
+template <typename T>
+class entity : public pool_item<entity<T>>
 {
     template <typename D, typename E, uint16_t I, typename R> friend class pooled_static_vector;
     template <typename... types> friend class updater;
     template <typename D> friend class base_executor;
+
+public:
+    using derived_t = T;
 
 public:
     inline entity_id_t id();

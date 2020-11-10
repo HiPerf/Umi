@@ -185,10 +185,10 @@ public:
 
         schedule([
             this,
-                id,
-                &scheme,
-                callback = std::move(callback),
-                ... scheme_args = std::forward<A>(scheme_args)
+            id,
+            &scheme,
+            callback = std::move(callback),
+            ... scheme_args = std::forward<A>(scheme_args)
         ] () mutable {
             // Create entities by using each allocator and arguments
             // Call callback now too
@@ -201,6 +201,38 @@ public:
         });
 
         return id;
+    }
+
+    template <template <typename...> typename S, typename P, typename C, typename... A, typename... vecs>
+    constexpr void create_with_precondition(S<vecs...>& scheme, P&& precond, C&& callback, A&&... scheme_args) noexcept
+        requires (... && !std::is_lvalue_reference<A>::value)
+    {
+        static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
+
+        schedule([
+            this,
+            &scheme,
+            precond = std::move(precond),
+            callback = std::move(callback),
+            ... scheme_args = std::forward<A>(scheme_args)
+        ] () mutable {
+            auto main_entity = precond();
+            if (main_entity)
+            {
+                tao::apply(std::move(callback), scheme.search(main_entity->id()));
+                return;
+            }
+            
+            uint64_t id = id_generator<S<vecs...>>().next();
+            // Create entities by using each allocator and arguments
+            // Call callback now too
+            auto entities = tao::apply(std::move(callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
+
+            // Notify of complete scheme creation
+            tao::apply([](auto&&... entities) {
+                (..., entities->base()->scheme_created());
+            }, std::move(entities));
+        });
     }
 
 private:

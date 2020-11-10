@@ -53,6 +53,11 @@ class scheme
 public:
     tao::tuple<std::add_lvalue_reference_t<vectors>...> components;
 
+    template <typename... T>
+    constexpr scheme(scheme_store<T...>& store) noexcept :
+        components(store.template get<vectors>()...)
+    {}
+
     constexpr updater<std::add_pointer_t<vectors>...> make_updater(bool contiguous_component_execution) noexcept
     {
         return updater<std::add_pointer_t<vectors>...>(contiguous_component_execution, components_ptr(tao::seq::make_index_sequence<sizeof...(vectors)> {}));
@@ -63,6 +68,11 @@ public:
     {
         using D = typename base_dic<T, tao::tuple<vectors...>>::type;
         return tao::get<std::add_lvalue_reference_t<D>>(components);
+    }
+
+    constexpr inline auto search(uint64_t id) const noexcept -> tao::tuple<std::add_pointer_t<typename vectors::derived_t>...>
+    {
+        return tao::tuple(get<vectors>().get_derived_or_null(id)...);
     }
 
     template <typename T>
@@ -96,27 +106,25 @@ public:
         return W{ store };
     }
 
-    template <typename... T>
-    static constexpr inline auto make(scheme_store<T...>& store) noexcept
-    {
-        using W = without_duplicates<scheme, scheme<typename scheme_store<T...>::template dic_t<vectors>...>>;
-        return W{ store };
-    }
-
 private:
     template <std::size_t... I>
     constexpr auto components_ptr(std::index_sequence<I...>) noexcept
     {
         return tao::tuple(&tao::get<I>(components)...);
     }
-
-private:
-    template <typename... T>
-    constexpr scheme(scheme_store<T...>& store) noexcept :
-        components(store.template get<vectors>()...)
-    {}
 };
 
+
+template <typename... vectors>
+struct scheme_maker
+{
+    template <typename... T>
+    inline auto constexpr operator()(scheme_store<T...>& store) noexcept
+    {
+        using W = without_duplicates<scheme, scheme<typename scheme_store<T...>::template dic_t<vectors>...>>;
+        return W{ store };
+    }
+};
 
 template <typename... T, typename A, typename B, typename... O>
 constexpr inline auto overlap(scheme_store<T...>& store, A&& a, B&& b, O&&... other) noexcept

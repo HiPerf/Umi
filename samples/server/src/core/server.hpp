@@ -48,7 +48,7 @@ public:
 
     client* get_client(const udp::endpoint& endpoint) const;
     template <typename C>
-    bool get_or_create_client(const udp::endpoint& endpoint, C&& callback);
+    bool get_or_create_client(udp::endpoint* endpoint, C&& callback);
     void disconnect_client(client* client);
 
     void send_client_outputs(client* client);
@@ -60,8 +60,8 @@ private:
 private:
     // DoCo schemes
     scheme_store<dic<map>, dic<client>> _store;
-    decltype(scheme<map>::make(_store)) _map_scheme;
-    decltype(scheme<client>::make(_store)) _client_scheme;
+    decltype(scheme_maker<map>()(_store)) _map_scheme;
+    decltype(scheme_maker<client>()(_store)) _client_scheme;
 
     // Clients
     std::unordered_map<udp::endpoint, ticket<entity<client>>> _clients;
@@ -88,29 +88,21 @@ public:
 
 
 template <typename C>
-bool server::get_or_create_client(const udp::endpoint& endpoint, C&& callback)
+bool server::get_or_create_client(udp::endpoint* endpoint, C&& callback)
 {
-    if (auto it = _blacklist.find(endpoint); it != _blacklist.end())
+    // TODO(gpascualg): This is not thread safe
+    if (auto it = _blacklist.find(*endpoint); it != _blacklist.end())
     {
         return false;
     }
 
-    if (auto client = get_client(endpoint))
-    {
-        base_executor<server>::schedule([ticket=client->ticket(), callback{ std::move(callback) }](){
-            // TODO(gpascualg): What should we do in case the ticket is invalidated? 
-            // Right now it silently "fails"
-            if (auto client = ticket->get<class client>())
-            {
-                callback(client);
-            }
-        });
-
-        return true;
-    }
-
-    base_executor<server>::create_with_callback(_client_scheme, std::move(callback),
-        _client_scheme.args<client>(std::cref(endpoint)));
+    base_executor<server>::create_with_precondition(
+        _client_scheme, 
+        [this, endpoint]() {
+            return get_client(*endpoint);
+        },
+        std::move(callback),
+        _client_scheme.args<client>(std::cref(*endpoint)));
 
     return true;
 } 

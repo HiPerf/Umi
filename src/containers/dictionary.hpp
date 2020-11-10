@@ -21,6 +21,15 @@ public:
         return nullptr;
     }
 
+    static inline typename T::derived_t* get_derived_or_null(entity_id_t id)
+    {
+        if (auto it = _tickets.find(id); it != _tickets.end())
+        {
+            return it->second->get<T>()->derived();
+        }
+        return nullptr;
+    }
+
 protected:
     static inline std::unordered_map<entity_id_t, typename ticket<T>::ptr> _tickets;
 };
@@ -30,6 +39,10 @@ class dictionary : public pooled_static_vector<T, B, InitialSize, dictionary<T, 
 {
     friend class pooled_static_vector<T, B, InitialSize, dictionary>;
     template <typename... D> friend class scheme;
+
+public:
+    using base_t = B;
+    using derived_t = T;
 
 public:
     dictionary();
