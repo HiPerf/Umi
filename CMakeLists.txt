@@ -7,6 +7,7 @@ endif()
 project(DoCoS VERSION 0.1 LANGUAGES CXX)
 
 option(BUILD_SAMPLES        "Build samples"             ON)
+option(BUILD_TESTS          "Build tests"               ON)
 option(BUILD_SAMPLE_CLIENT  "Build client sample"       OFF)
 option(BUILD_SAMPLE_SERVER  "Build server sample"       ON)
 option(Boost_USE_STATIC_LIBS "Use Boost static libs"    ON)
@@ -17,4 +18,8 @@ add_subdirectory(dep)
 
 if (BUILD_SAMPLES)
     add_subdirectory(samples)
+endif()
+
+if (BUILD_TESTS)
+    add_subdirectory(test)
 endif()

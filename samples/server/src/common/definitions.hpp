@@ -8,7 +8,7 @@ using std_clock_t = std::chrono::steady_clock;
 using sys_clock_t = std::chrono::system_clock;
 using base_time = std::chrono::milliseconds;
 
-constexpr inline uint8_t TicksPerSecond = 40;
+constexpr inline uint8_t TicksPerSecond = 20;
 constexpr inline base_time HeartBeat = base_time(base_time(std::chrono::seconds(1)).count() / TicksPerSecond);
 
 inline base_time elapsed(std_clock_t::time_point from, std_clock_t::time_point to)
