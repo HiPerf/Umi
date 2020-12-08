@@ -31,6 +31,7 @@ add_library(docos_core STATIC
     traits/shared_function.hpp
     traits/tuple.hpp
     traits/without_duplicates.hpp
+    updater/executor_registry.hpp
     updater/executor.hpp
     updater/updater.hpp
     docos.cpp)

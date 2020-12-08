@@ -4,6 +4,7 @@
 #include "containers/thread_local_tasks.hpp"
 #include "ids/generator.hpp"
 #include "traits/shared_function.hpp"
+#include "updater/executor_registry.hpp"
 #include "updater/updater.hpp"
 
 #include <boost/fiber/fiber.hpp>
@@ -25,29 +26,22 @@ concept has_on_worker_thread = requires() {
 };
 
 template <typename D>
-class base_executor
+class base_executor : public executor_registry
 {
-public:
-    static inline std::array<base_executor*, 128> instances;
-    static constexpr std::size_t buffer_size = 1024;
-
-private:
-    static inline base_executor** _current = &instances[0];
-
 public:
     base_executor() noexcept
     {
         instances[0] = this; // First entry always point to the last executor created
     }
 
-    inline base_executor* last()
+    static inline base_executor* last()
     {
-        return instances[0];
+        return (base_executor*)executor_registry::last();
     }
 
-    inline base_executor* current()
+    static inline base_executor* current()
     {
-        return *_current;
+        return (base_executor*)executor_registry::current();
     }
 
     void start(uint8_t num_workers, bool suspend) noexcept
@@ -98,12 +92,12 @@ public:
     {
         push_instance();
 
-        for (auto ts : thread_local_storage<tasks>::get())
+        for (auto ts : _tasks)
         {
             ts->execute();
         }
 
-        for (auto ts : thread_local_storage<async_tasks>::get())
+        for (auto ts : _async_tasks)
         {
             ts->execute();
         }
@@ -262,21 +256,10 @@ private:
         return entity;
     }
 
-    inline constexpr void push_instance()
-    {
-        ++_current;
-        *_current = this;
-    }
-
-    inline constexpr void pop_instance()
-    {
-        --_current;
-    }
-
 protected:
     inline tasks& get_scheduler() noexcept
     {
-        thread_local tasks ts;
+        thread_local tasks ts(this);
         return ts;
     }
 
@@ -288,6 +271,7 @@ protected:
     }
 
 private:
+    // Workers
     std::vector<std::thread> _workers;
     boost::fibers::mutex _mutex;
     boost::fibers::condition_variable_any _cv;

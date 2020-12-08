@@ -9,30 +9,8 @@
 
 #include <vector>
 
-template <typename T>
-class thread_local_storage
-{
-public:
-    using container_t = std::vector<T*>;
 
-public:
-    static inline void store(T* container)
-    {
-        _mutex.lock();
-        _containers.push_back(container);
-        _mutex.unlock();
-    }
-
-    static inline container_t& get()
-    {
-        return _containers;
-    }
-
-private:
-    static inline boost::fibers::mutex _mutex;
-    static inline container_t _containers;
-};
-
+class executor_registry;
 
 class tasks
 {
@@ -41,7 +19,7 @@ public:
     using container_t = std::vector<task_t>;
 
 public:
-    tasks() noexcept;
+    tasks(executor_registry* executor) noexcept;
 
     template <typename T>
     void schedule(T&& task) noexcept;
@@ -69,7 +47,7 @@ class async_tasks : public tasks
 {
 public:
     using tasks::tasks;
-
+    
     template <typename T>
     void schedule(T&& task) noexcept;
     void execute() noexcept;
