@@ -47,7 +47,7 @@ namespace kumo
     template <typename B, typename T>
     void broadcast_do_sth(::kaminari::broadcaster<B>* broadcaster, complex&& data, T&& callback)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::do_sth, std::forward<T>(callback));
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::do_sth, std::forward<T>(callback));
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);
@@ -56,7 +56,7 @@ namespace kumo
     template <typename B>
     void broadcast_do_sth(::kaminari::broadcaster<B>* broadcaster, complex&& data)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::do_sth);
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::do_sth);
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);
@@ -65,7 +65,7 @@ namespace kumo
     template <typename B, typename T>
     void broadcast_do_sth_single(::kaminari::broadcaster<B>* broadcaster, complex&& data, T&& callback)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::do_sth, std::forward<T>(callback));
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::do_sth, std::forward<T>(callback));
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);
@@ -74,7 +74,7 @@ namespace kumo
     template <typename B>
     void broadcast_do_sth_single(::kaminari::broadcaster<B>* broadcaster, complex&& data)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::do_sth);
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::do_sth);
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);
@@ -93,7 +93,7 @@ namespace kumo
     template <typename B, typename T>
     void broadcast_spawn(::kaminari::broadcaster<B>* broadcaster, spawn_data&& data, T&& callback)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::spawn, std::forward<T>(callback));
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::spawn, std::forward<T>(callback));
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);
@@ -102,7 +102,7 @@ namespace kumo
     template <typename B>
     void broadcast_spawn(::kaminari::broadcaster<B>* broadcaster, spawn_data&& data)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::spawn);
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::spawn);
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);
@@ -111,7 +111,7 @@ namespace kumo
     template <typename B, typename T>
     void broadcast_spawn_single(::kaminari::broadcaster<B>* broadcaster, spawn_data&& data, T&& callback)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::spawn, std::forward<T>(callback));
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::spawn, std::forward<T>(callback));
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);
@@ -120,7 +120,7 @@ namespace kumo
     template <typename B>
     void broadcast_spawn_single(::kaminari::broadcaster<B>* broadcaster, spawn_data&& data)
     {
-        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make(opcode::spawn);
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::spawn);
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);

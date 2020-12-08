@@ -24,7 +24,7 @@ public:
         _pending_updates(0)
     {}
 
-    constexpr updater(bool contiguous_component_execution, tao::tuple<types...>& components) noexcept :
+    constexpr updater(bool contiguous_component_execution, const tao::tuple<types...>& components) noexcept :
         _contiguous_component_execution(contiguous_component_execution),
         _pending_updates(0),
         _vectors(components)

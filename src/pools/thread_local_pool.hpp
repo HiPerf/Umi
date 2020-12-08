@@ -179,8 +179,9 @@ void thread_local_pool<T, max_threads>::this_thread_sinks()
 
 
 // TODO(gpascualg): Find a better place for this
+// TODO(gpascualg): Clang does not allow constexpr uniform_int
 template<typename Iter, typename RandomGenerator>
-constexpr Iter select_randomly(Iter start, Iter end, RandomGenerator& g) noexcept
+Iter select_randomly(Iter start, Iter end, RandomGenerator& g) noexcept
 {
     std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
     std::advance(start, dis(g));

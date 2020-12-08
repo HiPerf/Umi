@@ -1,3 +1,4 @@
+include(FetchContent)
 
 find_package (Python3 COMPONENTS Interpreter)
 message("Using python ${Python3_EXECUTABLE}")

@@ -19,6 +19,9 @@ public:
 
     inline typename ticket<T>::ptr ticket() { return _ticket; }
 
+protected:
+    void invalidate();
+
 private:
    typename ::ticket<T>::ptr _ticket;
 };
@@ -27,3 +30,10 @@ template <typename T>
 pool_item<T>::pool_item() :
     _ticket(nullptr)
 {}
+
+template <typename T>
+void pool_item<T>::invalidate()
+{
+    _ticket->invalidate();
+    _ticket = nullptr;
+}
