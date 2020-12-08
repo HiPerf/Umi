@@ -69,6 +69,10 @@ SCENARIO( "schemes can be created and used", "[scheme]" ) {
                 REQUIRE(client_scheme.get<client>().is_static(object));
                 REQUIRE(!client_scheme.get<client>().is_static_full());
             }
+
+            THEN( "the entity ticket points to the returned object" ) {
+                REQUIRE(object->ticket()->get() == object);
+            }
         }
 
         WHEN( "two entities are created" ) {
@@ -126,6 +130,49 @@ SCENARIO( "schemes can be created and used", "[scheme]" ) {
                 REQUIRE(client_scheme.get<client>().is_static(object1));
                 REQUIRE(client_scheme.get<client>().is_static(object2));
                 REQUIRE(!client_scheme.get<client>().is_static(object3));
+            }
+        }
+
+        WHEN( "one entity is added and then removed" ) {
+            auto object1 = alloc_one(1, client_scheme);
+            auto ticket = object1->ticket();
+            client_scheme.get<client>().free(object1);
+
+            THEN( "the ticket is no longer valid " ) {
+                REQUIRE(object1 != nullptr);
+                REQUIRE(!ticket->valid());
+                REQUIRE(ticket->get() == nullptr);
+            }
+
+            THEN( "the object can no longer be found" ) {
+                REQUIRE(tao::get<0>(client_scheme.search(1)) == nullptr);
+            }
+
+            THEN( "the dictionary size is 0" ) {
+                REQUIRE(store.get<pool_t>().size() == 0);
+            }
+        }
+
+        WHEN( "two entities are added and then the first is removed" ) {
+            auto object1 = alloc_one(1, client_scheme);
+            auto ticket1 = object1->ticket();
+
+            auto object2 = alloc_one(2, client_scheme);
+            auto ticket2 = object2->ticket();
+
+            client_scheme.get<client>().free(object1);
+
+            THEN( "the second entity has been moved to the memory space of the first" ) {
+                REQUIRE(ticket2->get() == object1);
+            }
+
+            THEN( "the first object can no longer be found, but the second can" ) {
+                REQUIRE(tao::get<0>(client_scheme.search(1)) == nullptr);
+                REQUIRE(tao::get<0>(client_scheme.search(2)) != nullptr);
+            }
+
+            THEN( "the dictionary size is 0" ) {
+                REQUIRE(store.get<pool_t>().size() == 1);
             }
         }
     }

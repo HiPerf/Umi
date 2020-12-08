@@ -76,7 +76,7 @@ private:
     {
         using E = typename std::remove_pointer<std::decay_t<decltype(vector)>>::type;
 
-        if (!E::derived_t::template has_update<std::decay_t<Args>...>())
+        if constexpr (!E::derived_t::template has_update<std::decay_t<Args>...>())
         {
             return;
         }

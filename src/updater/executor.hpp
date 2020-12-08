@@ -28,14 +28,26 @@ template <typename D>
 class base_executor
 {
 public:
-    static inline base_executor* last;
-    static inline std::list<base_executor*> instance;
+    static inline std::array<base_executor*, 128> instances;
     static constexpr std::size_t buffer_size = 1024;
+
+private:
+    static inline base_executor** _current = &instances[0];
 
 public:
     base_executor() noexcept
     {
-        last = this;
+        instances[0] = this; // First entry always point to the last executor created
+    }
+
+    inline base_executor* last()
+    {
+        return instances[0];
+    }
+
+    inline base_executor* current()
+    {
+        return *_current;
     }
 
     void start(uint8_t num_workers, bool suspend) noexcept
@@ -84,7 +96,7 @@ public:
 
     void execute_tasks() noexcept
     {
-        instance.push_back(this);
+        push_instance();
 
         for (auto ts : thread_local_storage<tasks>::get())
         {
@@ -96,26 +108,26 @@ public:
             ts->execute();
         }
 
-        instance.pop_back();
+        pop_instance();
     }
 
     template <typename U, typename... Args>
     constexpr void update(U& updater, Args&&... args) noexcept
     {
-        instance.push_back(this);
+        push_instance();
 
         boost::fibers::fiber([&updater, ...args{ std::forward<Args>(args) }]() mutable {
             updater.update(std::forward<Args>(args)...);
             updater.wait_update();
         }).join();
 
-        instance.pop_back();
+        pop_instance();
     }
 
     template <typename... U, typename... Args>
     constexpr void update_many(tao::tuple<Args...>&& args, U&... updaters) noexcept
     {
-        instance.push_back(this);
+        push_instance();
 
         boost::fibers::fiber([... updaters{ &updaters }, args{ std::forward<tao::tuple<Args...>>(args) }]() mutable {
             tao::apply([&](auto&&... args) {
@@ -125,15 +137,15 @@ public:
             (updaters->wait_update(), ...);
         }).join();
 
-        instance.pop_back();
+        pop_instance();
     }
 
     template <typename U, typename... Args>
     constexpr void sync(U& updater, Args&&... args) noexcept
     {
-        instance.push_back(this);
+        push_instance();
         updater.sync(std::forward<Args>(args)...);
-        instance.pop_back();
+        pop_instance();
     }
 
     template <template <typename...> typename S, typename... A, typename... vecs>
@@ -248,6 +260,17 @@ private:
         entity->base()->scheme_information(scheme);
 
         return entity;
+    }
+
+    inline constexpr void push_instance()
+    {
+        ++_current;
+        *_current = this;
+    }
+
+    inline constexpr void pop_instance()
+    {
+        --_current;
     }
 
 protected:
