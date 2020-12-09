@@ -3,6 +3,37 @@
 #include <kaminari/buffers/packet_reader.hpp>
 namespace kumo
 {
+    bool marshal::unpack(::kaminari::packet_reader* packet, client_handshake& data)
+    {
+        if (packet->bytes_read() + sizeof_uint32() > packet->buffer_size())
+        {
+            return false;
+        }
+        data.version = packet->read<uint32_t>();
+        return true;
+    }
+    uint8_t marshal::packet_size(const client_handshake& data)
+    {
+        (void)data;
+        return sizeof(client_handshake);
+    }
+    uint8_t marshal::sizeof_client_handshake()
+    {
+        return sizeof(client_handshake);
+    }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const status& data)
+    {
+        *packet << data.success;
+    }
+    uint8_t marshal::packet_size(const status& data)
+    {
+        (void)data;
+        return sizeof(status);
+    }
+    uint8_t marshal::sizeof_status()
+    {
+        return sizeof(status);
+    }
     void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data)
     {
         *packet << static_cast<bool>(data.x);

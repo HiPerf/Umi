@@ -19,8 +19,10 @@ endif()
 set(KUMO_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/queues.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/movement.kumo
+    ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/handshake.kumo
 )
 set(KUMO_OUTPUT_FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/kumo/config.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/marshal.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/marshal.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/rpc.hpp
@@ -40,6 +42,8 @@ add_executable(docos_sample_server
     common/definitions.hpp
     core/client.hpp
     core/client.cpp
+    core/handler.hpp
+    core/handler.cpp
     core/server.hpp
     core/server.cpp
     maps/map.hpp

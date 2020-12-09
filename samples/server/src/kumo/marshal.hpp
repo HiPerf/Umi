@@ -15,6 +15,12 @@ namespace kumo
     class marshal:public handler
     {
     public:
+        static bool unpack(::kaminari::packet_reader* packet, client_handshake& data);
+        static uint8_t packet_size(const client_handshake& data);
+        static uint8_t sizeof_client_handshake();
+        static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const status& data);
+        static uint8_t packet_size(const status& data);
+        static uint8_t sizeof_status();
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data);
         static uint8_t packet_size(const complex& data);
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const spawn_data& data);
@@ -38,13 +44,29 @@ namespace kumo
         static bool handle_packet(::kaminari::packet_reader* packet, C* client);
     private:
         template <typename C>
+        static bool handle_handshake(::kaminari::packet_reader* packet, C* client);
+        template <typename C>
         static bool handle_move(::kaminari::packet_reader* packet, C* client);
     };
 
     template <typename C>
+    bool marshal::handle_handshake(::kaminari::packet_reader* packet, C* client)
+    {
+        if (!check_client_status(client, ingame_status::new_connection))
+        {
+            return handle_client_error(client, static_cast<::kumo::opcode>(packet->opcode()));
+        }
+        ::kumo::client_handshake data;
+        if (!unpack(packet, data))
+        {
+            return false;
+        }
+        return on_handshake(client, data, packet->timestamp());
+    }
+    template <typename C>
     bool marshal::handle_move(::kaminari::packet_reader* packet, C* client)
     {
-        if (!check_client_status(client, 0))
+        if (!check_client_status(client, ingame_status::in_world))
         {
             return handle_client_error(client, static_cast<::kumo::opcode>(packet->opcode()));
         }
@@ -106,6 +128,8 @@ namespace kumo
         {
             case opcode::move:
                 return handle_move(packet, client);
+            case opcode::handshake:
+                return handle_handshake(packet, client);
             default:
                 return false;
         }

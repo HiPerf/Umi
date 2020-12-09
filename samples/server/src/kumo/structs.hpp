@@ -4,6 +4,8 @@
 #include <inttypes.h>
 namespace kumo
 {
+    struct client_handshake;
+    struct status;
     struct complex;
     struct has_id;
     struct spawn_data;
@@ -12,6 +14,18 @@ namespace kumo
 
 namespace kumo
 {
+    struct client_handshake
+    {
+    public:
+        uint32_t version;
+    };
+
+    struct status
+    {
+    public:
+        bool success;
+    };
+
     struct complex
     {
     public:
@@ -24,13 +38,13 @@ namespace kumo
     struct has_id
     {
     public:
-        uint64_t id;
+        int64_t id;
     };
 
     struct spawn_data
     {
     public:
-        uint64_t id;
+        int64_t id;
         int8_t x;
         int8_t y;
     };

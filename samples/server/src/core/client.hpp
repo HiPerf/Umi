@@ -46,13 +46,20 @@ public:
     void update(update_outputs_t, const base_time& diff);
 
     inline const udp::endpoint& endpoint() const;
+    inline ingame_status ingame_status() const;
 
 private:
     udp::endpoint _endpoint;
+    enum class ingame_status _ingame_status;
 };
 
 
 inline const udp::endpoint& client::endpoint() const
 {
     return _endpoint;
+}
+
+inline ingame_status client::ingame_status() const
+{
+    return _ingame_status;
 }

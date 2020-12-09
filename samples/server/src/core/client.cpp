@@ -1,3 +1,4 @@
+#include "common/definitions.hpp"
 #include "core/client.hpp"
 #include "core/server.hpp"
 
@@ -16,6 +17,8 @@ client::client() :
 void client::construct(const udp::endpoint& endpoint)
 {
     _endpoint = endpoint;
+    _ingame_status = ingame_status::new_connection;
+
     reset();
 }
 

@@ -45,3 +45,15 @@ struct udp_buffer
 {
     uint8_t buffer[500]; // TODO(gpascualg): MaxSize
 };
+
+
+
+
+
+// OTHER
+enum class ingame_status
+{
+    new_connection,
+    handshake_done,
+    in_world,
+};
