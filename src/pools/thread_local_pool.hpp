@@ -179,8 +179,9 @@ void thread_local_pool<T, max_threads>::this_thread_sinks()
 
 
 // TODO(gpascualg): Find a better place for this
+// TODO(gpascualg): Clang does not allow constexpr uniform_int
 template<typename Iter, typename RandomGenerator>
-constexpr Iter select_randomly(Iter start, Iter end, RandomGenerator& g) noexcept
+Iter select_randomly(Iter start, Iter end, RandomGenerator& g) noexcept
 {
     std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
     std::advance(start, dis(g));
@@ -237,20 +238,20 @@ void thread_local_pool<T, max_threads>::rebalance()
 template <typename T, uint8_t max_threads>
 inline void thread_local_pool<T, max_threads>::decrease_worker_count(status expected) noexcept
 {
-    // Change status back// We didn't change status, so do not account for us
+    // Change status back
     if (--_worker_count == 0)
     {
         bool changed = _status.compare_exchange_strong(expected, status::IDLE);
 
         // It might already be IDLE, if we are coming from a rebalancing state
-        assert(changed || expected == status::IDLE && "Changing during an unexpected state");
+        assert((changed || expected == status::IDLE) && "Changing during an unexpected state");
     }
 }
 
 template <typename T, uint8_t max_threads>
 inline void thread_local_pool<T, max_threads>::decrease_worker_count_nonforced(status expected) noexcept
 {
-    // Change status back// We didn't change status, so do not account for us
+    // Change status back
     if (--_worker_count == 0)
     {
         _status.compare_exchange_strong(expected, status::IDLE);

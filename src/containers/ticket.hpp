@@ -11,6 +11,8 @@ template <typename T>
 class ticket
 {
     template <typename D, typename E, uint16_t I, typename R> friend class pooled_static_vector;
+    template <typename D> friend class pool_item;
+
     template <typename D> friend void intrusive_ptr_add_ref(ticket<D>* x);
     template <typename D> friend void intrusive_ptr_release(ticket<D>* x);
 

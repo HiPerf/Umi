@@ -4,6 +4,7 @@
 #include "containers/thread_local_tasks.hpp"
 #include "ids/generator.hpp"
 #include "traits/shared_function.hpp"
+#include "updater/executor_registry.hpp"
 #include "updater/updater.hpp"
 
 #include <boost/fiber/fiber.hpp>
@@ -25,17 +26,22 @@ concept has_on_worker_thread = requires() {
 };
 
 template <typename D>
-class base_executor
+class base_executor : public executor_registry
 {
-public:
-    static inline base_executor* last;
-    static inline std::list<base_executor*> instance;
-    static constexpr std::size_t buffer_size = 1024;
-
 public:
     base_executor() noexcept
     {
-        last = this;
+        instances[0] = this; // First entry always point to the last executor created
+    }
+
+    static inline base_executor* last()
+    {
+        return (base_executor*)executor_registry::last();
+    }
+
+    static inline base_executor* current()
+    {
+        return (base_executor*)executor_registry::current();
     }
 
     void start(uint8_t num_workers, bool suspend) noexcept
@@ -84,38 +90,38 @@ public:
 
     void execute_tasks() noexcept
     {
-        instance.push_back(this);
+        push_instance();
 
-        for (auto ts : thread_local_storage<tasks>::get())
+        for (auto ts : _tasks)
         {
             ts->execute();
         }
 
-        for (auto ts : thread_local_storage<async_tasks>::get())
+        for (auto ts : _async_tasks)
         {
             ts->execute();
         }
 
-        instance.pop_back();
+        pop_instance();
     }
 
     template <typename U, typename... Args>
     constexpr void update(U& updater, Args&&... args) noexcept
     {
-        instance.push_back(this);
+        push_instance();
 
         boost::fibers::fiber([&updater, ...args{ std::forward<Args>(args) }]() mutable {
             updater.update(std::forward<Args>(args)...);
             updater.wait_update();
         }).join();
 
-        instance.pop_back();
+        pop_instance();
     }
 
     template <typename... U, typename... Args>
     constexpr void update_many(tao::tuple<Args...>&& args, U&... updaters) noexcept
     {
-        instance.push_back(this);
+        push_instance();
 
         boost::fibers::fiber([... updaters{ &updaters }, args{ std::forward<tao::tuple<Args...>>(args) }]() mutable {
             tao::apply([&](auto&&... args) {
@@ -125,15 +131,15 @@ public:
             (updaters->wait_update(), ...);
         }).join();
 
-        instance.pop_back();
+        pop_instance();
     }
 
     template <typename U, typename... Args>
     constexpr void sync(U& updater, Args&&... args) noexcept
     {
-        instance.push_back(this);
+        push_instance();
         updater.sync(std::forward<Args>(args)...);
-        instance.pop_back();
+        pop_instance();
     }
 
     template <template <typename...> typename S, typename... A, typename... vecs>
@@ -203,8 +209,8 @@ public:
         return id;
     }
 
-    template <template <typename...> typename S, typename P, typename C, typename... A, typename... vecs>
-    constexpr void create_with_precondition(S<vecs...>& scheme, P&& precond, C&& callback, A&&... scheme_args) noexcept
+    template <template <typename...> typename S, typename PC, typename CC, typename AC, typename... A, typename... vecs>
+    constexpr void create_with_precondition(S<vecs...>& scheme, PC&& precondition, CC&& created_callback, AC&& always_callback, A&&... scheme_args) noexcept
         requires (... && !std::is_lvalue_reference<A>::value)
     {
         static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
@@ -212,21 +218,25 @@ public:
         schedule([
             this,
             &scheme,
-            precond = std::move(precond),
-            callback = std::move(callback),
+            precondition = std::move(precondition),
+            created_callback = std::move(created_callback),
+            always_callback = std::move(always_callback),
             ... scheme_args = std::forward<A>(scheme_args)
         ] () mutable {
-            auto main_entity = precond();
-            if (main_entity)
+            auto optional_tuple = precondition();
+            if (optional_tuple)
             {
-                tao::apply(std::move(callback), scheme.search(main_entity->id()));
+                tao::apply(std::move(always_callback), std::move(*optional_tuple));
                 return;
             }
             
             uint64_t id = id_generator<S<vecs...>>().next();
             // Create entities by using each allocator and arguments
             // Call callback now too
-            auto entities = tao::apply(std::move(callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
+            auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
+
+            // Call the creation branch of the callback
+            tao::apply(std::move(always_callback), entities);
 
             // Notify of complete scheme creation
             tao::apply([](auto&&... entities) {
@@ -253,7 +263,7 @@ private:
 protected:
     inline tasks& get_scheduler() noexcept
     {
-        thread_local tasks ts;
+        thread_local tasks ts(this);
         return ts;
     }
 
@@ -265,6 +275,7 @@ protected:
     }
 
 private:
+    // Workers
     std::vector<std::thread> _workers;
     boost::fibers::mutex _mutex;
     boost::fibers::condition_variable_any _cv;

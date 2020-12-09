@@ -26,7 +26,7 @@ public:
 
 public:
     constexpr pooled_static_vector();
-    ~pooled_static_vector();
+    virtual ~pooled_static_vector();
 
     template <typename... Args>
     void clear(Args&&... args);
@@ -92,8 +92,8 @@ void pooled_static_vector<T, B, InitialSize, Track>::clear(Args&&... args)
     // progressively add them to said DB
     for (auto object : range())
     {
+        object->invalidate();
         static_cast<B&>(*object).destroy(std::forward<Args>(args)...);
-        object->ticket()->invalidate();
     }
 
     // Point static to start again
@@ -147,7 +147,7 @@ void pooled_static_vector<T, B, InitialSize, Track>::free(T* object, Args&&... a
 
     // Destroy obect
     static_cast<B&>(*object).destroy(std::forward<Args>(args)...);
-    object->_ticket->invalidate();
+    object->invalidate();
 
     // Free memory
     free_impl(object);

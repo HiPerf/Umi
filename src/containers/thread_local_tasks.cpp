@@ -1,12 +1,13 @@
 #include "containers/thread_local_tasks.hpp"
+#include "updater/executor_registry.hpp"
 
 #include <mutex>
 
 
-tasks::tasks() noexcept
+tasks::tasks(executor_registry* executor) noexcept
 {
     _current_buffer = &_tasks_buffer1;
-    thread_local_storage<tasks>::store(this);
+    executor->register_tasks(this);
 }
 
 void tasks::execute() noexcept
@@ -27,6 +28,7 @@ void tasks::execute(container_t* buffer) noexcept
 
     buffer->clear();
 }
+
 
 void async_tasks::execute() noexcept
 {

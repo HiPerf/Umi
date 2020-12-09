@@ -53,6 +53,8 @@ class scheme
 public:
     tao::tuple<std::add_lvalue_reference_t<vectors>...> components;
 
+    using tuple_t = tao::tuple<std::add_pointer_t<typename vectors::derived_t>...>;
+
     template <typename... T>
     constexpr scheme(scheme_store<T...>& store) noexcept :
         components(store.template get<vectors>()...)
@@ -97,6 +99,20 @@ public:
             .comp = tao::get<std::add_lvalue_reference_t<D>>(components),
             .args = tao::tuple(std::forward<std::decay_t<Args>>(args)...)
         };
+    }
+
+    template <typename T, typename... Args>
+    constexpr T* alloc(uint64_t id, detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>, std::decay_t<Args>...>&& scheme_args)
+    {
+        return tao::apply([&scheme_args, &id](auto&&... args) {
+            return scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+        }, scheme_args.args);
+    }
+
+    template <typename T>
+    constexpr void free(T* object)
+    {
+        get<T>().free(object);
     }
 
     template <typename... T, typename... D>

@@ -39,17 +39,6 @@ public:
     {
         return reinterpret_cast<derived_t*> (this);
     }
-    
-    template <typename T>
-    inline T* get()
-    {
-        if (auto ticket = store<entity<T>>::get(id()))
-        {
-            return ticket->template get<T>();
-        }
-        
-        return nullptr;
-    }
 
 private:
     template <typename... Args>
