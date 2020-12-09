@@ -27,7 +27,7 @@ SCENARIO( "schemes can be created and used", "[scheme]" ) {
             auto tuple = client_scheme.search(1);
             static_assert(tao::tuple_size<decltype(tuple)>() == 1);
 
-            THEN( "the size and capacity change" ) {
+            THEN( "the element is nullptr" ) {
                 REQUIRE( tao::get<0>(tuple) == nullptr );
             }
         }
