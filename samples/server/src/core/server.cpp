@@ -148,8 +148,7 @@ void server::disconnect_client(client* client)
             std::cout << "DISCONNECT AT " << client->endpoint() << std::endl;
 
             _clients.erase(client->endpoint());
-            // TODO(gpascualg): DoCos::core could implement this functionality
-            _client_scheme.get<class client>().free(client);
+            _client_scheme.free(client);
         }
     });
 }

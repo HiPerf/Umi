@@ -101,6 +101,20 @@ public:
         };
     }
 
+    template <typename T, typename... Args>
+    constexpr T* alloc(uint64_t id, detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>, std::decay_t<Args>...>&& scheme_args)
+    {
+        return tao::apply([&scheme_args, &id](auto&&... args) {
+            return scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+        }, scheme_args.args);
+    }
+
+    template <typename T>
+    constexpr void free(T* object)
+    {
+        get<T>().free(object);
+    }
+
     template <typename... T, typename... D>
     constexpr auto overlap(scheme_store<T...>& store, scheme<D...>& other) noexcept
     {
