@@ -7,6 +7,9 @@
 #include <updater/executor.hpp>
 #include <pools/thread_local_pool.hpp>
 
+// TODO(gpascualg): This is a test used on client creation, remove me
+#include <kumo/rpc.hpp>
+
 #include <boost/asio.hpp>
 
 #include <unordered_map>
@@ -47,11 +50,20 @@ public:
     void mainloop();
     void stop();
 
+    // UNSAFE methods, can only if:
+    //  a) Absolute certainty the object exists
+    //  b) Inside the main thread
     client* get_client(const udp::endpoint& endpoint) const;
+    map* get_map(uint64_t id) const;
+
+    // SAFE methods, to be used inside any updater
     template <typename C>
     bool get_or_create_client(udp::endpoint* endpoint, C&& callback);
-    void disconnect_client(client* client);
 
+    template <typename C>
+    void get_or_create_map(uint64_t id, C&& callback);
+    
+    void disconnect_client(client* client);
     void send_client_outputs(client* client);
 
 private:
@@ -67,6 +79,9 @@ private:
     // Clients
     std::unordered_map<udp::endpoint, ticket<entity<client>>> _clients;
     std::unordered_set<udp::endpoint> _blacklist;
+
+    // Maps
+    std::unordered_map<uint64_t, map*> _maps;
 
     // Constant timestep
     std_clock_t::time_point _last_tick;
@@ -99,11 +114,50 @@ bool server::get_or_create_client(udp::endpoint* endpoint, C&& callback)
 
     base_executor<server>::create_with_precondition(
         _client_scheme, 
-        [this, endpoint]() {
-            return get_client(*endpoint);
+        // Precondition, client might already exist
+        [this, endpoint]() -> std::optional<typename decltype(_client_scheme)::tuple_t> {
+            if (auto client = get_client(*endpoint))
+            {
+                return tao::tuple(client);
+            }
+            return std::nullopt;
         },
+        // If created, emplace it in the map
+        [this, endpoint](auto client) {
+            _clients.emplace(*endpoint, client);
+            std::cout << "NEW CLIENT AT " << client->endpoint() << " (" << *endpoint << ")" << std::endl;
+            
+            // TODO(gpascualg): This is a test, remove me
+            kumo::send_spawn(client->super_packet(), { .id = 55, .x = 1, .y = 5 });
+
+            return tao::tuple(client);
+        },
+        // Standard callback
         std::move(callback),
         _client_scheme.args<client>(std::cref(*endpoint)));
 
     return true;
+} 
+
+template <typename C>
+void server::get_or_create_map(uint64_t id, C&& callback)
+{
+    base_executor<server>::create_with_precondition(
+        _map_scheme, 
+        // Precondition, map might already exist
+        [this, id]() -> std::optional<typename decltype(_map_scheme)::tuple_t> {
+            if (auto* map = get_map(id))
+            {
+                return tao::tuple(map);
+            }
+            return std::nullopt;
+        },
+        // If created, emplace it in the map
+        [this, id](auto map) {
+            _maps.emplace(id, map);
+            return tao::tuple(map);
+        },
+        // Standard callback
+        std::move(callback),
+        _map_scheme.args<map>());
 } 

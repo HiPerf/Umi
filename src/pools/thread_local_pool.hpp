@@ -238,20 +238,20 @@ void thread_local_pool<T, max_threads>::rebalance()
 template <typename T, uint8_t max_threads>
 inline void thread_local_pool<T, max_threads>::decrease_worker_count(status expected) noexcept
 {
-    // Change status back// We didn't change status, so do not account for us
+    // Change status back
     if (--_worker_count == 0)
     {
         bool changed = _status.compare_exchange_strong(expected, status::IDLE);
 
         // It might already be IDLE, if we are coming from a rebalancing state
-        assert(changed || expected == status::IDLE && "Changing during an unexpected state");
+        assert((changed || expected == status::IDLE) && "Changing during an unexpected state");
     }
 }
 
 template <typename T, uint8_t max_threads>
 inline void thread_local_pool<T, max_threads>::decrease_worker_count_nonforced(status expected) noexcept
 {
-    // Change status back// We didn't change status, so do not account for us
+    // Change status back
     if (--_worker_count == 0)
     {
         _status.compare_exchange_strong(expected, status::IDLE);

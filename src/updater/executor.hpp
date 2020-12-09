@@ -209,8 +209,8 @@ public:
         return id;
     }
 
-    template <template <typename...> typename S, typename P, typename C, typename... A, typename... vecs>
-    constexpr void create_with_precondition(S<vecs...>& scheme, P&& precond, C&& callback, A&&... scheme_args) noexcept
+    template <template <typename...> typename S, typename PC, typename CC, typename AC, typename... A, typename... vecs>
+    constexpr void create_with_precondition(S<vecs...>& scheme, PC&& precondition, CC&& created_callback, AC&& always_callback, A&&... scheme_args) noexcept
         requires (... && !std::is_lvalue_reference<A>::value)
     {
         static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
@@ -218,21 +218,25 @@ public:
         schedule([
             this,
             &scheme,
-            precond = std::move(precond),
-            callback = std::move(callback),
+            precondition = std::move(precondition),
+            created_callback = std::move(created_callback),
+            always_callback = std::move(always_callback),
             ... scheme_args = std::forward<A>(scheme_args)
         ] () mutable {
-            auto main_entity = precond();
-            if (main_entity)
+            auto optional_tuple = precondition();
+            if (optional_tuple)
             {
-                tao::apply(std::move(callback), scheme.search(main_entity->id()));
+                tao::apply(std::move(always_callback), std::move(*optional_tuple));
                 return;
             }
             
             uint64_t id = id_generator<S<vecs...>>().next();
             // Create entities by using each allocator and arguments
             // Call callback now too
-            auto entities = tao::apply(std::move(callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
+            auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
+
+            // Call the creation branch of the callback
+            tao::apply(std::move(always_callback), entities);
 
             // Notify of complete scheme creation
             tao::apply([](auto&&... entities) {

@@ -85,7 +85,7 @@ void server::mainloop()
         if (update_time < HeartBeat)
         {
             auto sleep_time = HeartBeat - update_time;
-            //std::cout << "Diff / Sleep / Mean = " << diff.count() << "/" << sleep_time.count() << "/" << _diff_mean << std::endl;
+            std::cout << "Diff / Sleep / Mean = " << diff.count() << "/" << sleep_time.count() << "/" << _diff_mean << std::endl;
 
 #ifdef _MSC_VER
             // SEE https://developercommunity.visualstudio.com/content/problem/58530/bogus-stdthis-threadsleep-for-implementation.html
@@ -123,6 +123,16 @@ client* server::get_client(const udp::endpoint& endpoint) const
         {
             return client->derived();
         }
+    }
+    
+    return nullptr;
+}
+
+map* server::get_map(uint64_t id) const
+{
+    if (auto it = _maps.find(id); it != _maps.end())
+    {
+        return it->second;
     }
     
     return nullptr;
@@ -203,16 +213,8 @@ void server::handle_connections()
             buffer->size = bytes;
 
             // Create client
-            bool client_creation = server::instance->get_or_create_client(accept_endpoint, [this, accept_endpoint, buffer](auto client) {
-
-                // TODO(gpascualg): This is safe, but is it the best way?
-                if (_clients.try_emplace(*accept_endpoint, client).second)
-                {
-                    std::cout << "NEW CLIENT AT " << client->endpoint() << " (" << *accept_endpoint << ")" << std::endl;
-                    // This is a new client
-                    kumo::send_spawn(client->super_packet(), { .id = 55, .x = 1, .y = 5 });
-                }
-
+            bool operation_allowed = server::instance->get_or_create_client(accept_endpoint, [this, accept_endpoint, buffer](auto client) {
+                // Release buffer
                 endpoints_pool.release(accept_endpoint);
 
                 // Add packet
@@ -221,7 +223,7 @@ void server::handle_connections()
             });
 
             // Free buffer it it failed
-            if (!client_creation)
+            if (!operation_allowed)
             {
                 kaminari_data_pool.release(buffer);
                 endpoints_pool.release(accept_endpoint);

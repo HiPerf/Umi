@@ -53,6 +53,8 @@ class scheme
 public:
     tao::tuple<std::add_lvalue_reference_t<vectors>...> components;
 
+    using tuple_t = tao::tuple<std::add_pointer_t<typename vectors::derived_t>...>;
+
     template <typename... T>
     constexpr scheme(scheme_store<T...>& store) noexcept :
         components(store.template get<vectors>()...)
