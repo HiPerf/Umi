@@ -16,10 +16,12 @@ if(NOT kumo_POPULATED)
     FetchContent_Populate(kumo)
 endif()
 
+set(KUMO_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/config.json)
 set(KUMO_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/queues.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/movement.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/handshake.kumo
+    ${KUMO_CONFIG_FILE}
 )
 set(KUMO_OUTPUT_FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/config.hpp
@@ -32,11 +34,28 @@ set(KUMO_OUTPUT_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/kumo/structs.hpp
 )
 
-add_custom_command(
-    OUTPUT   ${KUMO_OUTPUT_FILES}
-    COMMAND  ${Python3_EXECUTABLE} ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/config.json
-    DEPENDS  ${KUMO_SOURCE_FILES}
-)
+if (KUMO_GENERATE_CLIENT_FILES AND EXISTS "${KUMO_CLIENT_PATH}")
+    set(KUMO_SOURCE_FILES
+        ${KUMO_SOURCE_FILES}
+        ${KUMO_CLIENT_CONFIG}
+    )
+    
+    add_custom_command(
+        OUTPUT   ${KUMO_OUTPUT_FILES}
+        COMMAND  ${Python3_EXECUTABLE} 
+            ${kumo_SOURCE_DIR}/run.py 
+                --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${KUMO_CONFIG_FILE}
+                --role client --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${KUMO_CLIENT_PATH} --lang ${KUMO_CLIENT_LANGUAGE} --config ${KUMO_CLIENT_CONFIG}
+        DEPENDS  ${KUMO_SOURCE_FILES}
+    )
+else()
+    add_custom_command(
+        OUTPUT   ${KUMO_OUTPUT_FILES}
+        COMMAND  ${Python3_EXECUTABLE} 
+            ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/config.json
+        DEPENDS  ${KUMO_SOURCE_FILES}
+    )
+endif()
 
 add_executable(docos_sample_server 
     common/definitions.hpp

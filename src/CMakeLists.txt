@@ -1,6 +1,6 @@
 find_package (Threads REQUIRED)
 
-add_library(docos_core STATIC 
+set(DOCOS_CORE_SOURCES 
     common/result_of.hpp
     common/tao.hpp
     common/types.hpp
@@ -8,6 +8,8 @@ add_library(docos_core STATIC
     containers/dictionary.hpp
     containers/pool_item.hpp
     containers/pooled_static_vector.hpp
+    containers/static_store.hpp
+    containers/store.hpp
     containers/thread_local_tasks.cpp
     containers/thread_local_tasks.hpp
     containers/ticket.hpp
@@ -35,6 +37,17 @@ add_library(docos_core STATIC
     updater/executor.hpp
     updater/updater.hpp
     docos.cpp)
+
+if (INCLUDE_MONGODB_DRIVER)
+    set(DOCOS_CORE_SOURCES 
+        ${DOCOS_CORE_SOURCES}
+        database/database.hpp
+        database/database.cpp
+        database/transaction.hpp
+        database/transaction.cpp)
+endif()
+
+add_library(docos_core STATIC ${DOCOS_CORE_SOURCES})
 
 target_link_libraries(docos_core PUBLIC Threads::Threads)
 target_compile_features(docos_core PUBLIC cxx_std_20)

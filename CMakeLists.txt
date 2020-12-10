@@ -6,12 +6,20 @@ endif()
 
 project(DoCoS VERSION 0.1 LANGUAGES CXX)
 
-option(BUILD_SAMPLES        "Build samples"             ON)
-option(BUILD_TESTS          "Build tests"               ON)
-option(BUILD_SAMPLE_CLIENT  "Build client sample"       OFF)
-option(BUILD_SAMPLE_SERVER  "Build server sample"       ON)
-option(Boost_USE_STATIC_LIBS "Use Boost static libs"    ON)
-set(BOOST_VERSION "1.73" CACHE STRING "Boost version")
+option(BUILD_SAMPLES                "Build samples"             ON)
+option(BUILD_TESTS                  "Build tests"               ON)
+option(BUILD_SAMPLE_CLIENT          "Build client sample"       OFF)
+option(BUILD_SAMPLE_SERVER          "Build server sample"       ON)
+option(INCLUDE_MONGODB_DRIVER       "Include MongoDB"           ON)
+option(KUMO_GENERATE_CLIENT_FILES   "Create Kumo client files"  OFF)
+option(Boost_USE_STATIC_LIBS        "Use Boost static libs"     ON)
+
+set(BOOST_VERSION                   "1.73"                      CACHE STRING    "Boost version")
+set(KUMO_CLIENT_PATH                ""                          CACHE PATH      "Path for Kumo to generate client code")
+set(KUMO_CLIENT_LANGUAGE            ""                          CACHE STRING    "Client target language for Kumo")
+set(KUMO_CLIENT_CONFIG              ""                          CACHE PATH      "Client config file for Kumo")
+
+set(CMAKE_CXX_STANDARD              20                          CACHE STRING    "Default C++ standard")
 
 add_subdirectory(src)
 add_subdirectory(dep)

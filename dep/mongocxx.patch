@@ -1,0 +1,160 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b2bc2a17c..83dc53721 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -318,9 +318,9 @@ add_custom_command (OUTPUT ${DIST_FILE}
+       ${ALL_DIST} ${dist_generated_depends}
+ )
+ 
+-add_custom_target (dist DEPENDS ${DIST_FILE})
++add_custom_target (dist_cxx DEPENDS ${DIST_FILE})
+ 
+-add_custom_target (distcheck DEPENDS dist
++add_custom_target (distcheck_cxx DEPENDS dist_cxx
+    COMMAND ${CMAKE_COMMAND}
+       -D CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/make_dist
+       -D CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
+diff --git a/generate_uninstall/CMakeLists.txt b/generate_uninstall/CMakeLists.txt
+index ddcdbcf6c..f92d0447c 100644
+--- a/generate_uninstall/CMakeLists.txt
++++ b/generate_uninstall/CMakeLists.txt
+@@ -54,7 +54,7 @@ if (WIN32)
+    ")
+    install (FILES "${CMAKE_CURRENT_BINARY_DIR}/${UNINSTALL_PROG}" DESTINATION "${UNINSTALL_PROG_DIR}" PERMISSIONS ${UNINSTALL_PERMISSIONS})
+ 
+-   add_custom_target (uninstall
++   add_custom_target (uninstall_cxx
+       COMMAND call "${CMAKE_CURRENT_BINARY_DIR}/${UNINSTALL_PROG}"
+    )
+ else ()
+@@ -87,7 +87,7 @@ else ()
+    ")
+    install (FILES "${CMAKE_CURRENT_BINARY_DIR}/${UNINSTALL_PROG}" DESTINATION "${UNINSTALL_PROG_DIR}" PERMISSIONS ${UNINSTALL_PERMISSIONS})
+ 
+-   add_custom_target (uninstall
++   add_custom_target (uninstall_cxx
+       COMMAND sh "${CMAKE_CURRENT_BINARY_DIR}/${UNINSTALL_PROG}"
+    )
+ endif ()
+diff --git a/src/bsoncxx/CMakeLists.txt b/src/bsoncxx/CMakeLists.txt
+index 7c79f45ba..bb1c06867 100644
+--- a/src/bsoncxx/CMakeLists.txt
++++ b/src/bsoncxx/CMakeLists.txt
+@@ -81,7 +81,14 @@ set(bsoncxx_pkg_dep "")
+ # Attempt to find libbson by new package name (without lib).
+ find_package(bson-${LIBBSON_REQUIRED_ABI_VERSION} ${LIBBSON_REQUIRED_VERSION} QUIET)
+ 
+-if(bson-${LIBBSON_REQUIRED_ABI_VERSION}_FOUND)
++if (LIBBSON_FROM_SUBPROJECT)
++  set(libbson_target bson_static)
++  set(libbson_include_directories ${LIBBSON_BINARY_DIR}/src
++    ${LIBBSON_FROM_SUBPROJECT}/src
++    ${LIBBSON_FROM_SUBPROJECT}/src/bson
++    ${LIBBSON_FROM_SUBPROJECT}/src/jsonsl)
++  set(libbson_definitions "BSON_COMPILATION;BSON_STATIC;JSONSL_PARSE_NAN")
++elseif(bson-${LIBBSON_REQUIRED_ABI_VERSION}_FOUND)
+   message ("found libbson version ${bson-${LIBBSON_REQUIRED_ABI_VERSION}_VERSION}")
+   if(NOT BSONCXX_LINK_WITH_STATIC_MONGOC)
+     set(libbson_target mongo::bson_shared)
+@@ -139,8 +146,8 @@ set(bsoncxx_sources
+ )
+ 
+ include_directories(
+-    ${CMAKE_SOURCE_DIR}/src
+-    ${CMAKE_BINARY_DIR}/src
++    ${PROJECT_SOURCE_DIR}/..
++    ${PROJECT_BINARY_DIR}/..
+ )
+ 
+ if(BSONCXX_POLY_USE_BOOST)
+@@ -171,6 +178,17 @@ else()
+ endif()
+ target_compile_definitions(bsoncxx_testing PUBLIC BSONCXX_TESTING)
+ 
++if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
++    if(BSONCXX_BUILD_SHARED)
++        target_compile_options(bsoncxx_shared PUBLIC "/Zc:__cplusplus")
++    endif()
++
++    if(BSONCXX_BUILD_STATIC)
++        target_compile_options(bsoncxx_static PUBLIC "/Zc:__cplusplus")
++    endif()
++
++    target_compile_options(bsoncxx_testing PUBLIC "/Zc:__cplusplus")
++endif()
+ 
+ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+     DESTINATION ${BSONCXX_HEADER_INSTALL_DIR}
+@@ -204,7 +222,9 @@ if(BSONCXX_BUILD_STATIC)
+ endif()
+ bsoncxx_install("${bsoncxx_target_list}" "${bsoncxx_pkg_dep}")
+ 
+-add_subdirectory(test)
++if (ENABLE_TESTS)
++    add_subdirectory(test)
++endif()
+ 
+ set_local_dist (src_bsoncxx_DIST_local
+    CMakeLists.txt
+diff --git a/src/mongocxx/CMakeLists.txt b/src/mongocxx/CMakeLists.txt
+index f67ae35f7..6f0b14dbd 100644
+--- a/src/mongocxx/CMakeLists.txt
++++ b/src/mongocxx/CMakeLists.txt
+@@ -37,7 +37,17 @@ set(mongocxx_pkg_dep "")
+ # Attempt to find libmongoc by new package name (without lib).
+ find_package(mongoc-${LIBMONGOC_REQUIRED_ABI_VERSION} ${LIBMONGOC_REQUIRED_VERSION} QUIET)
+ 
+-if(mongoc-${LIBMONGOC_REQUIRED_ABI_VERSION}_FOUND)
++if (LIBMONGOC_FROM_SUBPROJECT)
++  set(libmongoc_target mongoc_static)
++  set(libmongoc_include_directories ${LIBBSON_BINARY_DIR}/src
++    ${LIBBSON_FROM_SUBPROJECT}/src
++    ${LIBBSON_FROM_SUBPROJECT}/src/bson
++    ${LIBBSON_FROM_SUBPROJECT}/src/jsonsl
++    ${LIBMONGOC_BINARY_DIR}/src/mongoc
++    ${LIBMONGOC_FROM_SUBPROJECT}/src
++    ${LIBMONGOC_FROM_SUBPROJECT}/src/mongoc)
++  set(libmongoc_definitions "MONGOC_STATIC")
++elseif(mongoc-${LIBMONGOC_REQUIRED_ABI_VERSION}_FOUND)
+   message ("found libmongoc version ${mongoc-${LIBMONGOC_REQUIRED_ABI_VERSION}_VERSION}")
+   if(NOT MONGOCXX_LINK_WITH_STATIC_MONGOC)
+     set(libmongoc_target mongo::mongoc_shared)
+@@ -163,8 +173,8 @@ set(mongocxx_sources
+ )
+ 
+ include_directories(
+-    ${CMAKE_SOURCE_DIR}/src
+-    ${CMAKE_BINARY_DIR}/src
++    ${PROJECT_SOURCE_DIR}/..
++    ${PROJECT_BINARY_DIR}/..
+ )
+ 
+ # We define both the normal libraries and the testing-only library.  The testing-only
+@@ -196,6 +206,16 @@ target_compile_definitions(mongocxx_mocked PUBLIC MONGOCXX_TESTING)
+ 
+ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+     target_compile_options(mongocxx_mocked PRIVATE /bigobj)
++
++    if(MONGOCXX_BUILD_SHARED)
++        target_compile_options(mongocxx_shared PUBLIC "/Zc:__cplusplus")
++    endif()
++
++    if(MONGOCXX_BUILD_STATIC)
++        target_compile_options(mongocxx_static PUBLIC "/Zc:__cplusplus")
++    endif()
++
++    target_compile_options(mongocxx_mocked PUBLIC "/Zc:__cplusplus")
+ endif()
+ 
+ 
+@@ -231,7 +251,9 @@ if(MONGOCXX_BUILD_STATIC)
+ endif()
+ mongocxx_install("${mongocxx_target_list}" "${mongocxx_pkg_dep}")
+ 
+-add_subdirectory(test)
++if (ENABLE_TESTS)
++  add_subdirectory(test)
++endif()
+ 
+ set_local_dist (src_mongocxx_DIST_local
+    CMakeLists.txt
