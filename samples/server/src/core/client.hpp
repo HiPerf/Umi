@@ -48,6 +48,10 @@ public:
     inline const udp::endpoint& endpoint() const;
     inline ingame_status ingame_status() const;
 
+    inline void handshake_done();
+    inline void login_pending();
+    inline void login_done();
+
 private:
     udp::endpoint _endpoint;
     enum class ingame_status _ingame_status;
@@ -63,3 +67,19 @@ inline ingame_status client::ingame_status() const
 {
     return _ingame_status;
 }
+
+inline void client::handshake_done()
+{
+    _ingame_status = ingame_status::handshake_done;
+}
+
+inline void client::login_pending()
+{
+    _ingame_status = ingame_status::login_pending;
+}
+
+inline void client::login_done()
+{
+    _ingame_status = ingame_status::login_done;
+}
+

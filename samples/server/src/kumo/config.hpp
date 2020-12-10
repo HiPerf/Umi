@@ -2,5 +2,5 @@
 #include <inttypes.h>
 namespace kumo
 {
-    constexpr inline uint32_t VERSION = 0xb41b45ec;
+    constexpr inline uint32_t VERSION = 0x57c1ebae;
 }

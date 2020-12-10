@@ -2,3 +2,8 @@ message status
 {
     bool success;
 }
+
+message status_ex
+{
+    uint8 code;
+}

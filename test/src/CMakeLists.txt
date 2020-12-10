@@ -1,4 +1,5 @@
 add_executable(docos_test 
+    test_database_collisions.cpp
     test_scheme.cpp)
 
 target_link_libraries(docos_test PRIVATE docos_core)

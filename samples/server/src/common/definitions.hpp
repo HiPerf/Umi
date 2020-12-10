@@ -19,7 +19,11 @@ inline base_time elapsed(std_clock_t::time_point from, std_clock_t::time_point t
 
 
 
-
+// DATABASE
+enum class database_collections : uint8_t
+{
+    accounts =          0,
+};
 
 
 
@@ -55,5 +59,7 @@ enum class ingame_status
 {
     new_connection,
     handshake_done,
+    login_pending,
+    login_done,
     in_world,
 };

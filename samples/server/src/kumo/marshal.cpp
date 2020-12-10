@@ -34,6 +34,62 @@ namespace kumo
     {
         return sizeof(status);
     }
+    bool marshal::unpack(::kaminari::packet_reader* packet, login_data& data)
+    {
+        if (packet->bytes_read() + sizeof_uint8() > packet->buffer_size())
+        {
+            return false;
+        }
+        if (packet->bytes_read() + sizeof_uint8() + packet->peek<uint8_t>() > packet->buffer_size())
+        {
+            return false;
+        }
+        data.username = packet->read<std::string>();
+        if (packet->bytes_read() + sizeof_uint64() > packet->buffer_size())
+        {
+            return false;
+        }
+        data.password0 = packet->read<uint64_t>();
+        if (packet->bytes_read() + sizeof_uint64() > packet->buffer_size())
+        {
+            return false;
+        }
+        data.password1 = packet->read<uint64_t>();
+        if (packet->bytes_read() + sizeof_uint64() > packet->buffer_size())
+        {
+            return false;
+        }
+        data.password2 = packet->read<uint64_t>();
+        if (packet->bytes_read() + sizeof_uint64() > packet->buffer_size())
+        {
+            return false;
+        }
+        data.password3 = packet->read<uint64_t>();
+        return true;
+    }
+    uint8_t marshal::packet_size(const login_data& data)
+    {
+        uint8_t size = 0;
+        size += sizeof_uint8() + data.username.length();
+        size += sizeof_uint64();
+        size += sizeof_uint64();
+        size += sizeof_uint64();
+        size += sizeof_uint64();
+        return size;
+    }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const status_ex& data)
+    {
+        *packet << data.code;
+    }
+    uint8_t marshal::packet_size(const status_ex& data)
+    {
+        (void)data;
+        return sizeof(status_ex);
+    }
+    uint8_t marshal::sizeof_status_ex()
+    {
+        return sizeof(status_ex);
+    }
     void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data)
     {
         *packet << static_cast<bool>(data.x);

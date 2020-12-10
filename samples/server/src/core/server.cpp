@@ -22,11 +22,13 @@ server::server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_wo
     _store(),
     _map_scheme(_store),
     _client_scheme(_store),
+    _transaction_scheme(_store),
     _last_tick(std_clock_t::now()),
     _diff_mean(static_cast<float>(HeartBeat.count())),
     _context(num_network_workers),
     _work(boost::asio::make_work_guard(_context)),
     _socket(_context, udp::endpoint(udp::v4(), port)),
+    _database_async(2, 128),
     _stop(false)
 {
     // Set instance
@@ -119,9 +121,9 @@ client* server::get_client(const udp::endpoint& endpoint) const
 {
     if (auto it = _clients.find(endpoint); it != _clients.end())
     {
-        if (auto client = it->second.get())
+        if (auto client = it->second.get(); client->valid())
         {
-            return client->derived();
+            return client->get()->derived();
         }
     }
     
@@ -136,6 +138,18 @@ map* server::get_map(uint64_t id) const
     }
     
     return nullptr;
+}
+
+void server::create_client_transaction(uint64_t id)
+{
+    if (auto transaction = _transaction_scheme.get<class transaction>().get_derived_or_null(id))
+    {
+        transaction->unflag_deletion();
+    }
+    else
+    {
+        _transaction_scheme.alloc<class transaction>(id, static_cast<uint64_t>(base_time(std::chrono::seconds(5)).count()));
+    }
 }
 
 void server::disconnect_client(client* client)
@@ -218,7 +232,6 @@ void server::handle_connections()
 
                 // Add packet
                 client->received_packet(boost::intrusive_ptr<::kaminari::data_wrapper>(buffer));
-                return tao::tuple(client);
             });
 
             // Free buffer it it failed

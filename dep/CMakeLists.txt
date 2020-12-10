@@ -111,4 +111,35 @@ if (INCLUDE_MONGODB_DRIVER)
     target_include_directories(docos_core PUBLIC ${mongocxx_SOURCE_DIR}/src)
     target_include_directories(docos_core PUBLIC ${mongocxx_BINARY_DIR}/src)
 
+
+    # ---------------------------------
+    # ########### CRYPTOPP ############
+    # ---------------------------------
+    FetchContent_Declare(
+        cryptopp
+        GIT_REPOSITORY https://github.com/weidai11/cryptopp
+        GIT_TAG        master
+    )
+
+    FetchContent_GetProperties(cryptopp)
+    if(NOT cryptopp_POPULATED)
+        FetchContent_Populate(cryptopp)
+        
+        configure_file (
+            "${CMAKE_CURRENT_SOURCE_DIR}/cryptopp.cmake"
+            ${cryptopp_SOURCE_DIR}/CMakeLists.txt
+            COPYONLY
+        )
+        
+        configure_file (
+            "${CMAKE_CURRENT_SOURCE_DIR}/cryptopp.config.cmake.in"
+            ${cryptopp_SOURCE_DIR}/cryptopp-config.cmake
+            COPYONLY
+        )
+
+        add_subdirectory(${cryptopp_SOURCE_DIR} ${cryptopp_BINARY_DIR})
+    endif()
+
+    target_link_libraries(docos_core PUBLIC cryptopp-static)
+
 endif()

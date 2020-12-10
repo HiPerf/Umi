@@ -1,6 +1,7 @@
 #include "database/transaction.hpp"
 #include "database/database.hpp"
 #include "containers/static_store.hpp"
+#include "async/async_executor.hpp"
 
 
 transaction::collection_info::collection_info() :
@@ -8,13 +9,24 @@ transaction::collection_info::collection_info() :
     current_id(0)
 {}
 
-void transaction::construct()
+void transaction::construct(uint64_t execute_every)
 {
     _collections.clear();
+    _execute_every = execute_every;
+    _since_last_execution = 0;
+    _flagged = false;
 }
 
-void transaction::update(store_t* store)
+void transaction::update(uint64_t diff, store_t* store, async_executor_base* async)
 {
+    // Check if we have to execute
+    _since_last_execution += diff;
+    if (_since_last_execution < _execute_every)
+    {
+        return;
+    }
+    _since_last_execution = 0;
+
     // Transactions are pending when ids don't match
     for (auto& [collection, info] : _collections)
     {
@@ -29,23 +41,26 @@ void transaction::update(store_t* store)
                 continue;
             }
 
-            auto col = database::instance->get_collection(collection);
-            auto bulk = col.create_bulk_write();
-            
-            for (auto& t : transactions)
+            async->submit([&info, collection, transactions = std::move(transactions), initial_id, final_id]()
             {
-                bulk.append(t);
-            }
+                auto col = database::instance->get_collection(collection);
+                auto bulk = col.create_bulk_write();
 
-            // Send transactions
-            bulk.execute();
+                for (auto& t : transactions)
+                {
+                    bulk.append(t);
+                }
 
-            // Once we get here, they are all executed, so flag them
-            for (; initial_id != final_id; ++initial_id)
-            {
-                info.transactions[initial_id].done = true;
-                info.transactions[initial_id].pending = false;
-            }
+                // Send transactions
+                bulk.execute();
+
+                // Once we get here, they are all executed, so flag them
+                for (auto id = initial_id; id != final_id; ++id)
+                {
+                    info.transactions[id].done = true;
+                    info.transactions[id].pending = false;
+                }
+            });
         }
     }
 }
@@ -76,7 +91,7 @@ void transaction::push_dependency(uint8_t collection, uint64_t owner, uint64_t i
     transaction->pending = false;
 }
 
-std::vector<mongocxx::model::write> transaction::get_pending_operations(uint8_t collection, static_store<transaction, entity<transaction>>* store)
+std::vector<mongocxx::model::write> transaction::get_pending_operations(uint8_t collection, store_t* store)
 {
     collection_info& info = _collections[collection];
     std::vector<mongocxx::model::write> operations;

@@ -21,6 +21,7 @@ set(KUMO_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/queues.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/movement.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/handshake.kumo
+    ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/login.kumo
     ${KUMO_CONFIG_FILE}
 )
 set(KUMO_OUTPUT_FILES 
@@ -52,7 +53,7 @@ else()
     add_custom_command(
         OUTPUT   ${KUMO_OUTPUT_FILES}
         COMMAND  ${Python3_EXECUTABLE} 
-            ${kumo_SOURCE_DIR}/run.py --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/config.json
+            --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${KUMO_CONFIG_FILE}
         DEPENDS  ${KUMO_SOURCE_FILES}
     )
 endif()

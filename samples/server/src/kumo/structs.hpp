@@ -1,11 +1,14 @@
 #pragma once
 #include <optional>
 #include <vector>
+#include <string>
 #include <inttypes.h>
 namespace kumo
 {
     struct client_handshake;
     struct status;
+    struct login_data;
+    struct status_ex;
     struct complex;
     struct has_id;
     struct spawn_data;
@@ -24,6 +27,22 @@ namespace kumo
     {
     public:
         bool success;
+    };
+
+    struct login_data
+    {
+    public:
+        std::string username;
+        uint64_t password0;
+        uint64_t password1;
+        uint64_t password2;
+        uint64_t password3;
+    };
+
+    struct status_ex
+    {
+    public:
+        uint8_t code;
     };
 
     struct complex

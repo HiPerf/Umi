@@ -1,8 +1,12 @@
 #pragma once
 
+#include <boost/asio.hpp>
+
 #include "core/client.hpp"
 #include "maps/map.hpp"
 
+#include <async/async_executor.hpp>
+#include <database/transaction.hpp>
 #include <entity/scheme.hpp>
 #include <updater/executor.hpp>
 #include <pools/thread_local_pool.hpp>
@@ -10,7 +14,6 @@
 // TODO(gpascualg): This is a test used on client creation, remove me
 #include <kumo/rpc.hpp>
 
-#include <boost/asio.hpp>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -56,6 +59,8 @@ public:
     client* get_client(const udp::endpoint& endpoint) const;
     map* get_map(uint64_t id) const;
 
+    void create_client_transaction(uint64_t id);
+
     // SAFE methods, to be used inside any updater
     template <typename C>
     bool get_or_create_client(udp::endpoint* endpoint, C&& callback);
@@ -66,18 +71,27 @@ public:
     void disconnect_client(client* client);
     void send_client_outputs(client* client);
 
+    inline async_executor<(uint16_t)FiberID::DatabaseWorker>& database_async();
+    
+    template <typename F>
+    void schedule(F&& functions);
+
+    template <typename T, typename F>
+    void schedule_if(T&& ticket, F&& functions);
+
 private:
     void spawn_network_threads(uint8_t count);
     void handle_connections();
 
 private:
-    // DoCo schemes
-    scheme_store<dic<map>, dic<client>> _store;
+    // Data schemes
+    scheme_store<dic<map>, dic<client>, dic<transaction>> _store;
     decltype(scheme_maker<map>()(_store)) _map_scheme;
     decltype(scheme_maker<client>()(_store)) _client_scheme;
+    decltype(scheme_maker<transaction>()(_store)) _transaction_scheme;
 
     // Clients
-    std::unordered_map<udp::endpoint, ticket<entity<client>>> _clients;
+    std::unordered_map<udp::endpoint, ticket<entity<client>>::ptr> _clients;
     std::unordered_set<udp::endpoint> _blacklist;
 
     // Maps
@@ -92,6 +106,9 @@ private:
     boost::asio::io_context _context;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> _work;
     udp::socket _socket;
+
+    // Database
+    async_executor<(uint16_t)FiberID::DatabaseWorker> _database_async;
 
     bool _stop;
 
@@ -112,19 +129,15 @@ bool server::get_or_create_client(udp::endpoint* endpoint, C&& callback)
         return false;
     }
 
-    base_executor<server>::create_with_precondition(
+    base_executor<server>::create_with_pointer_precondition<class client>(
         _client_scheme, 
         // Precondition, client might already exist
-        [this, endpoint]() -> std::optional<typename decltype(_client_scheme)::tuple_t> {
-            if (auto client = get_client(*endpoint))
-            {
-                return tao::tuple(client);
-            }
-            return std::nullopt;
+        [this, endpoint]() {
+            return get_client(*endpoint);
         },
         // If created, emplace it in the map
         [this, endpoint](auto client) {
-            _clients.emplace(*endpoint, client);
+            _clients.emplace(*endpoint, client->ticket());
             std::cout << "NEW CLIENT AT " << client->endpoint() << " (" << *endpoint << ")" << std::endl;
             
             // TODO(gpascualg): This is a test, remove me
@@ -134,7 +147,8 @@ bool server::get_or_create_client(udp::endpoint* endpoint, C&& callback)
         },
         // Standard callback
         std::move(callback),
-        _client_scheme.args<client>(std::cref(*endpoint)));
+        _client_scheme.args<client>(std::cref(*endpoint))
+    );
 
     return true;
 } 
@@ -142,15 +156,11 @@ bool server::get_or_create_client(udp::endpoint* endpoint, C&& callback)
 template <typename C>
 void server::get_or_create_map(uint64_t id, C&& callback)
 {
-    base_executor<server>::create_with_precondition(
+    base_executor<server>::create_with_pointer_precondition<class map>(
         _map_scheme, 
         // Precondition, map might already exist
-        [this, id]() -> std::optional<typename decltype(_map_scheme)::tuple_t> {
-            if (auto* map = get_map(id))
-            {
-                return tao::tuple(map);
-            }
-            return std::nullopt;
+        [this, id]() {
+            return get_map(id);
         },
         // If created, emplace it in the map
         [this, id](auto map) {
@@ -161,3 +171,26 @@ void server::get_or_create_map(uint64_t id, C&& callback)
         std::move(callback),
         _map_scheme.args<map>());
 } 
+
+inline async_executor<(uint16_t)FiberID::DatabaseWorker>& server::database_async()
+{
+    return _database_async;
+}
+
+template <typename F>
+void server::schedule(F&& function)
+{
+    base_executor<server>::schedule(std::move(function));
+}
+
+template <typename T, typename F>
+void server::schedule_if(T&& ticket, F&& function)
+{
+    base_executor<server>::schedule([ticket, function{ std::move(function) }]()
+        {
+            if (ticket->valid())
+            {
+                function(ticket->get()->derived());
+            }
+        });
+}

@@ -1,6 +1,8 @@
 find_package (Threads REQUIRED)
 
 set(DOCOS_CORE_SOURCES 
+    async/async_executor.hpp
+    async/async_executor.cpp
     common/result_of.hpp
     common/tao.hpp
     common/types.hpp
@@ -43,6 +45,8 @@ if (INCLUDE_MONGODB_DRIVER)
         ${DOCOS_CORE_SOURCES}
         database/database.hpp
         database/database.cpp
+        database/pseudorandom_unique_id.hpp
+        database/pseudorandom_unique_id.cpp
         database/transaction.hpp
         database/transaction.cpp)
 endif()
