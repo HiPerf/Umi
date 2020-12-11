@@ -38,6 +38,7 @@ set(CORE_SOURCES
     updater/executor_registry.hpp
     updater/executor.hpp
     updater/updater.hpp
+    updater/updater_all_async.hpp
     updater/updater_batched.hpp
     updater/updater_contiguous.hpp)
 

@@ -72,8 +72,15 @@ set(SERVER_SOURCES
     database/pseudorandom_unique_id.cpp
     database/transaction.hpp
     database/transaction.cpp
+    entities/transform.hpp
+    entities/transform.cpp
+    maps/cell.hpp
+    maps/cell.cpp
     maps/map.hpp
     maps/map.cpp
+    maps/offset.hpp
+    maps/region.hpp
+    maps/region.cpp
     ${KUMO_OUTPUT_FILES})
 
 # LIBRARY

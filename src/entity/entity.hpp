@@ -12,6 +12,7 @@ class entity : public pool_item<entity<T>>
     template <typename D, typename... types> friend class updater;
     template <typename... types> friend class updater_batched;
     template <typename... types> friend class updater_contiguous;
+    template <typename... types> friend class updater_all_async;
     template <typename D> friend class base_executor;
 
 public:

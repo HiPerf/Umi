@@ -18,7 +18,7 @@
 template <typename D, typename... types>
 class updater
 {
-public:
+protected:
     constexpr updater() noexcept :
         _pending_updates(0)
     {}
@@ -28,6 +28,7 @@ public:
         _vectors(components)
     {}
 
+public:
     updater(const updater&) = delete;
     constexpr updater(updater&&) noexcept = default;
 

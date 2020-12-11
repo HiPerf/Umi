@@ -3,6 +3,7 @@
 #include "updater/updater.hpp"
 #include "updater/updater_batched.hpp"
 #include "updater/updater_contiguous.hpp"
+#include "updater/updater_all_async.hpp"
 #include "traits/base_dic.hpp"
 #include "traits/has_type.hpp"
 #include "traits/tuple.hpp"
