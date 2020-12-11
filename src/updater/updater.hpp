@@ -15,17 +15,15 @@
 
 
 
-template <typename... types>
+template <typename D, typename... types>
 class updater
 {
 public:
-    constexpr updater(bool contiguous_component_execution) noexcept :
-        _contiguous_component_execution(contiguous_component_execution),
+    constexpr updater() noexcept :
         _pending_updates(0)
     {}
 
-    constexpr updater(bool contiguous_component_execution, const tao::tuple<types...>& components) noexcept :
-        _contiguous_component_execution(contiguous_component_execution),
+    constexpr updater(const tao::tuple<types...>& components) noexcept :
         _pending_updates(0),
         _vectors(components)
     {}
@@ -59,18 +57,18 @@ public:
     }
 
     template <typename T>
-    constexpr updater<T*, types...> register_vector(T* vector) noexcept
+    constexpr auto register_vector(T* vector) noexcept
     {
-        return updater(_contiguous_component_execution, tao::tuple_cat(_vectors, tao::tuple(vector)));
+        return static_cast<D&>(*this).clone(tao::tuple_cat(_vectors, tao::tuple(vector)));
     }
 
     template <typename T>
     constexpr auto unregister_vector(T* vector) noexcept
     {
-        return updater(_contiguous_component_execution, remove_nth<index_of<T, decltype(_vectors)>>(_vectors));
+        return static_cast<D&>(*this).clone(remove_nth<index_of<T, decltype(_vectors)>>(_vectors));
     }
 
-private:
+protected:
     template <typename T, typename... Args>
     constexpr void update_impl(T* vector, Args&&... args) noexcept
     {
@@ -87,38 +85,8 @@ private:
             _updates_mutex.unlock();
 
             boost::fibers::fiber([this, vector, ...args{ std::forward<Args>(args) }]() mutable {
-                update_fiber(vector, std::forward<std::decay_t<Args>>(args)...);
+                static_cast<D&>(*this).update_fiber(vector, std::forward<std::decay_t<Args>>(args)...);
             }).detach();
-        }
-    }
-
-    template <typename T, typename... Args>
-    constexpr void update_fiber(T* vector, Args&&... args) noexcept
-    {
-        if (_contiguous_component_execution)
-        {
-            reinterpret_cast<exclusive_work_stealing<0>*>(get_scheduling_algorithm().get())->start_bundle();
-        }
-
-        for (auto obj : vector->range())
-        {
-            boost::fibers::fiber([this, obj, ...args{ std::forward<Args>(args) }]() mutable {
-                obj->base()->update(std::forward<Args>(args)...);
-                
-                _updates_mutex.lock();
-                --_pending_updates;
-                _updates_mutex.unlock();
-
-                if (_pending_updates == 0)
-                {
-                    _updates_cv.notify_all();
-                }
-            }).detach();
-        }
-
-        if (_contiguous_component_execution)
-        {
-            reinterpret_cast<exclusive_work_stealing<0>*>(get_scheduling_algorithm().get())->end_bundle();
         }
     }
 
@@ -140,7 +108,7 @@ private:
         }
     }
 
-private:
+protected:
     bool _contiguous_component_execution;
     tao::tuple<types...> _vectors;
     uint64_t _pending_updates;

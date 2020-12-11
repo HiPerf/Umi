@@ -52,9 +52,9 @@ void server::mainloop()
     timeBeginPeriod(1);
 #endif
 
-    auto map_updater = _map_scheme.make_updater(false);
-    auto client_updater = _client_scheme.make_updater(true);
-    auto transactions_updater = _transaction_scheme.make_updater(false);
+    auto map_updater = _map_scheme.make_updater<updater_batched>(1); // Each map is updated in parallel
+    auto client_updater = _client_scheme.make_updater<updater_batched>(100); // Each fiber processes up to 100 clients
+    auto transactions_updater = _transaction_scheme.make_updater<updater_batched>(100); // Each fiber processes up to 100 DB transactions
 
     while (!_stop)
     {

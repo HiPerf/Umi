@@ -1,6 +1,8 @@
 #pragma once
 
 #include "updater/updater.hpp"
+#include "updater/updater_batched.hpp"
+#include "updater/updater_contiguous.hpp"
 #include "traits/base_dic.hpp"
 #include "traits/has_type.hpp"
 #include "traits/tuple.hpp"
@@ -60,9 +62,10 @@ public:
         components(store.template get<vectors>()...)
     {}
 
-    constexpr updater<std::add_pointer_t<vectors>...> make_updater(bool contiguous_component_execution) noexcept
+    template <template <typename...> typename D, typename... Args>
+    constexpr auto make_updater(Args&&... args) noexcept
     {
-        return updater<std::add_pointer_t<vectors>...>(contiguous_component_execution, components_ptr(tao::seq::make_index_sequence<sizeof...(vectors)> {}));
+        return D<std::add_pointer_t<vectors>...>(std::forward<Args>(args)..., components_ptr(tao::seq::make_index_sequence<sizeof...(vectors)> {}));
     }
 
     template <typename T>

@@ -9,7 +9,9 @@ template <typename T>
 class entity : public pool_item<entity<T>>
 {
     template <typename D, typename E, uint16_t I, typename R> friend class pooled_static_vector;
-    template <typename... types> friend class updater;
+    template <typename D, typename... types> friend class updater;
+    template <typename... types> friend class updater_batched;
+    template <typename... types> friend class updater_contiguous;
     template <typename D> friend class base_executor;
 
 public:
