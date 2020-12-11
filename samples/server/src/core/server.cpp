@@ -140,9 +140,14 @@ map* server::get_map(uint64_t id) const
     return nullptr;
 }
 
+transaction* server::get_client_transaction(uint64_t id) const
+{
+    return _transaction_scheme.get<class transaction>().get_derived_or_null(id);
+}
+
 void server::create_client_transaction(uint64_t id)
 {
-    if (auto transaction = _transaction_scheme.get<class transaction>().get_derived_or_null(id))
+    if (auto transaction = get_client_transaction(id))
     {
         transaction->unflag_deletion();
     }
@@ -160,6 +165,15 @@ void server::disconnect_client(client* client)
         if (auto client = ticket->get<class client>())
         {
             std::cout << "DISCONNECT AT " << client->endpoint() << std::endl;
+
+            // Transactions, if any, are not immediately destroyed
+            if (auto info = client->database_information())
+            {
+                if (auto transaction = get_client_transaction(info->id))
+                {
+                    transaction->flag_deletion();
+                }
+            }
 
             _clients.erase(client->endpoint());
             _client_scheme.free(client);

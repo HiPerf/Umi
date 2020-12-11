@@ -1,5 +1,7 @@
 #pragma once
 
+#include "containers/thread_local_tasks.hpp"
+
 #include <boost/fiber/mutex.hpp>
 #include <boost/fiber/fiber.hpp>
 
@@ -32,6 +34,12 @@ public:
         return *_current;
     }
 
+    template <typename C>
+    constexpr void schedule(C&& callback) noexcept
+    {
+        get_scheduler().schedule(fu2::unique_function<void()>(std::move(callback))); // ;
+    }
+
 protected:
     inline void push_instance() noexcept
     {
@@ -42,6 +50,12 @@ protected:
     inline void pop_instance() noexcept
     {
         --_current;
+    }
+
+    inline tasks& get_scheduler() noexcept
+    {
+        thread_local tasks ts(this);
+        return ts;
     }
 
 private:

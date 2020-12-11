@@ -59,6 +59,7 @@ public:
     client* get_client(const udp::endpoint& endpoint) const;
     map* get_map(uint64_t id) const;
 
+    transaction* get_client_transaction(uint64_t id) const;
     void create_client_transaction(uint64_t id);
 
     // SAFE methods, to be used inside any updater

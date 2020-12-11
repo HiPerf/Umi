@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/tao.hpp"
-#include "containers/thread_local_tasks.hpp"
 #include "ids/generator.hpp"
 #include "traits/shared_function.hpp"
 #include "updater/executor_registry.hpp"
@@ -80,12 +79,6 @@ public:
         {
             t.join();
         }
-    }
-
-    template <typename C>
-    constexpr void schedule(C&& callback) noexcept
-    {
-        get_scheduler().schedule(fu2::unique_function<void()>(std::move(callback))); // ;
     }
 
     void execute_tasks() noexcept
@@ -333,12 +326,6 @@ private:
     }
 
 protected:
-    inline tasks& get_scheduler() noexcept
-    {
-        thread_local tasks ts(this);
-        return ts;
-    }
-
     template <typename T>
     inline generator<T>& id_generator() noexcept
     {

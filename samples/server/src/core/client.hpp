@@ -38,6 +38,12 @@ class client : public entity<client>,
         >
     >
 {
+    struct database_data
+    {
+        uint64_t id;
+        std::string username;
+    };
+
 public:
     client();
     
@@ -47,6 +53,7 @@ public:
 
     inline const udp::endpoint& endpoint() const;
     inline ingame_status ingame_status() const;
+    inline const std::optional<database_data>& database_information() const;
 
     inline void handshake_done();
     inline void login_pending();
@@ -55,6 +62,7 @@ public:
 private:
     udp::endpoint _endpoint;
     enum class ingame_status _ingame_status;
+    std::optional<database_data> _database_information;
 };
 
 
@@ -66,6 +74,11 @@ inline const udp::endpoint& client::endpoint() const
 inline ingame_status client::ingame_status() const
 {
     return _ingame_status;
+}
+
+inline const std::optional<client::database_data>& client::database_information() const
+{
+    return _database_information;
 }
 
 inline void client::handshake_done()

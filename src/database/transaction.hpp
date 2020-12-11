@@ -1,6 +1,7 @@
 #include "entity/entity.hpp"
 
 #include <boost/circular_buffer.hpp>
+#include <function2/function2.hpp>
 #include <mongocxx/model/write.hpp>
 #include <tao/tuple/tuple.hpp>
 
@@ -14,6 +15,8 @@ class async_executor_base;
 
 class transaction : public entity<transaction>
 {
+    using callable_t = fu2::unique_function<void(mongocxx::collection)>;
+
     struct transaction_info
     {
         struct dependency
@@ -24,6 +27,7 @@ class transaction : public entity<transaction>
 
         std::optional<struct dependency> dependency;
         std::optional<mongocxx::model::write> operation;
+        std::optional<callable_t> callable;
         bool pending;
         bool done;
     };
@@ -45,19 +49,21 @@ public:
     void update(uint64_t diff, store_t* store, async_executor_base* async);
 
     uint64_t push_operation(uint8_t collection, mongocxx::model::write&& operation);
+    uint64_t push_callable(uint8_t collection, callable_t&& callable);
     void push_dependency(uint8_t collection, uint64_t owner, uint64_t id);
 
     inline void flag_deletion();
     inline void unflag_deletion();
 
 private:
-    std::vector<mongocxx::model::write> get_pending_operations(uint8_t collection, store_t* store);
+    std::vector<transaction_info*> get_pending_operations(uint8_t collection, store_t* store, bool& has_non_callable_transactions);
     transaction_info* get_transaction(uint8_t collection, uint64_t id);
 
 private:
     std::unordered_map<uint8_t, collection_info> _collections;
     uint64_t _execute_every;
     uint64_t _since_last_execution;
+    std::atomic<uint8_t> _pending_callables;
     bool _flagged;
 };
 
