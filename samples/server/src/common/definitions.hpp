@@ -33,7 +33,7 @@ enum class database_collections : uint8_t
 // CONSTANTS USED FOR FIBER MANAGEMENT
 enum class FiberID
 {
-    ServerWorker =      0,  // This one CANNOT be changed, it is DoCos internal
+    ServerWorker =      0,  // This one CANNOT be changed, it is UMI internal
     NetworkWorker =     1,
     DatabaseWorker =    2
 };

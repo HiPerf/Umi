@@ -58,29 +58,42 @@ else()
     )
 endif()
 
-add_executable(docos_sample_server 
+set(SERVER_SOURCES
     common/definitions.hpp
     core/client.hpp
     core/client.cpp
     core/handler.hpp
     core/handler.cpp
     core/server.hpp
-    core/server.cpp
+    core/server.cpp    
+    database/database.hpp
+    database/database.cpp
+    database/pseudorandom_unique_id.hpp
+    database/pseudorandom_unique_id.cpp
+    database/transaction.hpp
+    database/transaction.cpp
     maps/map.hpp
     maps/map.cpp
-    ${KUMO_OUTPUT_FILES}
-    main.cpp)
+    ${KUMO_OUTPUT_FILES})
 
-target_include_directories(docos_sample_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(docos_sample_server PRIVATE docos_core)
+# LIBRARY
+add_library(umi_server_lib STATIC ${SERVER_SOURCES})
+
+target_include_directories(umi_server_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(umi_server_lib PUBLIC umi_core_lib)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_definitions(docos_sample_server PRIVATE BOOST_ASIO_DISABLE_CONCEPTS)
-    target_link_libraries(docos_sample_server PRIVATE m)
+    target_compile_definitions(umi_server_lib PUBLIC BOOST_ASIO_DISABLE_CONCEPTS)
+    target_link_libraries(umi_server_lib PUBLIC m)
 endif()
 
+# EXECUTABLE
+add_executable(umi_server main.cpp)
+target_link_libraries(umi_server PRIVATE umi_server_lib)
+
+# RESOURCES
 add_custom_command(
-    TARGET docos_sample_server POST_BUILD
+    TARGET umi_server POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory 
             ${CMAKE_CURRENT_SOURCE_DIR}/../resources
             ${CMAKE_CURRENT_BINARY_DIR}/resources)

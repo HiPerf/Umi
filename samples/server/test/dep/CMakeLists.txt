@@ -14,4 +14,4 @@ if(NOT catch2_POPULATED)
     add_subdirectory(${catch2_SOURCE_DIR} ${catch2_BINARY_DIR})
 endif()
 
-target_link_libraries(umi_core_test PUBLIC Catch2WithMain)
+target_link_libraries(umi_server_test PUBLIC Catch2WithMain)

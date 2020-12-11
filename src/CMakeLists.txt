@@ -1,6 +1,6 @@
 find_package (Threads REQUIRED)
 
-set(DOCOS_CORE_SOURCES 
+set(CORE_SOURCES 
     async/async_executor.hpp
     async/async_executor.cpp
     common/result_of.hpp
@@ -37,30 +37,18 @@ set(DOCOS_CORE_SOURCES
     traits/without_duplicates.hpp
     updater/executor_registry.hpp
     updater/executor.hpp
-    updater/updater.hpp
-    docos.cpp)
+    updater/updater.hpp)
 
-if (INCLUDE_MONGODB_DRIVER)
-    set(DOCOS_CORE_SOURCES 
-        ${DOCOS_CORE_SOURCES}
-        database/database.hpp
-        database/database.cpp
-        database/pseudorandom_unique_id.hpp
-        database/pseudorandom_unique_id.cpp
-        database/transaction.hpp
-        database/transaction.cpp)
-endif()
+add_library(umi_core_lib STATIC ${CORE_SOURCES})
 
-add_library(docos_core STATIC ${DOCOS_CORE_SOURCES})
-
-target_link_libraries(docos_core PUBLIC Threads::Threads)
-target_compile_features(docos_core PUBLIC cxx_std_20)
-target_include_directories(docos_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(umi_core_lib PUBLIC Threads::Threads)
+target_compile_features(umi_core_lib PUBLIC cxx_std_20)
+target_include_directories(umi_core_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(docos_core PUBLIC -stdlib=libc++)
-    target_link_options(docos_core INTERFACE -stdlib=libc++ -lc++abi -lc++)
+    target_compile_options(umi_core_lib PUBLIC -stdlib=libc++)
+    target_link_options(umi_core_lib INTERFACE -stdlib=libc++ -lc++abi -lc++)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_definitions(docos_core PUBLIC _UNICODE UNICODE)
-    target_compile_options(docos_core PUBLIC /MP /Zc:__cplusplus)
+    target_compile_definitions(umi_core_lib PUBLIC _UNICODE UNICODE)
+    target_compile_options(umi_core_lib PUBLIC /MP /Zc:__cplusplus)
 endif()

@@ -4,13 +4,12 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
     cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 endif()
 
-project(DoCoS VERSION 0.1 LANGUAGES CXX)
+project(Umi VERSION 0.1 LANGUAGES CXX)
 
 option(BUILD_SAMPLES                "Build samples"             ON)
 option(BUILD_TESTS                  "Build tests"               ON)
 option(BUILD_SAMPLE_CLIENT          "Build client sample"       OFF)
 option(BUILD_SAMPLE_SERVER          "Build server sample"       ON)
-option(INCLUDE_MONGODB_DRIVER       "Include MongoDB"           ON)
 option(KUMO_GENERATE_CLIENT_FILES   "Create Kumo client files"  OFF)
 option(Boost_USE_STATIC_LIBS        "Use Boost static libs"     ON)
 

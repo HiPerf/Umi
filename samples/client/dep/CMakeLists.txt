@@ -14,7 +14,7 @@ if(NOT glfw_POPULATED)
     add_subdirectory(${glfw_SOURCE_DIR} ${glfw_BINARY_DIR})
 endif()
 
-target_link_libraries(docos_sample_client PUBLIC glfw)
+target_link_libraries(umi_client_lib PUBLIC glfw)
 
 
 
@@ -30,7 +30,7 @@ if(NOT glad_POPULATED)
     add_subdirectory(${glad_SOURCE_DIR} ${glad_BINARY_DIR})
 endif()
 
-target_link_libraries(docos_sample_client PUBLIC glad)
+target_link_libraries(umi_client_lib PUBLIC glad)
 
 
 
@@ -46,5 +46,5 @@ if(NOT glm_POPULATED)
     add_subdirectory(${glm_SOURCE_DIR} ${glm_BINARY_DIR})
 endif()
 
-target_link_libraries(docos_sample_client PUBLIC glm)
+target_link_libraries(umi_client_lib PUBLIC glm)
 
