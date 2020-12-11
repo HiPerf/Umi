@@ -23,6 +23,7 @@ inline base_time elapsed(std_clock_t::time_point from, std_clock_t::time_point t
 enum class database_collections : uint8_t
 {
     accounts =          0,
+    characters =        1
 };
 
 

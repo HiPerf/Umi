@@ -1,3 +1,5 @@
+#pragma once
+
 #include "entity/entity.hpp"
 
 #include <boost/circular_buffer.hpp>
@@ -45,6 +47,18 @@ public:
     using store_t = store<transaction, entity<transaction>>;
 
 public:
+    transaction& operator=(transaction&& other)
+    {
+        _collections = std::move(other._collections);
+        _execute_every = other._execute_every;
+        _since_last_execution = other._since_last_execution;
+        _pending_callables = static_cast<uint8_t>(other._pending_callables);
+        _flagged = other._flagged;
+        _scheduled = other._scheduled;
+
+        return *this;
+    }
+
     void construct(uint64_t execute_every);
     void update(uint64_t diff, store_t* store, async_executor_base* async);
 
@@ -65,6 +79,7 @@ private:
     uint64_t _since_last_execution;
     std::atomic<uint8_t> _pending_callables;
     bool _flagged;
+    bool _scheduled;
 };
 
 inline void transaction::flag_deletion()
@@ -75,4 +90,5 @@ inline void transaction::flag_deletion()
 inline void transaction::unflag_deletion()
 {
     _flagged = false;
+    _scheduled = false;
 }

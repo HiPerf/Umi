@@ -34,11 +34,11 @@ bool handler::on_handshake(::kaminari::basic_client* kaminari_client, const ::ku
     auto client = (class client*)kaminari_client;
     client->handshake_done();
 
-    bool matching_version = data.version != ::kumo::VERSION;
+    bool matching_version = data.version == ::kumo::VERSION;
     kumo::send_handshake_response(client->super_packet(), { .success = matching_version });
 
     // Only accept latest protocol version
-    if (matching_version)
+    if (!matching_version)
     {
         server::instance->disconnect_client(client);
     }
@@ -93,10 +93,9 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
 
                 uint64_t id = static_cast<uint64_t>(user["_id"].get_int64().value);
                 
-                // Trigger transaction creation for the user and send login response
+                // Send login response
                 server::instance->schedule_if(ticket, [id](class client* client)
                     {
-                        server::instance->create_client_transaction(id);
                         kumo::send_login_response(client->super_packet(), { .code = 0 });
                     });
 

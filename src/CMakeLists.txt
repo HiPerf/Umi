@@ -37,7 +37,9 @@ set(CORE_SOURCES
     traits/without_duplicates.hpp
     updater/executor_registry.hpp
     updater/executor.hpp
-    updater/updater.hpp)
+    updater/updater.hpp
+    updater/updater_batched.hpp
+    updater/updater_contiguous.hpp)
 
 add_library(umi_core_lib STATIC ${CORE_SOURCES})
 

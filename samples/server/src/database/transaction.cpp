@@ -1,3 +1,5 @@
+#include "core/server.hpp"
+
 #include "database/transaction.hpp"
 #include "database/database.hpp"
 #include "async/async_executor.hpp"
@@ -17,12 +19,18 @@ void transaction::construct(uint64_t execute_every)
     _since_last_execution = 0;
     _pending_callables = 0;
     _flagged = false;
+    _scheduled = false;
 }
 
 void transaction::update(uint64_t diff, store_t* store, async_executor_base* async)
 {
     if (_flagged)
     {
+        if (_scheduled)
+        {
+            return;
+        }
+
         bool can_delete = true;
 
         // We will only delete if all transactions are done
@@ -37,13 +45,8 @@ void transaction::update(uint64_t diff, store_t* store, async_executor_base* asy
 
         if (can_delete)
         {
-            // TODO(gpascualg): Dispose of itself
-            if (auto executor = executor_registry::current())
-            {
-                executor->schedule([store]() 
-                    {
-                    });
-            }
+            server::instance->schedule_entity_transaction_removal(this);
+            _scheduled = true;
         }
     }
 

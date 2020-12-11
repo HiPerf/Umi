@@ -54,6 +54,7 @@ void server::mainloop()
 
     auto map_updater = _map_scheme.make_updater(false);
     auto client_updater = _client_scheme.make_updater(true);
+    auto transactions_updater = _transaction_scheme.make_updater(false);
 
     while (!_stop)
     {
@@ -67,9 +68,14 @@ void server::mainloop()
         // Execute client inputs
         base_executor<server>::update(client_updater, update_inputs, std::ref(diff));
 
-        // Update maps and execute tasks (which will be maps related)
+        // Update maps
         base_executor<server>::update(map_updater, std::ref(diff));
         base_executor<server>::sync(map_updater, std::ref(diff));
+
+        // Execute transactions
+        base_executor<server>::update(transactions_updater, static_cast<uint64_t>(diff.count()), (transaction::store_t*)&_transaction_scheme.get<transaction>(), (async_executor_base*)&database_async());
+
+        // Execute map and transactions tasks
         base_executor<server>::execute_tasks();
 
         // Execute client outputs
@@ -140,14 +146,14 @@ map* server::get_map(uint64_t id) const
     return nullptr;
 }
 
-transaction* server::get_client_transaction(uint64_t id) const
+transaction* server::get_entity_transaction(uint64_t id) const
 {
     return _transaction_scheme.get<class transaction>().get_derived_or_null(id);
 }
 
-void server::create_client_transaction(uint64_t id)
+void server::create_entity_transaction(uint64_t id)
 {
-    if (auto transaction = get_client_transaction(id))
+    if (auto transaction = get_entity_transaction(id))
     {
         transaction->unflag_deletion();
     }
@@ -155,6 +161,14 @@ void server::create_client_transaction(uint64_t id)
     {
         _transaction_scheme.alloc<class transaction>(id, static_cast<uint64_t>(base_time(std::chrono::seconds(5)).count()));
     }
+}
+
+void server::schedule_entity_transaction_removal(transaction* t)
+{
+    schedule_if(t->ticket(), [this](transaction* t)
+        {
+            _transaction_scheme.free<class transaction>(t);
+        });
 }
 
 void server::disconnect_client(client* client)
@@ -166,14 +180,15 @@ void server::disconnect_client(client* client)
         {
             std::cout << "DISCONNECT AT " << client->endpoint() << std::endl;
 
+            // TODO(gpascualg): Remove player transactions entity
             // Transactions, if any, are not immediately destroyed
-            if (auto info = client->database_information())
-            {
-                if (auto transaction = get_client_transaction(info->id))
-                {
-                    transaction->flag_deletion();
-                }
-            }
+            //if (auto info = client->database_information())
+            //{
+            //    if (auto transaction = get_client_transaction(info->id))
+            //    {
+            //        transaction->flag_deletion();
+            //    }
+            //}
 
             _clients.erase(client->endpoint());
             _client_scheme.free(client);
