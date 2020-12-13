@@ -15,6 +15,7 @@ set(CORE_SOURCES
     containers/thread_local_tasks.cpp
     containers/thread_local_tasks.hpp
     containers/ticket.hpp
+    entity/dynamic_content.hpp
     entity/entity.hpp
     entity/scheme.hpp
     fiber/exclusive_work_stealing.hpp

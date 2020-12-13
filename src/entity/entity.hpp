@@ -3,6 +3,7 @@
 #include "common/types.hpp"
 #include "containers/pool_item.hpp"
 #include "containers/dictionary.hpp"
+#include "entity/dynamic_content.hpp"
 #include "entity/scheme.hpp"
 
 #include <any_ptr.h>
@@ -67,14 +68,18 @@ private:
     template <typename... Args>
     constexpr inline void destroy(Args&&... args);
 
-    constexpr inline void scheme_created();
+    constexpr inline void scheme_created(dynamic_content&& entities);
 
     template <template <typename...> typename S, typename... components>
     constexpr inline void scheme_information(S<components...>& scheme);
 
+
+    // inline 
+
 private:
     entity_id_t _id;
     xxx::any_ptr _scheme;
+    dynamic_content _entities;
 };
 
 
@@ -131,8 +136,10 @@ constexpr inline void entity<derived_t>::sync(Args&&... args)
 }
 
 template <typename derived_t>
-constexpr inline void entity<derived_t>::scheme_created()
+constexpr inline void entity<derived_t>::scheme_created(dynamic_content&& entities)
 {
+    _entities = std::move(entities);
+
     if constexpr (has_scheme_created<derived_t>)
     {
         static_cast<derived_t&>(*this).scheme_created();

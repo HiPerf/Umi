@@ -56,3 +56,35 @@ target_include_directories(umi_core_lib PUBLIC ${CMAKE_BINARY_DIR}/_deps/any_ptr
 
 
 
+FetchContent_Declare(
+    ctti_dep
+    GIT_REPOSITORY https://github.com/Manu343726/ctti
+    GIT_TAG        master
+)
+
+FetchContent_GetProperties(ctti_dep)
+if(NOT ctti_dep_POPULATED)
+    FetchContent_Populate(ctti_dep)
+    add_subdirectory(${ctti_dep_SOURCE_DIR} ${ctti_dep_BINARY_DIR})
+endif()
+
+target_link_libraries(umi_core_lib PUBLIC ctti)
+
+
+
+FetchContent_Declare(
+    frozen
+    GIT_REPOSITORY https://github.com/serge-sans-paille/frozen
+    GIT_TAG        master
+)
+
+FetchContent_GetProperties(frozen)
+if(NOT frozen_POPULATED)
+    FetchContent_Populate(frozen)
+    add_subdirectory(${frozen_SOURCE_DIR} ${frozen_BINARY_DIR})
+endif()
+
+target_link_libraries(umi_core_lib PUBLIC frozen::frozen)
+
+
+
