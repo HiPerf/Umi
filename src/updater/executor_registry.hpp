@@ -1,5 +1,6 @@
 #pragma once
 
+#include "containers/ticket.hpp"
 #include "containers/thread_local_tasks.hpp"
 
 #include <boost/fiber/mutex.hpp>
@@ -38,6 +39,17 @@ public:
     constexpr void schedule(C&& callback) noexcept
     {
         get_scheduler().schedule(fu2::unique_function<void()>(std::move(callback))); // ;
+    }
+
+    template <typename C, typename... Args>
+    constexpr void schedule_if(C&& callback, Args&&... tickets) noexcept
+    {
+        schedule([callback = std::move(callback), tickets...]() {
+            if ((tickets->valid() && ...))
+            {
+                callback(tickets->get()->derived()...);
+            }
+        });
     }
 
 protected:

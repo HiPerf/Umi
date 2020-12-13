@@ -1,6 +1,6 @@
+#include "core/server.hpp"
 #include "common/definitions.hpp"
 #include "core/client.hpp"
-#include "core/server.hpp"
 
 #include <iostream>
 

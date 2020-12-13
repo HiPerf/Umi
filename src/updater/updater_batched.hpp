@@ -28,12 +28,15 @@ protected:
     {
         int num_groups = static_cast<int>(std::ceilf(vector->size() / static_cast<float>(_batch_size)));
         auto range = vector->range();
+        uint32_t num_elements = vector->size();
 
-        for (auto group = 0; group < num_groups; ++group)
+        for (int group = 0; group < num_groups; ++group)
         {
-            boost::fibers::fiber([this, group, range, ...args{ std::forward<Args>(args) }]() mutable {
+            boost::fibers::fiber([this, num_elements, group, range, ...args{ std::forward<Args>(args) }]() mutable {
                 auto it  = range.begin() + group * _batch_size;
-                auto end = range.begin() + (group + 1) * _batch_size;
+
+                // TODO(gpascualg): can't go beyond end (cannot seek value-initialized vector iterator), better solution?
+                auto end = range.begin() + std::min(num_elements, (group + 1) * _batch_size);
                 
                 int num_updates = 0;
                 for (; it != end; ++it, ++num_updates)

@@ -109,8 +109,10 @@ public:
     constexpr T* alloc(uint64_t id, Args&&... constructor_args)
     {
         auto scheme_args = args<T>(std::forward<Args>(constructor_args)...);
-        return tao::apply([&scheme_args, &id](auto&&... args) {
-            return scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+        return tao::apply([this, &scheme_args, &id](auto&&... args) mutable {
+            auto entity = scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+            entity->base()->scheme_information(*this);
+            return entity;
         }, scheme_args.args);
     }
 
@@ -118,6 +120,15 @@ public:
     constexpr void free(T* object)
     {
         get<T>().free(object);
+    }
+
+    template <typename... Entities>
+    constexpr auto move(scheme<vectors...>& to, Entities&&... entities) noexcept
+    {
+        return tao::apply([this](auto... entities) mutable {
+            (entities->base()->scheme_information(*this), ...);
+            return tao::tuple(entities...);
+        }, tao::tuple(get<vectors>().move(entities->ticket(), to.get<vectors>())...));
     }
 
     template <typename... T, typename... D>

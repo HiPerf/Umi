@@ -39,3 +39,20 @@ endif()
 
 target_link_libraries(umi_core_lib PUBLIC function2)
 
+
+
+FetchContent_Declare(
+    any_ptr
+    GIT_REPOSITORY https://github.com/scottslacksmith/any_ptr
+    GIT_TAG        master
+)
+
+FetchContent_GetProperties(any_ptr)
+if(NOT any_ptr_POPULATED)
+    FetchContent_Populate(any_ptr)
+endif()
+
+target_include_directories(umi_core_lib PUBLIC ${CMAKE_BINARY_DIR}/_deps/any_ptr-src/include)
+
+
+

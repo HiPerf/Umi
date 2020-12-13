@@ -13,7 +13,7 @@ class transform : public entity<transform>
 {
     struct physics
     {
-        base_time timestamp;
+        time_point_t timestamp;
         glm::vec3 position;
         glm::vec3 forward;
         float speed;
@@ -22,18 +22,18 @@ class transform : public entity<transform>
 public:
     transform();
 
-    void construct(const base_time& timestamp, const glm::vec3& position, const glm::vec3& forward);
-    void push(const base_time& timestamp, const glm::vec3& position, const glm::vec3& forward, float speed);
+    void construct(const time_point_t& timestamp, const glm::vec3& position, const glm::vec3& forward);
+    void push(const time_point_t& timestamp, const glm::vec3& position, const glm::vec3& forward, float speed);
 
-    inline glm::vec3 position(const base_time& timestamp) const;
+    inline glm::vec3 position(const time_point_t& timestamp) const;
 
 private:
     boost::circular_buffer<physics> _buffer;
 };
 
 
-inline glm::vec3 transform::position(const base_time& timestamp) const
+inline glm::vec3 transform::position(const time_point_t& timestamp) const
 {
     const auto& last = _buffer.back();
-    return last.position + last.forward * (last.speed * (timestamp - last.timestamp).count());
+    return last.position + last.forward * (last.speed * std::chrono::duration_cast<base_time>(timestamp - last.timestamp).count());
 }

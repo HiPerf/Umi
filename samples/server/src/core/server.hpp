@@ -49,6 +49,8 @@ public:
 public:
     server(uint16_t port, uint8_t num_server_workers, uint8_t num_network_workers);
 
+    inline const std_clock_t::time_point& now() const;
+
     void on_worker_thread();
     void mainloop();
     void stop();
@@ -112,6 +114,8 @@ private:
     // Database
     async_executor<(uint16_t)FiberID::DatabaseWorker> _database_async;
 
+    // Other
+    std_clock_t::time_point _now;
     bool _stop;
 
     // For convinience, all pools are public
@@ -121,6 +125,12 @@ public:
     thread_local_pool<udp::endpoint, 255> endpoints_pool;
 };
 
+
+
+inline const std_clock_t::time_point& server::now() const
+{
+    return _now;
+}
 
 template <typename C>
 bool server::get_or_create_client(udp::endpoint* endpoint, C&& callback)

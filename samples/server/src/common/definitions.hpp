@@ -6,6 +6,7 @@
 
 using std_clock_t = std::chrono::steady_clock;
 using sys_clock_t = std::chrono::system_clock;
+using time_point_t = std_clock_t::time_point;
 using base_time = std::chrono::milliseconds;
 
 constexpr inline uint8_t TicksPerSecond = 20;

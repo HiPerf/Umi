@@ -3,11 +3,15 @@
 #include "common/types.hpp"
 #include "containers/pool_item.hpp"
 #include "containers/dictionary.hpp"
+#include "entity/scheme.hpp"
+
+#include <any_ptr.h>
 
 
 template <typename T>
 class entity : public pool_item<entity<T>>
 {
+    template <typename... vectors> friend struct scheme;
     template <typename D, typename E, uint16_t I, typename R> friend class pooled_static_vector;
     template <typename D, typename... types> friend class updater;
     template <typename... types> friend class updater_batched;
@@ -43,6 +47,13 @@ public:
         return reinterpret_cast<derived_t*> (this);
     }
 
+    template <typename S>
+    inline std::decay_t<S>* scheme() const
+    {
+        return xxx::any_ptr_cast<std::decay_t<S>>(_scheme);
+    }
+
+
 private:
     template <typename... Args>
     constexpr inline void update(Args&&... args);
@@ -59,10 +70,11 @@ private:
     constexpr inline void scheme_created();
 
     template <template <typename...> typename S, typename... components>
-    constexpr inline void scheme_information(const S<components...>& scheme);
+    constexpr inline void scheme_information(S<components...>& scheme);
 
 private:
     entity_id_t _id;
+    xxx::any_ptr _scheme;
 };
 
 
@@ -129,8 +141,10 @@ constexpr inline void entity<derived_t>::scheme_created()
 
 template <typename derived_t>
 template <template <typename...> typename S, typename... components>
-constexpr inline void entity<derived_t>::scheme_information(const S<components...>& scheme)
+constexpr inline void entity<derived_t>::scheme_information(S<components...>& scheme)
 {
+    _scheme = &scheme;
+
     if constexpr (has_scheme_information<derived_t, S, components...>)
     {
         static_cast<derived_t&>(*this).scheme_information(scheme);

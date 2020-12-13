@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types.hpp"
+#include "cx/math.hpp"
 
 #include <array>
 
@@ -89,7 +90,7 @@ public:
 
     constexpr static hash_t hash(int32_t x, int32_t y)
     {
-        return (as_u64(y) << 32) | as_u64(x);
+        return (cx::u64(y) << 32) | cx::u64(x);
     }
 
     constexpr int32_t distance(const offset& offset) const

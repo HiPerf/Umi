@@ -58,8 +58,8 @@ void server::mainloop()
 
     while (!_stop)
     {
-        auto now = std_clock_t::now();
-        auto diff = elapsed(_last_tick, now);
+        _now = std_clock_t::now();
+        auto diff = elapsed(_last_tick, _now);
         _diff_mean = 0.95f * _diff_mean + 0.05f * diff.count();
 
         // Execute tasks (basically, new clients and data)
@@ -87,9 +87,9 @@ void server::mainloop()
         endpoints_pool.rebalance();
 
         // Sleep
-        _last_tick = now;
+        _last_tick = _now;
         auto diff_mean = base_time(static_cast<uint64_t>(std::ceil(_diff_mean)));
-        auto update_time = elapsed(now, std_clock_t::now()) + (diff_mean - HeartBeat);
+        auto update_time = elapsed(_now, std_clock_t::now()) + (diff_mean - HeartBeat);
         if (update_time < HeartBeat)
         {
             auto sleep_time = HeartBeat - update_time;

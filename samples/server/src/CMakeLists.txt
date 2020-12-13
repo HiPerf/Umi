@@ -65,13 +65,16 @@ set(SERVER_SOURCES
     core/handler.hpp
     core/handler.cpp
     core/server.hpp
-    core/server.cpp    
+    core/server.cpp
+    cx/math.hpp
     database/database.hpp
     database/database.cpp
     database/pseudorandom_unique_id.hpp
     database/pseudorandom_unique_id.cpp
     database/transaction.hpp
     database/transaction.cpp
+    entities/map_aware.hpp
+    entities/map_aware.cpp
     entities/transform.hpp
     entities/transform.cpp
     maps/cell.hpp
