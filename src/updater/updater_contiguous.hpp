@@ -12,13 +12,15 @@ class updater_contiguous : public updater<updater_contiguous<types...>, types...
     friend class updater<updater_contiguous<types...>, types...>;
     template <typename... D> friend class scheme;
 
+    using updater_t = updater<updater_contiguous<types...>, types...>;
+
 protected:
     constexpr updater_contiguous() noexcept :
-        updater<updater_contiguous<types...>, types...>()
+        updater_t()
     {}
 
     constexpr updater_contiguous(const tao::tuple<types...>& components) noexcept :
-        updater<updater_contiguous<types...>, types...>(components)
+        updater_t(components)
     {}
 
     template <typename T, typename... Args>
@@ -29,9 +31,14 @@ protected:
             obj->base()->update(std::forward<Args>(args)...);
         }
 
-        _updates_mutex.lock();
-        _pending_updates -= num_updates;
-        _updates_mutex.unlock();
+        updater_t::_updates_mutex.lock();
+        updater_t::_pending_updates -= vector->size();
+        updater_t::_updates_mutex.unlock();
+        
+        if (updater_t::_pending_updates == 0)
+        {
+            updater_t::_updates_cv.notify_all();
+        }
     }
 
     template <typename... vecs>

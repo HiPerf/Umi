@@ -61,7 +61,7 @@ public:
 
 private:
     udp::endpoint _endpoint;
-    enum class ingame_status _ingame_status;
+    enum ingame_status _ingame_status;
     std::optional<database_data> _database_information;
 };
 

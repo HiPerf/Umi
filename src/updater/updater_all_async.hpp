@@ -11,14 +11,16 @@ class updater_all_async : public updater<updater_all_async<types...>, types...>
 {
     friend class updater<updater_all_async<types...>, types...>;
     template <typename... D> friend class scheme;
+    
+    using updater_t = updater<updater_all_async<types...>, types...>;
 
 protected:
     constexpr updater_all_async() noexcept :
-        updater<updater_all_async<types...>, types...>()
+        updater_t()
     {}
 
     constexpr updater_all_async(const tao::tuple<types...>& components) noexcept :
-        updater<updater_all_async<types...>, types...>(components)
+        updater_t(components)
     {}
 
     template <typename T, typename... Args>
@@ -29,9 +31,14 @@ protected:
             boost::fibers::fiber([this, obj, ...args{ std::forward<Args>(args) }]() mutable {
                 obj->base()->update(std::forward<Args>(args)...);
 
-                _updates_mutex.lock();
-                _pending_updates -= num_updates;
-                _updates_mutex.unlock();
+                updater_t::_updates_mutex.lock();
+                --updater_t::_pending_updates;
+                updater_t::_updates_mutex.unlock();
+                
+                if (updater_t::_pending_updates == 0)
+                {
+                    updater_t::_updates_cv.notify_all();
+                }
             }).detach();
         }
     }

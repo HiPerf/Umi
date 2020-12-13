@@ -78,8 +78,8 @@ void transaction::update(uint64_t diff, store_t* store, async_executor_base* asy
             if (has_non_callable_transactions)
             {
                 async->submit([
-                    &info,
-                    collection,
+                    info = &info,
+                    collection = collection,
                     transactions = std::move(transactions)
                 ]()
                 {
@@ -107,8 +107,8 @@ void transaction::update(uint64_t diff, store_t* store, async_executor_base* asy
             {
                 async->submit([
                     this,
-                    &info,
-                    collection,
+                    info = &info,
+                    collection = collection,
                     transactions = std::move(transactions)
                 ]()
                 {

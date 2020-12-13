@@ -1,5 +1,3 @@
-#pragma once
-
 #include "async/async_executor.hpp"
 
 

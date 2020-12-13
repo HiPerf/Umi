@@ -32,7 +32,7 @@ inline typename ticket<B>::ptr store<T, B>::get(entity_id_t id)
 }
 
 template <typename T, typename B>
-inline typename T* store<T, B>::get_derived_or_null(entity_id_t id)
+inline T* store<T, B>::get_derived_or_null(entity_id_t id)
 {
     if (auto it = _tickets.find(id); it != _tickets.end())
     {

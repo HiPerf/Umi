@@ -14,6 +14,7 @@
 	"extensions": [
 		"ms-vscode.cpptools",
 		"ms-vscode.cmake-tools",
+		"ms-azuretools.vscode-docker",
 		"twxs.cmake"
 	],
 

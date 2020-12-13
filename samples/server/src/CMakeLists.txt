@@ -53,7 +53,8 @@ else()
     add_custom_command(
         OUTPUT   ${KUMO_OUTPUT_FILES}
         COMMAND  ${Python3_EXECUTABLE} 
-            --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${KUMO_CONFIG_FILE}
+            ${kumo_SOURCE_DIR}/run.py 
+                --role server --dir ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo --out ${CMAKE_CURRENT_SOURCE_DIR}/kumo --lang kaminari-cpp --config ${KUMO_CONFIG_FILE}
         DEPENDS  ${KUMO_SOURCE_FILES}
     )
 endif()

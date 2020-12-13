@@ -147,12 +147,12 @@ namespace kumo
     {
         switch (static_cast<::kumo::opcode>(packet->opcode()))
         {
-            case opcode::move:
-                return handle_move(packet, client);
             case opcode::handshake:
                 return handle_handshake(packet, client);
             case opcode::login:
                 return handle_login(packet, client);
+            case opcode::move:
+                return handle_move(packet, client);
             default:
                 return false;
         }

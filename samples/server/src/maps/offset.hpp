@@ -145,12 +145,12 @@ template <typename C, uint32_t S>
 constexpr inline std::array<offset<C, S>, cell_information::num_neighbors> neighbours_of(const offset<C, S>& offset)
 {
     return {
-        offset<C, S>(offset.x() + 0, offset.y() - 1),
-        offset<C, S>(offset.x() + 1, offset.y() - 1),
-        offset<C, S>(offset.x() + 1, offset.y() + 0),
-        offset<C, S>(offset.x() - 1, offset.y() + 0),
-        offset<C, S>(offset.x() + 0, offset.y() + 1),
-        offset<C, S>(offset.x() - 1, offset.y() + 1),
+        ::offset<C, S>(offset.x() + 0, offset.y() - 1),
+        ::offset<C, S>(offset.x() + 1, offset.y() - 1),
+        ::offset<C, S>(offset.x() + 1, offset.y() + 0),
+        ::offset<C, S>(offset.x() - 1, offset.y() + 0),
+        ::offset<C, S>(offset.x() + 0, offset.y() + 1),
+        ::offset<C, S>(offset.x() - 1, offset.y() + 1),
     };
 }
 
@@ -158,9 +158,9 @@ template <typename C, uint32_t S>
 constexpr inline std::array<offset<C, S>, cell_information::contiguous_in_side> new_offsets_in_direction(const offset<C, S>& offset, int32_t dx, int32_t dy)
 {
     return {
-        offset<C, S>(offset.x() + dx, offset.y() + dy),
-        offset<C, S>(offset.x() + dx + dy, offset.y() - dx),
-        offset<C, S>(offset.x() - dy, offset.y() + dx + dy),
+        ::offset<C, S>(offset.x() + dx, offset.y() + dy),
+        ::offset<C, S>(offset.x() + dx + dy, offset.y() - dx),
+        ::offset<C, S>(offset.x() - dy, offset.y() + dx + dy),
     };
 }
 

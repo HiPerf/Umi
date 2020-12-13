@@ -12,14 +12,16 @@ class updater_batched : public updater<updater_batched<types...>, types...>
     friend class updater<updater_batched<types...>, types...>;
     template <typename... D> friend class scheme;
 
+    using updater_t = updater<updater_batched<types...>, types...>;
+
 protected:
     constexpr updater_batched(uint32_t batch_size) noexcept :
-        updater<updater_batched<types...>, types...>(),
+        updater_t(),
         _batch_size(batch_size)
     {}
 
     constexpr updater_batched(uint32_t batch_size, const tao::tuple<types...>& components) noexcept :
-        updater<updater_batched<types...>, types...>(components),
+        updater_t(components),
         _batch_size(batch_size)
     {}
 
@@ -44,13 +46,13 @@ protected:
                     (*it)->base()->update(std::forward<Args>(args)...);
                 }
 
-                _updates_mutex.lock();
-                _pending_updates -= num_updates;
-                _updates_mutex.unlock();
+                updater_t::_updates_mutex.lock();
+                updater_t::_pending_updates -= num_updates;
+                updater_t::_updates_mutex.unlock();
 
-                if (_pending_updates == 0)
+                if (updater_t::_pending_updates == 0)
                 {
-                    _updates_cv.notify_all();
+                    updater_t::_updates_cv.notify_all();
                 }
             }).detach();
         }
