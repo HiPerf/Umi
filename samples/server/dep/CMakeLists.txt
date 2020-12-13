@@ -15,7 +15,7 @@ if(NOT glm_POPULATED)
     add_subdirectory(${glm_SOURCE_DIR} ${glm_BINARY_DIR})
 endif()
 
-target_link_libraries(umi_server_lib PUBLIC glm)
+target_link_libraries_system(umi_server_lib PUBLIC glm)
 
 
 
@@ -31,7 +31,7 @@ if(NOT kaminari_POPULATED)
     add_subdirectory(${kaminari_SOURCE_DIR} ${kaminari_BINARY_DIR})
 endif()
 
-target_link_libraries(umi_server_lib PUBLIC kaminari)
+target_link_libraries_system(umi_server_lib PUBLIC kaminari)
 
 
 # ---------------------------------
@@ -91,12 +91,12 @@ if(NOT mongocxx_POPULATED)
 endif()
 
 target_link_libraries(umi_server_lib PUBLIC mongocxx_static)
-target_include_directories(umi_server_lib PUBLIC ${LIBBSON_FROM_SUBPROJECT}/src)
-target_include_directories(umi_server_lib PUBLIC ${LIBBSON_BINARY_DIR}/src)
-target_include_directories(umi_server_lib PUBLIC ${LIBMONGOC_FROM_SUBPROJECT}/src)
-target_include_directories(umi_server_lib PUBLIC ${LIBMONGOC_BINARY_DIR}/src)
-target_include_directories(umi_server_lib PUBLIC ${mongocxx_SOURCE_DIR}/src)
-target_include_directories(umi_server_lib PUBLIC ${mongocxx_BINARY_DIR}/src)
+target_include_directories(umi_server_lib SYSTEM PUBLIC ${LIBBSON_FROM_SUBPROJECT}/src)
+target_include_directories(umi_server_lib SYSTEM PUBLIC ${LIBBSON_BINARY_DIR}/src)
+target_include_directories(umi_server_lib SYSTEM PUBLIC ${LIBMONGOC_FROM_SUBPROJECT}/src)
+target_include_directories(umi_server_lib SYSTEM PUBLIC ${LIBMONGOC_BINARY_DIR}/src)
+target_include_directories(umi_server_lib SYSTEM PUBLIC ${mongocxx_SOURCE_DIR}/src)
+target_include_directories(umi_server_lib SYSTEM PUBLIC ${mongocxx_BINARY_DIR}/src)
 
 
 # ---------------------------------
@@ -127,4 +127,4 @@ if(NOT cryptopp_POPULATED)
     add_subdirectory(${cryptopp_SOURCE_DIR} ${cryptopp_BINARY_DIR})
 endif()
 
-target_link_libraries(umi_server_lib PUBLIC cryptopp-static)
+target_link_libraries_system(umi_server_lib PUBLIC cryptopp-static)

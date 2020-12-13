@@ -20,6 +20,9 @@ set(KUMO_CLIENT_CONFIG              ""                          CACHE PATH      
 
 set(CMAKE_CXX_STANDARD              20                          CACHE STRING    "Default C++ standard")
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(target_link_libraries_system)
+
 add_subdirectory(src)
 add_subdirectory(dep)
 

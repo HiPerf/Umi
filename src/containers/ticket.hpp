@@ -3,8 +3,10 @@
 #include "containers/concepts.hpp"
 
 #include <inttypes.h>
+#include <atomic>
 
 #include <boost/intrusive_ptr.hpp>
+
 
 
 template <typename T>
@@ -32,7 +34,7 @@ private:
 
 private:
     T* _ptr;
-    uint64_t _refs;
+    std::atomic<uint32_t> _refs;
 };
 
 

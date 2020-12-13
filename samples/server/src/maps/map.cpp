@@ -7,8 +7,9 @@
 void map::on_moved(transform* transform)
 {
     auto position = transform->position(server::instance->now());
-    auto who = transform->scheme<decltype(region::_map_aware_scheme)>()->get<map_aware>().get_derived_or_null(transform->id());
-
+    //auto who = transform->scheme<decltype(region::_map_aware_scheme)>()->get<map_aware>().get_derived_or_null(transform->id());
+    auto who = transform->get<map_aware>();
+    
     check_region(who, transform, position);
     check_cell(who, transform, position);
 }

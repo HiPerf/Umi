@@ -2,7 +2,7 @@ include(FetchContent)
 
 
 find_package(Boost ${BOOST_VERSION} REQUIRED COMPONENTS fiber)
-target_include_directories(umi_core_lib PUBLIC ${Boost_INCLUDE_DIRS})
+target_include_directories(umi_core_lib SYSTEM PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_directories(umi_core_lib PUBLIC ${Boost_LIBRARY_DIRS})
 target_link_libraries(umi_core_lib PUBLIC Boost::fiber)
 
@@ -21,7 +21,7 @@ if(NOT tuple_POPULATED)
     add_subdirectory(${tuple_SOURCE_DIR} ${tuple_BINARY_DIR})
 endif()
 
-target_link_libraries(umi_core_lib PUBLIC tuple)
+target_link_libraries_system(umi_core_lib PUBLIC tuple)
 
 
 
@@ -37,7 +37,7 @@ if(NOT function_POPULATED)
     add_subdirectory(${function_SOURCE_DIR} ${function_BINARY_DIR})
 endif()
 
-target_link_libraries(umi_core_lib PUBLIC function2)
+target_link_libraries_system(umi_core_lib PUBLIC function2)
 
 
 
@@ -52,7 +52,7 @@ if(NOT any_ptr_POPULATED)
     FetchContent_Populate(any_ptr)
 endif()
 
-target_include_directories(umi_core_lib PUBLIC ${CMAKE_BINARY_DIR}/_deps/any_ptr-src/include)
+target_include_directories(umi_core_lib SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/_deps/any_ptr-src/include)
 
 
 
@@ -68,23 +68,6 @@ if(NOT ctti_dep_POPULATED)
     add_subdirectory(${ctti_dep_SOURCE_DIR} ${ctti_dep_BINARY_DIR})
 endif()
 
-target_link_libraries(umi_core_lib PUBLIC ctti)
-
-
-
-FetchContent_Declare(
-    frozen
-    GIT_REPOSITORY https://github.com/serge-sans-paille/frozen
-    GIT_TAG        master
-)
-
-FetchContent_GetProperties(frozen)
-if(NOT frozen_POPULATED)
-    FetchContent_Populate(frozen)
-    add_subdirectory(${frozen_SOURCE_DIR} ${frozen_BINARY_DIR})
-endif()
-
-target_link_libraries(umi_core_lib PUBLIC frozen::frozen)
-
+target_link_libraries_system(umi_core_lib PUBLIC ctti)
 
 

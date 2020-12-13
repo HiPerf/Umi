@@ -3,7 +3,7 @@
 #include "common/types.hpp"
 #include "containers/pool_item.hpp"
 #include "containers/dictionary.hpp"
-#include "entity/dynamic_content.hpp"
+#include "entity/scheme_entities_map.hpp"
 #include "entity/scheme.hpp"
 
 #include <any_ptr.h>
@@ -54,6 +54,12 @@ public:
         return xxx::any_ptr_cast<std::decay_t<S>>(_scheme);
     }
 
+    template <typename D>
+    inline D* get() const
+    {
+        return _entities.template get<D>();
+    }
+
 
 private:
     template <typename... Args>
@@ -68,18 +74,15 @@ private:
     template <typename... Args>
     constexpr inline void destroy(Args&&... args);
 
-    constexpr inline void scheme_created(dynamic_content&& entities);
+    constexpr inline void scheme_created(scheme_entities_map&& entities);
 
     template <template <typename...> typename S, typename... components>
     constexpr inline void scheme_information(S<components...>& scheme);
 
-
-    // inline 
-
 private:
     entity_id_t _id;
     xxx::any_ptr _scheme;
-    dynamic_content _entities;
+    scheme_entities_map _entities;
 };
 
 
@@ -136,7 +139,7 @@ constexpr inline void entity<derived_t>::sync(Args&&... args)
 }
 
 template <typename derived_t>
-constexpr inline void entity<derived_t>::scheme_created(dynamic_content&& entities)
+constexpr inline void entity<derived_t>::scheme_created(scheme_entities_map&& entities)
 {
     _entities = std::move(entities);
 
