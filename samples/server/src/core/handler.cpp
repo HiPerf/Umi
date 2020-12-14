@@ -52,13 +52,19 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
     client->login_pending();
     
     server::instance->get_or_create_map(0, [](auto map)
-        {
+        { 
             map->create_entity_at({ 1, 0, 10 });
             return tao::tuple(map);
         });
 
     server::instance->database_async().submit([data, ticket = client->ticket()]() mutable
         {
+            if (!ticket->valid())
+            {
+                return;
+            }
+            auto client = ticket->get()->derived();
+
             auto filter = make_document(
                 kvp("_id", data.username),
                 kvp("password0", static_cast<int64_t>(data.password0)),
@@ -97,17 +103,32 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
                     return;
                 }
 
-                uint64_t id = static_cast<uint64_t>(user["_id"].get_int64().value);
-                
-                // Send login response
-                server::instance->schedule_if(ticket, [id](class client* client)
+                client->login_done();
+
+                auto characters_collection = database::instance->get_collection(static_cast<uint8_t>(database_collections::characters));
+                std::vector<kumo::character> characters;
+
+                for (auto& character : characters_collection.find(make_document(kvp("username", data.username))))
+                {
+                    characters.push_back(kumo::character {
+                        .name = std::string(character["name"].get_utf8().value),
+                        .level = static_cast<uint16_t>(character["level"].get_int32().value)
+                    });
+                }
+
+                // Send login response with characters
+                server::instance->schedule_if(ticket, [characters{ std::move(characters) }](class client* client) mutable
                     {
                         kumo::send_login_response(client->super_packet(), { .code = 0 });
+                        kumo::send_characters_list(client->super_packet(), { .list = std::move(characters) });
                     });
-
-
             }
         });
 
+    return true;
+}
+
+bool handler::on_character_selected(::kaminari::basic_client* kaminari_client, const ::kumo::character_selection& data, uint64_t timestamp)
+{
     return true;
 }

@@ -31,6 +31,18 @@ namespace kumo
     template <typename B>
     void broadcast_login_response_single(::kaminari::broadcaster<B>* broadcaster, status_ex&& data);
     template <class ReliableAllocator, class OrderedAllocator, typename T>
+    inline void send_characters_list(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, characters&& data, T&& callback);
+    template <class ReliableAllocator, class OrderedAllocator>
+    inline void send_characters_list(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, characters&& data);
+    template <typename B, typename T>
+    void broadcast_characters_list(::kaminari::broadcaster<B>* broadcaster, characters&& data, T&& callback);
+    template <typename B>
+    void broadcast_characters_list(::kaminari::broadcaster<B>* broadcaster, characters&& data);
+    template <typename B, typename T>
+    void broadcast_characters_list_single(::kaminari::broadcaster<B>* broadcaster, characters&& data, T&& callback);
+    template <typename B>
+    void broadcast_characters_list_single(::kaminari::broadcaster<B>* broadcaster, characters&& data);
+    template <class ReliableAllocator, class OrderedAllocator, typename T>
     inline void send_do_sth(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, complex&& data, T&& callback);
     template <class ReliableAllocator, class OrderedAllocator>
     inline void send_do_sth(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, complex&& data);
@@ -145,6 +157,52 @@ namespace kumo
     void broadcast_login_response_single(::kaminari::broadcaster<B>* broadcaster, status_ex&& data)
     {
         boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::login_response);
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <class ReliableAllocator, class OrderedAllocator, typename T>
+    inline void send_characters_list(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, characters&& data, T&& callback)
+    {
+        pq->send_reliable(opcode::characters_list, std::move(data), std::forward<T>(callback));
+    }
+    template <class ReliableAllocator, class OrderedAllocator>
+    inline void send_characters_list(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, characters&& data)
+    {
+        pq->send_reliable(opcode::characters_list, std::move(data));
+    }
+    template <typename B, typename T>
+    void broadcast_characters_list(::kaminari::broadcaster<B>* broadcaster, characters&& data, T&& callback)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::characters_list, std::forward<T>(callback));
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <typename B>
+    void broadcast_characters_list(::kaminari::broadcaster<B>* broadcaster, characters&& data)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::characters_list);
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <typename B, typename T>
+    void broadcast_characters_list_single(::kaminari::broadcaster<B>* broadcaster, characters&& data, T&& callback)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::characters_list, std::forward<T>(callback));
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <typename B>
+    void broadcast_characters_list_single(::kaminari::broadcaster<B>* broadcaster, characters&& data)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::characters_list);
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);

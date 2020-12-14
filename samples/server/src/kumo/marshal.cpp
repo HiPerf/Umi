@@ -90,6 +90,54 @@ namespace kumo
     {
         return sizeof(status_ex);
     }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const characters& data)
+    {
+        *packet << static_cast<uint8_t>((data.list).size());
+        for (const character& val : data.list)
+        {
+            pack(packet, val);
+        }
+    }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const character& data)
+    {
+        *packet << data.name;
+        *packet << data.level;
+    }
+    uint8_t marshal::packet_size(const character& data)
+    {
+        uint8_t size = 0;
+        size += sizeof_uint8() + data.name.length();
+        size += sizeof_uint16();
+        return size;
+    }
+    uint8_t marshal::packet_size(const characters& data)
+    {
+        uint8_t size = 0;
+        size += sizeof(uint8_t);
+        for (const character& val : data.list)
+        {
+            size += packet_size(val);
+        }
+        return size;
+    }
+    bool marshal::unpack(::kaminari::packet_reader* packet, character_selection& data)
+    {
+        if (packet->bytes_read() + sizeof_uint8() > packet->buffer_size())
+        {
+            return false;
+        }
+        data.index = packet->read<uint8_t>();
+        return true;
+    }
+    uint8_t marshal::packet_size(const character_selection& data)
+    {
+        (void)data;
+        return sizeof(character_selection);
+    }
+    uint8_t marshal::sizeof_character_selection()
+    {
+        return sizeof(character_selection);
+    }
     void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data)
     {
         *packet << static_cast<bool>(data.x);
@@ -113,6 +161,21 @@ namespace kumo
             }
         }
     }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const spawn_data& data)
+    {
+        *packet << data.id;
+        *packet << data.x;
+        *packet << data.y;
+    }
+    uint8_t marshal::packet_size(const spawn_data& data)
+    {
+        (void)data;
+        return sizeof(spawn_data);
+    }
+    uint8_t marshal::sizeof_spawn_data()
+    {
+        return sizeof(spawn_data);
+    }
     uint8_t marshal::packet_size(const complex& data)
     {
         uint8_t size = 0;
@@ -129,21 +192,6 @@ namespace kumo
             size += sizeof(uint8_t) + (*data.w).size() * sizeof_bool();
         }
         return size;
-    }
-    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const spawn_data& data)
-    {
-        *packet << data.id;
-        *packet << data.x;
-        *packet << data.y;
-    }
-    uint8_t marshal::packet_size(const spawn_data& data)
-    {
-        (void)data;
-        return sizeof(spawn_data);
-    }
-    uint8_t marshal::sizeof_spawn_data()
-    {
-        return sizeof(spawn_data);
     }
     bool marshal::unpack(::kaminari::packet_reader* packet, movement& data)
     {

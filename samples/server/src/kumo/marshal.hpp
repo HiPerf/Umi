@@ -26,11 +26,18 @@ namespace kumo
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const status_ex& data);
         static uint8_t packet_size(const status_ex& data);
         static uint8_t sizeof_status_ex();
+        static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const characters& data);
+        static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const character& data);
+        static uint8_t packet_size(const character& data);
+        static uint8_t packet_size(const characters& data);
+        static bool unpack(::kaminari::packet_reader* packet, character_selection& data);
+        static uint8_t packet_size(const character_selection& data);
+        static uint8_t sizeof_character_selection();
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data);
-        static uint8_t packet_size(const complex& data);
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const spawn_data& data);
         static uint8_t packet_size(const spawn_data& data);
         static uint8_t sizeof_spawn_data();
+        static uint8_t packet_size(const complex& data);
         static bool unpack(::kaminari::packet_reader* packet, movement& data);
         static uint8_t packet_size(const movement& data);
         static uint8_t sizeof_movement();
@@ -52,6 +59,8 @@ namespace kumo
         static bool handle_handshake(::kaminari::packet_reader* packet, C* client);
         template <typename C>
         static bool handle_login(::kaminari::packet_reader* packet, C* client);
+        template <typename C>
+        static bool handle_character_selected(::kaminari::packet_reader* packet, C* client);
         template <typename C>
         static bool handle_move(::kaminari::packet_reader* packet, C* client);
     };
@@ -83,6 +92,20 @@ namespace kumo
             return false;
         }
         return on_login(client, data, packet->timestamp());
+    }
+    template <typename C>
+    bool marshal::handle_character_selected(::kaminari::packet_reader* packet, C* client)
+    {
+        if (!check_client_status(client, ingame_status::login_done))
+        {
+            return handle_client_error(client, static_cast<::kumo::opcode>(packet->opcode()));
+        }
+        ::kumo::character_selection data;
+        if (!unpack(packet, data))
+        {
+            return false;
+        }
+        return on_character_selected(client, data, packet->timestamp());
     }
     template <typename C>
     bool marshal::handle_move(::kaminari::packet_reader* packet, C* client)
@@ -153,6 +176,8 @@ namespace kumo
                 return handle_handshake(packet, client);
             case opcode::login:
                 return handle_login(packet, client);
+            case opcode::character_selected:
+                return handle_character_selected(packet, client);
             default:
                 return false;
         }

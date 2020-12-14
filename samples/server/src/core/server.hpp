@@ -198,7 +198,7 @@ void server::schedule(F&& function)
 template <typename T, typename F>
 void server::schedule_if(T&& ticket, F&& function)
 {
-    base_executor<server>::schedule([ticket, function{ std::move(function) }]()
+    base_executor<server>::schedule([ticket, function{ std::move(function) }]() mutable
         {
             if (ticket->valid())
             {

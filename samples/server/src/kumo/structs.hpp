@@ -9,6 +9,9 @@ namespace kumo
     struct status;
     struct login_data;
     struct status_ex;
+    struct characters;
+    struct character;
+    struct character_selection;
     struct complex;
     struct has_id;
     struct spawn_data;
@@ -43,6 +46,25 @@ namespace kumo
     {
     public:
         uint8_t code;
+    };
+
+    struct characters
+    {
+    public:
+        std::vector<character> list;
+    };
+
+    struct character
+    {
+    public:
+        std::string name;
+        uint16_t level;
+    };
+
+    struct character_selection
+    {
+    public:
+        uint8_t index;
     };
 
     struct complex
