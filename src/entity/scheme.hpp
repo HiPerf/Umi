@@ -101,7 +101,7 @@ public:
 
         return detail::scheme_arguments<std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>, std::decay_t<Args>...> {
             .comp = tao::get<std::add_lvalue_reference_t<D>>(components),
-            .args = tao::tuple(std::forward<std::decay_t<Args>>(args)...)
+            .args = tao::tuple<std::decay_t<Args>...>(std::forward<Args>(args)...)
         };
     }
 

@@ -9,13 +9,18 @@
 class map : public entity<map>
 {
 public:
-    void on_moved(transform* transform);
+    map() = default;
+    void construct();
 
-private:
-    void check_region(map_aware* who, transform* transform, const glm::vec3& position);
-    void check_cell(map_aware* who, transform* transform, const glm::vec3& position);
+    void update(const base_time& diff);
+
+    region* get_region(const region::offset_t& offset) const;
+    cell* get_cell(const cell::offset_t& offset) const;
 
     region* get_or_create_region(const region::offset_t& offset);
+    cell* get_or_create_cell(const cell::offset_t& offset);
+
+    void create_entity_at(const glm::vec3& position);
 
 private:
     std::unordered_map<typename cell::offset_t::hash_t, cell*> _cells;

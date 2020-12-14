@@ -14,7 +14,7 @@ class updater_all_async : public updater<updater_all_async<types...>, types...>
     
     using updater_t = updater<updater_all_async<types...>, types...>;
 
-protected:
+public:
     constexpr updater_all_async() noexcept :
         updater_t()
     {}
@@ -23,6 +23,7 @@ protected:
         updater_t(components)
     {}
 
+protected:
     template <typename T, typename... Args>
     constexpr void update_fiber(T* vector, Args&&... args) noexcept
     {

@@ -38,7 +38,7 @@ namespace std
 
 constexpr uint32_t prereserved_size = 256;
 
-class server : protected base_executor<server>
+class server : public base_executor<server>
 {
     friend class base_executor<server>;
     template <typename T, uint32_t S = prereserved_size> using dic = dictionary<T, entity<T>, S>;

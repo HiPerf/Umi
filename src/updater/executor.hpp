@@ -111,6 +111,30 @@ public:
         pop_instance();
     }
 
+    template <typename U, typename... Args>
+    constexpr void update_no_wait(U& updater, Args&&... args) noexcept
+    {
+        push_instance();
+
+        boost::fibers::fiber([&updater, ...args{ std::forward<Args>(args) }]() mutable {
+            updater.update(std::forward<Args>(args)...);
+        }).join();
+
+        pop_instance();
+    }
+
+    template <typename U, typename... Args>
+    constexpr void wait_update(U& updater, Args&&... args) noexcept
+    {
+        push_instance();
+
+        boost::fibers::fiber([&updater, ...args{ std::forward<Args>(args) }]() mutable {
+            updater.wait_update();
+        }).join();
+
+        pop_instance();
+    }
+
     template <typename... U, typename... Args>
     constexpr void update_many(tao::tuple<Args...>&& args, U&... updaters) noexcept
     {

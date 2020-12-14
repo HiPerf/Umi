@@ -9,6 +9,12 @@
 #include <glm/glm.hpp>
 
 
+class map;
+class cell;
+class region;
+
+struct moving_flag_t {};
+
 class transform : public entity<transform>
 {
     struct physics
@@ -22,13 +28,18 @@ class transform : public entity<transform>
 public:
     transform();
 
-    void construct(const time_point_t& timestamp, const glm::vec3& position, const glm::vec3& forward);
+    void construct(map* map, region* region, cell* cell);
+    void update(const base_time& diff, map* map);
+
     void push(const time_point_t& timestamp, const glm::vec3& position, const glm::vec3& forward, float speed);
 
     inline glm::vec3 position(const time_point_t& timestamp) const;
 
 private:
     boost::circular_buffer<physics> _buffer;
+    cell* _current_cell;
+    region* _current_region;
+    bool _is_moving;
 };
 
 

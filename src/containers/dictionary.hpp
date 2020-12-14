@@ -44,7 +44,10 @@ template <typename T, typename B, uint16_t InitialSize, typename ST>
 template <uint16_t OtherSize, typename OtherST>
 B* dictionary<T, B, InitialSize, ST>::move(entity_id_t id, dictionary<T, B, OtherSize, OtherST>& to)
 {
-    return move(ST::get(id), to);
+    if (auto ticket = ST::get(id); ticket && ticket->valid())
+    {
+        return move(ticket, to);
+    }
 }
 
 template <typename T, typename B, uint16_t InitialSize, typename ST>

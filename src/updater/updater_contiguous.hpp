@@ -14,7 +14,7 @@ class updater_contiguous : public updater<updater_contiguous<types...>, types...
 
     using updater_t = updater<updater_contiguous<types...>, types...>;
 
-protected:
+public:
     constexpr updater_contiguous() noexcept :
         updater_t()
     {}
@@ -23,6 +23,7 @@ protected:
         updater_t(components)
     {}
 
+protected:
     template <typename T, typename... Args>
     constexpr void update_fiber(T* vector, Args&&... args) noexcept
     {

@@ -1,17 +1,31 @@
+#include "core/server.hpp"
 #include "maps/region.hpp"
-
+#include "maps/map.hpp"
 
 region::region(const offset_t& offset) :
     _offset(offset),
-    _store(),
-    _map_aware_scheme(_store)
+    _common_store(),
+    _moving_store(),
+    _map_aware_scheme(_common_store),
+    _moving_transforms_scheme(_moving_store),
+    _transforms_updater(tao::make_tuple(&_moving_transforms_scheme.get<transform>()))
 {}
 
-void region::move_from_region(region* other, map_aware* who, transform* trf)
+void region::create_entity(map* map, cell* cell, const glm::vec3& position)
 {
-    other->_map_aware_scheme.move(_map_aware_scheme, who, trf);
+    server::instance->create_with_callback(
+        _map_aware_scheme,
+        [position](auto map_aware, auto transform) {
+            transform->push(server::instance->now(), position, glm::vec3{ 1, 0, 0 }, 0.0);
+            return tao::tuple(map_aware, transform);
+        },
+        _map_aware_scheme.args<map_aware>(),
+        _map_aware_scheme.args<transform>(map, this, cell)
+    );
+}
 
-    // TODO(gpascualg): Helper method for this
-    other->_map_aware_scheme.get<map_aware>().move(who->ticket(), _map_aware_scheme.get<map_aware>());
-    other->_map_aware_scheme.get<transform>().move(trf->ticket(), _map_aware_scheme.get<transform>());
+void region::move_to(region* other, map_aware* who, transform* trf)
+{
+    // If it is moving, it means it's on the moving scheme
+    _moving_transforms_scheme.move(other->_moving_transforms_scheme, who, trf);
 }

@@ -14,7 +14,7 @@ class updater_batched : public updater<updater_batched<types...>, types...>
 
     using updater_t = updater<updater_batched<types...>, types...>;
 
-protected:
+public:
     constexpr updater_batched(uint32_t batch_size) noexcept :
         updater_t(),
         _batch_size(batch_size)
@@ -25,6 +25,7 @@ protected:
         _batch_size(batch_size)
     {}
 
+protected:
     template <typename T, typename... Args>
     constexpr void update_fiber(T* vector, Args&&... args) noexcept
     {

@@ -50,6 +50,12 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
 {
     auto client = (class client*)kaminari_client;
     client->login_pending();
+    
+    server::instance->get_or_create_map(0, [](auto map)
+        {
+            map->create_entity_at({ 1, 0, 10 });
+            return tao::tuple(map);
+        });
 
     server::instance->database_async().submit([data, ticket = client->ticket()]() mutable
         {

@@ -8,7 +8,9 @@
 #include "entities/map_aware.hpp"
 #include "entities/transform.hpp"
 
+
 class transform;
+class map;
 
 
 class region
@@ -23,19 +25,30 @@ public:
     region(const offset_t& offset);
 
     inline const offset_t& offset() const;
+    inline updater_contiguous<region::dic_t<transform>*>& updater();
 
-protected:
-    void move_from_region(region* other, map_aware* who, transform* trf);
+    void create_entity(map* map, cell* cell, const glm::vec3& position);
+    void move_to(region* other, map_aware* who, transform* trf);
 
 private:
     offset_t _offset;
 
-    scheme_store<dic_t<map_aware>, dic_t<transform>> _store;
-    decltype(scheme_maker<map_aware, transform>()(_store)) _map_aware_scheme;
+    scheme_store<dic_t<map_aware>, dic_t<transform>> _common_store;
+    scheme_store<dic_t<map_aware>, dic_t<transform>> _moving_store;
+
+    decltype(scheme_maker<map_aware, transform>()(_common_store)) _map_aware_scheme;
+    decltype(scheme_maker<map_aware, transform>()(_moving_store)) _moving_transforms_scheme;
+
+    updater_contiguous<region::dic_t<transform>*> _transforms_updater;
 };
 
 
 inline const region::offset_t& region::offset() const
 {
     return _offset;
+}
+
+inline updater_contiguous<region::dic_t<transform>*>& region::updater()
+{
+    return _transforms_updater;
 }
