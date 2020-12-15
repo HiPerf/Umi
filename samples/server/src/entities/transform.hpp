@@ -33,18 +33,37 @@ public:
 
     void push(const time_point_t& timestamp, const glm::vec3& position, const glm::vec3& forward, float speed);
 
+    inline region* current_region() const;
+    inline cell* current_cell() const;
+
     inline glm::vec3 position(const time_point_t& timestamp) const;
+    inline bool is_moving() const;
 
 private:
     boost::circular_buffer<physics> _buffer;
-    cell* _current_cell;
     region* _current_region;
+    cell* _current_cell;
     bool _is_moving;
 };
 
+
+inline region* transform::current_region() const
+{
+    return _current_region;
+}
+
+inline cell* transform::current_cell() const
+{
+    return _current_cell;
+}
 
 inline glm::vec3 transform::position(const time_point_t& timestamp) const
 {
     const auto& last = _buffer.back();
     return last.position + last.forward * (last.speed * std::chrono::duration_cast<base_time>(timestamp - last.timestamp).count());
+}
+
+inline bool transform::is_moving() const
+{
+    return _is_moving;
 }

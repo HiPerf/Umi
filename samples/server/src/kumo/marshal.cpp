@@ -138,6 +138,18 @@ namespace kumo
     {
         return sizeof(character_selection);
     }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const success& data)
+    {
+    }
+    uint8_t marshal::packet_size(const success& data)
+    {
+        (void)data;
+        return sizeof(success);
+    }
+    uint8_t marshal::sizeof_success()
+    {
+        return sizeof(success);
+    }
     void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data)
     {
         *packet << static_cast<bool>(data.x);

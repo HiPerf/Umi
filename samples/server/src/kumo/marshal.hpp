@@ -33,6 +33,9 @@ namespace kumo
         static bool unpack(::kaminari::packet_reader* packet, character_selection& data);
         static uint8_t packet_size(const character_selection& data);
         static uint8_t sizeof_character_selection();
+        static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const success& data);
+        static uint8_t packet_size(const success& data);
+        static uint8_t sizeof_success();
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const complex& data);
         static void pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const spawn_data& data);
         static uint8_t packet_size(const spawn_data& data);
@@ -170,14 +173,14 @@ namespace kumo
     {
         switch (static_cast<::kumo::opcode>(packet->opcode()))
         {
+            case opcode::character_selected:
+                return handle_character_selected(packet, client);
+            case opcode::login:
+                return handle_login(packet, client);
             case opcode::move:
                 return handle_move(packet, client);
             case opcode::handshake:
                 return handle_handshake(packet, client);
-            case opcode::login:
-                return handle_login(packet, client);
-            case opcode::character_selected:
-                return handle_character_selected(packet, client);
             default:
                 return false;
         }

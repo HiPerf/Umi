@@ -2,6 +2,7 @@
 #include "core/server.hpp"
 #include "common/definitions.hpp"
 #include "database/database.hpp"
+#include "maps/map.hpp"
 
 #include <kumo/config.hpp>
 #include <kumo/rpc.hpp>
@@ -51,12 +52,6 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
     auto client = (class client*)kaminari_client;
     client->login_pending();
     
-    server::instance->get_or_create_map(0, [](auto map)
-        { 
-            map->create_entity_at({ 1, 0, 10 });
-            return tao::tuple(map);
-        });
-
     server::instance->database_async().submit([data, ticket = client->ticket()]() mutable
         {
             if (!ticket->valid())
@@ -103,6 +98,9 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
                     return;
                 }
 
+                client->database_information({
+                    .username = data.username
+                });
                 client->login_done();
 
                 auto characters_collection = database::instance->get_collection(static_cast<uint8_t>(database_collections::characters));
@@ -130,5 +128,54 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
 
 bool handler::on_character_selected(::kaminari::basic_client* kaminari_client, const ::kumo::character_selection& data, uint64_t timestamp)
 {
+    auto client = (class client*)kaminari_client;
+
+    server::instance->database_async().submit([data, ticket = client->ticket()]() mutable
+    {
+        if (!ticket->valid())
+        {
+            return;
+        }
+        auto client = ticket->get()->derived();
+
+        auto filter = make_document(
+            kvp("username", client->database_information()->username),
+            kvp("index", data.index)
+        );
+
+        auto collection = database::instance->get_collection(static_cast<uint8_t>(database_collections::characters));
+        auto result = collection.find_one(filter.view());
+        if (!result)
+        {
+            // Selected a non-existing character
+            server::instance->disconnect_client(client);
+            return;
+        }
+
+        // Load map and create character
+        auto& character = result->view();
+        server::instance->get_or_create_map(static_cast<uint64_t>(character["position"]["map"].get_int64().value), [
+            ticket,
+            position = glm::vec3(
+                static_cast<float>(character["position"]["x"].get_double().value), 
+                static_cast<float>(character["position"]["y"].get_double().value),
+                static_cast<float>(character["position"]["z"].get_double().value))
+        ](map* map) mutable
+            {
+                map->create_entity_at(position, [ticket](auto map_aware, auto transform) mutable
+                    {
+                        if (!ticket->valid())
+                        {
+                            transform->current_region()->remove_entity(transform);
+                            return;
+                        }
+
+                        auto client = ticket->get()->derived();
+                        client->ingame_entity(transform);
+                        kumo::send_enter_world(client->super_packet(), {});
+                    });
+            });
+    });
+
     return true;
 }

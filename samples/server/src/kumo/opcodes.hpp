@@ -9,6 +9,7 @@ namespace kumo
         login_response   = 0x54f0,
         characters_list  = 0x4b05,
         character_selected = 0x2e6b,
+        enter_world      = 0x5f9f,
         do_sth           = 0x71bb,
         spawn            = 0x3858,
         move             = 0x15af,

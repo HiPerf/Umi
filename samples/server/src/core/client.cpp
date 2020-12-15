@@ -19,6 +19,7 @@ void client::construct(const udp::endpoint& endpoint)
     _endpoint = endpoint;
     _ingame_status = ingame_status::new_connection;
     _database_information = std::nullopt;
+    _ingame_entity = nullptr;
 
     reset();
 }

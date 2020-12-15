@@ -12,6 +12,7 @@ namespace kumo
     struct characters;
     struct character;
     struct character_selection;
+    struct success;
     struct complex;
     struct has_id;
     struct spawn_data;
@@ -65,6 +66,10 @@ namespace kumo
     {
     public:
         uint8_t index;
+    };
+
+    struct success
+    {
     };
 
     struct complex

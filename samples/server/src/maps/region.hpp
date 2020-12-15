@@ -27,7 +27,9 @@ public:
     inline const offset_t& offset() const;
     inline updater_contiguous<region::dic_t<transform>*>& updater();
 
-    void create_entity(map* map, cell* cell, const glm::vec3& position);
+    template <typename C>
+    void create_entity(map* map, cell* cell, const glm::vec3& position, C&& callback);
+    void remove_entity(transform* transform);
     void move_to(region* other, map_aware* who, transform* trf);
 
 private:
@@ -51,4 +53,19 @@ inline const region::offset_t& region::offset() const
 inline updater_contiguous<region::dic_t<transform>*>& region::updater()
 {
     return _transforms_updater;
+}
+
+template <typename C>
+void region::create_entity(map* map, cell* cell, const glm::vec3& position, C&& callback)
+{
+    server::instance->create_with_callback(
+        _map_aware_scheme,
+        [position, callback{ std::move(callback) }](map_aware* map_aware, transform* transform) mutable {
+            transform->push(server::instance->now(), position, glm::vec3{ 1, 0, 0 }, 0.0);
+            callback(map_aware, transform);
+            return tao::tuple(map_aware, transform);
+        },
+        _map_aware_scheme.args<map_aware>(),
+        _map_aware_scheme.args<transform>(map, this, cell)
+    );
 }

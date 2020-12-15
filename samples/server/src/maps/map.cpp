@@ -79,9 +79,3 @@ cell* map::get_or_create_cell(const cell::offset_t& offset)
 
     return _cells.emplace(offset.hash(), new cell(offset)).first->second;
 }
-
-void map::create_entity_at(const glm::vec3& position)
-{
-    auto region = get_or_create_region(region::offset_t::of(position.x, position.z));
-    region->create_entity(this, get_or_create_cell(cell::offset_t::of(position.x, position.y)), position);
-}

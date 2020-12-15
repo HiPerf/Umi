@@ -8,8 +8,8 @@
 transform::transform() :
     entity<transform>(),
     _buffer(16),
-    _current_cell(nullptr),
     _current_region(nullptr),
+    _current_cell(nullptr),
     _is_moving(false)
 {}
 
@@ -29,6 +29,9 @@ void transform::update(const base_time& diff, map* map)
         
     auto region_offset = _current_region->offset();
     auto new_region_offset = region::offset_t::of(position.x, position.z);
+
+    // TODO(gpascualg): Maybe scheduling this inside the region in vectors would be much more data-friendly
+    //  Schedule to own region, execute durin sync pass in maps
 
     if (region_offset != new_region_offset)
     {

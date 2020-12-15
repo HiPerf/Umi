@@ -20,9 +20,18 @@ public:
     region* get_or_create_region(const region::offset_t& offset);
     cell* get_or_create_cell(const cell::offset_t& offset);
 
-    void create_entity_at(const glm::vec3& position);
+    template <typename C>
+    void create_entity_at(const glm::vec3& position, C&& callback);
 
 private:
     std::unordered_map<typename cell::offset_t::hash_t, cell*> _cells;
     std::unordered_map<typename region::offset_t::hash_t, region*> _regions;
 };
+
+
+template <typename C>
+void map::create_entity_at(const glm::vec3& position, C&& callback)
+{
+    auto region = get_or_create_region(region::offset_t::of(position.x, position.z));
+    region->create_entity(this, get_or_create_cell(cell::offset_t::of(position.x, position.y)), position, std::move(callback));
+}

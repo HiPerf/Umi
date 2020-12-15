@@ -43,6 +43,18 @@ namespace kumo
     template <typename B>
     void broadcast_characters_list_single(::kaminari::broadcaster<B>* broadcaster, characters&& data);
     template <class ReliableAllocator, class OrderedAllocator, typename T>
+    inline void send_enter_world(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, success&& data, T&& callback);
+    template <class ReliableAllocator, class OrderedAllocator>
+    inline void send_enter_world(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, success&& data);
+    template <typename B, typename T>
+    void broadcast_enter_world(::kaminari::broadcaster<B>* broadcaster, success&& data, T&& callback);
+    template <typename B>
+    void broadcast_enter_world(::kaminari::broadcaster<B>* broadcaster, success&& data);
+    template <typename B, typename T>
+    void broadcast_enter_world_single(::kaminari::broadcaster<B>* broadcaster, success&& data, T&& callback);
+    template <typename B>
+    void broadcast_enter_world_single(::kaminari::broadcaster<B>* broadcaster, success&& data);
+    template <class ReliableAllocator, class OrderedAllocator, typename T>
     inline void send_do_sth(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, complex&& data, T&& callback);
     template <class ReliableAllocator, class OrderedAllocator>
     inline void send_do_sth(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, complex&& data);
@@ -203,6 +215,52 @@ namespace kumo
     void broadcast_characters_list_single(::kaminari::broadcaster<B>* broadcaster, characters&& data)
     {
         boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::characters_list);
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <class ReliableAllocator, class OrderedAllocator, typename T>
+    inline void send_enter_world(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, success&& data, T&& callback)
+    {
+        pq->send_reliable(opcode::enter_world, std::move(data), std::forward<T>(callback));
+    }
+    template <class ReliableAllocator, class OrderedAllocator>
+    inline void send_enter_world(::kumo::protocol_queues<ReliableAllocator, OrderedAllocator>* pq, success&& data)
+    {
+        pq->send_reliable(opcode::enter_world, std::move(data));
+    }
+    template <typename B, typename T>
+    void broadcast_enter_world(::kaminari::broadcaster<B>* broadcaster, success&& data, T&& callback)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::enter_world, std::forward<T>(callback));
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <typename B>
+    void broadcast_enter_world(::kaminari::broadcaster<B>* broadcaster, success&& data)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::enter_world);
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <typename B, typename T>
+    void broadcast_enter_world_single(::kaminari::broadcaster<B>* broadcaster, success&& data, T&& callback)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::enter_world, std::forward<T>(callback));
+        ::kumo::marshal::pack(packet, data);
+        broadcaster->broadcast([packet](auto pq) {
+            pq->send_reliable(packet);
+        });
+    }
+    template <typename B>
+    void broadcast_enter_world_single(::kaminari::broadcaster<B>* broadcaster, success&& data)
+    {
+        boost::intrusive_ptr<::kaminari::packet> packet = ::kaminari::packet::make((uint16_t)opcode::enter_world);
         ::kumo::marshal::pack(packet, data);
         broadcaster->broadcast([packet](auto pq) {
             pq->send_reliable(packet);

@@ -1,4 +1,5 @@
 #include "core/server.hpp"
+#include "entities/transform.hpp"
 
 #include <kaminari/types/data_wrapper.hpp>
 #include <kumo/rpc.hpp>
@@ -179,6 +180,12 @@ void server::disconnect_client(client* client)
         if (auto client = ticket->get<class client>())
         {
             std::cout << "DISCONNECT AT " << client->endpoint() << std::endl;
+
+            if (auto transform = client->ingame_entity())
+            {
+                // Free entity
+                transform->current_region()->remove_entity(transform);
+            }
 
             // TODO(gpascualg): Remove player transactions entity
             // Transactions, if any, are not immediately destroyed
