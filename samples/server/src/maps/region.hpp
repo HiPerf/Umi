@@ -30,7 +30,7 @@ public:
     inline updater_contiguous<region::dic_t<transform>*>& updater();
 
     template <typename C>
-    void create_entity(map* map, cell* cell, uint64_t db_id, const glm::vec3& position, C&& callback);
+    void create_entity(map* map, cell* cell, uint64_t id, uint64_t db_id, const glm::vec3& position, C&& callback);
     void remove_entity(transform* transform);
     void move_to(region* other, map_aware* who, transform* trf);
 
@@ -67,9 +67,10 @@ inline updater_contiguous<region::dic_t<transform>*>& region::updater()
 }
 
 template <typename C>
-void region::create_entity(map* map, cell* cell, uint64_t db_id, const glm::vec3& position, C&& callback)
+void region::create_entity(map* map, cell* cell, uint64_t id, uint64_t db_id, const glm::vec3& position, C&& callback)
 {
     server::instance->create_with_callback(
+        id,
         _map_aware_scheme,
         [this, position, callback{ std::move(callback) }](map_aware* map_aware, transform* transform) mutable {
             on_entity_created(map_aware, transform, position);

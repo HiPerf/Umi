@@ -77,5 +77,5 @@ cell* map::get_or_create_cell(const cell::offset_t& offset)
         return cell;
     }
 
-    return _cells.emplace(offset.hash(), new cell(offset)).first->second;
+    return _cells.emplace(offset.hash(), new cell(this, offset)).first->second;
 }

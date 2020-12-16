@@ -22,6 +22,8 @@ set(KUMO_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/movement.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/handshake.kumo
     ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/login.kumo
+    ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/spawn.kumo
+    ${CMAKE_CURRENT_SOURCE_DIR}/../data/kumo/utils.kumo
     ${KUMO_CONFIG_FILE}
 )
 set(KUMO_OUTPUT_FILES 

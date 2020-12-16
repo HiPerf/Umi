@@ -58,6 +58,7 @@ public:
     // UNSAFE methods, can only if:
     //  a) Absolute certainty the object exists
     //  b) Inside the main thread
+    inline client* get_client(uint64_t id) const;
     client* get_client(const udp::endpoint& endpoint) const;
     map* get_map(uint64_t id) const;
 
@@ -130,6 +131,11 @@ public:
 inline const std_clock_t::time_point& server::now() const
 {
     return _now;
+}
+
+inline client* server::get_client(uint64_t id) const
+{
+    return _client_scheme.get<client>().get_derived_or_null(id);
 }
 
 template <typename C>

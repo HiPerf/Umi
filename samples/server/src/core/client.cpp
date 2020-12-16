@@ -8,10 +8,11 @@
 client::client() :
     kaminari::client<
         kumo::protocol_queues<
+            test_allocator<kaminari::immediate_packer_allocator_t>,
             test_allocator<kaminari::immediate_packer_allocator_t>, 
             test_allocator<kaminari::ordered_packer_allocator_t>
         >
-    >(5, test_allocator<kaminari::immediate_packer_allocator_t>(2), test_allocator<kaminari::ordered_packer_allocator_t>(5))
+    >(5, test_allocator<kaminari::immediate_packer_allocator_t>(2), test_allocator<kaminari::immediate_packer_allocator_t>(2), test_allocator<kaminari::ordered_packer_allocator_t>(5))
 {}
 
 void client::construct(const udp::endpoint& endpoint)

@@ -49,11 +49,11 @@ void transform::update(const base_time& diff, map* map)
 
     if (cell_offset != new_cell_offset)
     {
-        executor_registry::current()->schedule_if([this, map, new_cell_offset](auto transform)
+        executor_registry::current()->schedule_if([this, map, new_cell_offset, position](auto transform)
         {
             // Move entity to the new cell
             auto new_cell = map->get_or_create_cell(new_cell_offset);
-            _current_cell->move_to(new_cell, transform);
+            _current_cell->move_to(new_cell, transform, position);
             _current_cell = new_cell;
         }, ticket());
     }

@@ -15,8 +15,8 @@ transaction::collection_info::collection_info() :
 transaction::transaction() noexcept
 {
     // Avoid race conditions by creating now the whole set of collections
-    _collections.emplace(static_cast<uint8_t>(database_collections::accounts), collection_info {});
-    _collections.emplace(static_cast<uint8_t>(database_collections::characters), collection_info {});
+    _collections.try_emplace(static_cast<uint8_t>(database_collections::accounts));
+    _collections.try_emplace(static_cast<uint8_t>(database_collections::characters));
 }
 
 void transaction::construct(uint64_t execute_every)

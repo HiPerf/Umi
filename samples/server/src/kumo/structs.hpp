@@ -17,6 +17,8 @@ namespace kumo
     struct has_id;
     struct spawn_data;
     struct movement;
+    struct spawn;
+    struct despawn;
 }
 
 namespace kumo
@@ -99,6 +101,20 @@ namespace kumo
     {
     public:
         int8_t direction;
+    };
+
+    struct spawn
+    {
+    public:
+        uint64_t id;
+        float x;
+        float z;
+    };
+
+    struct despawn
+    {
+    public:
+        uint64_t id;
     };
 
 }

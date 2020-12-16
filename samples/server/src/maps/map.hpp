@@ -21,7 +21,7 @@ public:
     cell* get_or_create_cell(const cell::offset_t& offset);
 
     template <typename C>
-    void create_entity_at(uint64_t id, const glm::vec3& position, C&& callback);
+    void create_entity_at(uint64_t id, uint64_t db_id, const glm::vec3& position, C&& callback);
 
 private:
     std::unordered_map<typename cell::offset_t::hash_t, cell*> _cells;
@@ -30,8 +30,8 @@ private:
 
 
 template <typename C>
-void map::create_entity_at(uint64_t id, const glm::vec3& position, C&& callback)
+void map::create_entity_at(uint64_t id, uint64_t db_id, const glm::vec3& position, C&& callback)
 {
     auto region = get_or_create_region(region::offset_t::of(position.x, position.z));
-    region->create_entity(this, get_or_create_cell(cell::offset_t::of(position.x, position.y)), id, position, std::move(callback));
+    region->create_entity(this, get_or_create_cell(cell::offset_t::of(position.x, position.y)), id, db_id, position, std::move(callback));
 }

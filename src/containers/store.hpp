@@ -10,8 +10,8 @@ template <typename T, typename B>
 class store
 {
 public:
-    inline typename ticket<B>::ptr get(entity_id_t id);
-    inline T* get_derived_or_null(entity_id_t id);
+    inline typename ticket<B>::ptr get(entity_id_t id) const;
+    inline T* get_derived_or_null(entity_id_t id) const;
 
 protected:
     void clear();
@@ -22,7 +22,7 @@ protected:
 
 
 template <typename T, typename B>
-inline typename ticket<B>::ptr store<T, B>::get(entity_id_t id)
+inline typename ticket<B>::ptr store<T, B>::get(entity_id_t id) const
 {
     if (auto it = _tickets.find(id); it != _tickets.end())
     {
@@ -32,7 +32,7 @@ inline typename ticket<B>::ptr store<T, B>::get(entity_id_t id)
 }
 
 template <typename T, typename B>
-inline T* store<T, B>::get_derived_or_null(entity_id_t id)
+inline T* store<T, B>::get_derived_or_null(entity_id_t id) const
 {
     if (auto it = _tickets.find(id); it != _tickets.end())
     {

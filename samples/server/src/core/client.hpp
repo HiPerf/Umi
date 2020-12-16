@@ -34,10 +34,11 @@ class transform;
 
 class client : public entity<client>,
     public kaminari::client<
-    kumo::protocol_queues<
-    test_allocator<kaminari::immediate_packer_allocator_t>,
-    test_allocator<kaminari::ordered_packer_allocator_t>
-    >
+        kumo::protocol_queues<
+            test_allocator<kaminari::immediate_packer_allocator_t>,
+            test_allocator<kaminari::immediate_packer_allocator_t>,
+            test_allocator<kaminari::ordered_packer_allocator_t>
+        >
     >
 {
     struct database_data

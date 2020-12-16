@@ -156,14 +156,21 @@ bool handler::on_character_selected(::kaminari::basic_client* kaminari_client, c
         auto& character = result->view();
         server::instance->get_or_create_map(static_cast<uint64_t>(character["position"]["map"].get_int64().value), [
             ticket,
-            id = static_cast<uint64_t>(character["_id"].get_int64().value),
+            db_id = static_cast<uint64_t>(character["_id"].get_int64().value),
             position = glm::vec3(
                 static_cast<float>(character["position"]["x"].get_double().value), 
                 static_cast<float>(character["position"]["y"].get_double().value),
                 static_cast<float>(character["position"]["z"].get_double().value))
         ](map* map) mutable
             {
-                map->create_entity_at(id, position, [ticket](auto map_aware, auto transform) mutable
+                if (!ticket->valid())
+                {
+                    return;
+                }
+
+                auto client = ticket->get()->derived();
+
+                map->create_entity_at(client->id(), db_id, position, [ticket](auto map_aware, auto transform) mutable
                     {
                         if (!ticket->valid())
                         {

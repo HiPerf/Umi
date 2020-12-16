@@ -13,5 +13,7 @@ namespace kumo
         do_sth           = 0x71bb,
         spawn            = 0x3858,
         move             = 0x15af,
+        spawned_entity   = 0x392b,
+        despawned_entity = 0x1393,
     };
 }

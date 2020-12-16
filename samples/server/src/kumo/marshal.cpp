@@ -223,4 +223,32 @@ namespace kumo
     {
         return sizeof(movement);
     }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const spawn& data)
+    {
+        *packet << data.id;
+        *packet << data.x;
+        *packet << data.z;
+    }
+    uint8_t marshal::packet_size(const spawn& data)
+    {
+        (void)data;
+        return sizeof(spawn);
+    }
+    uint8_t marshal::sizeof_spawn()
+    {
+        return sizeof(spawn);
+    }
+    void marshal::pack(const boost::intrusive_ptr<::kaminari::packet>& packet, const despawn& data)
+    {
+        *packet << data.id;
+    }
+    uint8_t marshal::packet_size(const despawn& data)
+    {
+        (void)data;
+        return sizeof(despawn);
+    }
+    uint8_t marshal::sizeof_despawn()
+    {
+        return sizeof(despawn);
+    }
 }
