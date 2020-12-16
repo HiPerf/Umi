@@ -61,8 +61,8 @@ public:
     client* get_client(const udp::endpoint& endpoint) const;
     map* get_map(uint64_t id) const;
 
-    transaction* get_entity_transaction(uint64_t id) const;
-    void create_entity_transaction(uint64_t id);
+    transaction* get_entity_transaction(int64_t id) const;
+    transaction* create_entity_transaction(int64_t id);
     void schedule_entity_transaction_removal(transaction* t);
 
     // SAFE methods, to be used inside any updater

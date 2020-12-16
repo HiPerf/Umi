@@ -47,7 +47,9 @@ public:
     using store_t = store<transaction, entity<transaction>>;
 
 public:
-    transaction& operator=(transaction&& other)
+    transaction() noexcept;
+
+    transaction& operator=(transaction&& other) noexcept
     {
         _collections = std::move(other._collections);
         _execute_every = other._execute_every;

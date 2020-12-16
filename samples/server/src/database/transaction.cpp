@@ -12,6 +12,13 @@ transaction::collection_info::collection_info() :
     current_id(0)
 {}
 
+transaction::transaction() noexcept
+{
+    // Avoid race conditions by creating now the whole set of collections
+    _collections.emplace(static_cast<uint8_t>(database_collections::accounts), collection_info {});
+    _collections.emplace(static_cast<uint8_t>(database_collections::characters), collection_info {});
+}
+
 void transaction::construct(uint64_t execute_every)
 {
     _collections.clear();

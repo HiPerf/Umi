@@ -147,20 +147,23 @@ map* server::get_map(uint64_t id) const
     return nullptr;
 }
 
-transaction* server::get_entity_transaction(uint64_t id) const
+transaction* server::get_entity_transaction(int64_t id) const
 {
-    return _transaction_scheme.get<class transaction>().get_derived_or_null(id);
+    return _transaction_scheme.get<class transaction>().get_derived_or_null(static_cast<uint64_t>(id));
 }
 
-void server::create_entity_transaction(uint64_t id)
+transaction* server::create_entity_transaction(int64_t id)
 {
-    if (auto transaction = get_entity_transaction(id))
+    uint64_t uid = static_cast<uint64_t>(id);
+
+    if (auto transaction = get_entity_transaction(uid))
     {
         transaction->unflag_deletion();
+        return transaction;
     }
     else
     {
-        _transaction_scheme.alloc<class transaction>(id, static_cast<uint64_t>(base_time(std::chrono::seconds(5)).count()));
+        return _transaction_scheme.alloc<class transaction>(uid, static_cast<uint64_t>(base_time(std::chrono::seconds(5)).count()));
     }
 }
 

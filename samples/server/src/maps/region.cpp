@@ -2,7 +2,8 @@
 #include "maps/region.hpp"
 #include "maps/map.hpp"
 
-region::region(const offset_t& offset) :
+region::region(map* map, const offset_t& offset) :
+    _map(map),
     _offset(offset),
     _common_store(),
     _moving_store(),
@@ -29,4 +30,14 @@ void region::remove_entity(transform* transform)
         _map_aware_scheme.free(transform->get<map_aware>());
         _map_aware_scheme.free(transform);
     }
+}
+
+void region::on_entity_created(map_aware* map_aware, transform* transform, const glm::vec3& position)
+{
+    // Push initial position
+    transform->push(server::instance->now(), position, glm::vec3{ 1, 0, 0 }, 0.0);
+
+    // Create transactional object and push it to the entity (so that we can do transform->get<transaction>())
+    auto transaction = server::instance->create_entity_transaction(map_aware->db_id());
+    transform->push_component(transaction);
 }

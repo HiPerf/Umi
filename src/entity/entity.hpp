@@ -60,6 +60,11 @@ public:
         return _entities.template get<D>();
     }
 
+    template <typename D>
+    inline void push_component(entity<D>* component)
+    {
+        _entities.template push<D>(component);
+    }
 
 private:
     template <typename... Args>

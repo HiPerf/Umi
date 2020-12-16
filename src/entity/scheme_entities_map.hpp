@@ -50,6 +50,12 @@ public:
         return nullptr;
     }
 
+    template <typename T>
+    inline void push(entity<T>* entity)
+    {
+        _entities.emplace(ctti::type_id<bare_t<T>>().hash(), unsafe_ticket_ref::from<bare_t<T>>(entity->ticket()));
+    }
+
 protected:
     explicit scheme_entities_map(const scheme_entities_map& other) = default;
 

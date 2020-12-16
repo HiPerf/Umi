@@ -66,7 +66,7 @@ region* map::get_or_create_region(const region::offset_t& offset)
         return region;
     }
 
-    auto region = _regions.emplace(offset.hash(), new ::region(offset)).first->second;
+    auto region = _regions.emplace(offset.hash(), new ::region(this, offset)).first->second;
     return region;
 }
 
