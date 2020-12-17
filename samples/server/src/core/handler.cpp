@@ -106,7 +106,8 @@ bool handler::on_login(::kaminari::basic_client* kaminari_client, const ::kumo::
                 auto characters_collection = database::instance->get_collection(static_cast<uint8_t>(database_collections::characters));
                 std::vector<kumo::character> characters;
 
-                for (auto& character : characters_collection.find(make_document(kvp("username", data.username))))
+                auto cursor = characters_collection.find(make_document(kvp("username", data.username)));
+                for (auto character : cursor)
                 {
                     characters.push_back(kumo::character {
                         .name = std::string(character["name"].get_utf8().value),
