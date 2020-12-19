@@ -79,7 +79,7 @@ protected:
         {
             return;
         }
-        else
+        else if (vector->size())
         {
             _updates_mutex.lock();
             _pending_updates += vector->size();

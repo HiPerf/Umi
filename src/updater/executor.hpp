@@ -49,14 +49,14 @@ public:
         {
             _workers.push_back(std::thread(
                 [this, num_workers, suspend] {
-                    // Set thread algo
-                    public_scheduling_algorithm<exclusive_work_stealing<0>>(num_workers, suspend);
-
                     // Custom behaviour, if any
                     if constexpr (!std::is_same_v<D, void> && has_on_worker_thread<D>)
                     {
                         static_cast<D&>(*this).on_worker_thread();
                     }
+
+                    // Set thread algo
+                    public_scheduling_algorithm<exclusive_work_stealing<0>>(num_workers, suspend);
 
                     _mutex.lock();
                     // suspend main-fiber from the worker thread
