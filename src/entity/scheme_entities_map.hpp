@@ -56,9 +56,10 @@ public:
         // Search all entities (including this one) and push in their map
         for (auto& [hash, ticket] : _entities)
         {
-            if (auto entity = ticket.template get<T>())
+            if (auto other = ticket.template get<T>())
             {
-                entity->_entities._entities.emplace(ctti::type_id<bare_t<T>>().hash(), unsafe_ticket_ref::from<bare_t<T>>(entity->ticket()));
+                other->_entities._entities.emplace(ctti::type_id<bare_t<T>>().hash(), unsafe_ticket_ref::from<bare_t<T>>(entity->ticket()));
+                entity->_entities._entities.emplace(hash, ticket);
             }
         }
     }
