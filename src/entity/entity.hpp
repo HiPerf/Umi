@@ -19,6 +19,7 @@ class entity : public pool_item<entity<T>>
     template <typename... types> friend class updater_contiguous;
     template <typename... types> friend class updater_all_async;
     template <typename D> friend class base_executor;
+    friend class scheme_entities_map;
 
 public:
     using derived_t = T;
@@ -29,13 +30,13 @@ public:
     template <typename... Args>
     static inline constexpr bool has_update()
     {
-        return ::has_update<entity<derived_t>, derived_t, Args...>;
+        return ::has_update_v<entity<derived_t>, derived_t, Args...>;
     }
 
     template <typename... Args>
     static inline constexpr bool has_sync()
     {
-        return ::has_sync<entity<derived_t>, derived_t, Args...>;
+        return ::has_sync_v<entity<derived_t>, derived_t, Args...>;
     }
 
     inline entity<derived_t>* base()
@@ -106,7 +107,7 @@ constexpr inline void entity<derived_t>::construct(entity_id_t id, Args&&... arg
 #if (__DEBUG__ || FORCE_ALL_CONSTRUCTORS) && !DISABLE_DEBUG_CONSTRUCTOR
     static_cast<derived_t&>(*this).construct(std::forward<Args>(args)...);
 #else
-    if constexpr (constructable<entity<derived_t>, derived_t, Args...>)
+    if constexpr (constructable_v<entity<derived_t>, derived_t, Args...>)
     {
         static_cast<derived_t&>(*this).construct(std::forward<Args>(args)...);
     }
@@ -117,7 +118,7 @@ template <typename derived_t>
 template <typename... Args>
 constexpr inline void entity<derived_t>::destroy(Args&&... args)
 {
-    if constexpr (destroyable<entity<derived_t>, derived_t, Args...>)
+    if constexpr (destroyable_v<entity<derived_t>, derived_t, Args...>)
     {
         static_cast<derived_t&>(*this).destroy(std::forward<Args>(args)...);
     }
@@ -127,7 +128,7 @@ template <typename derived_t>
 template <typename... Args>
 constexpr inline void entity<derived_t>::update(Args&&... args)
 {
-    if constexpr (::has_update<entity<derived_t>, derived_t, Args...>)
+    if constexpr (::has_update_v<entity<derived_t>, derived_t, Args...>)
     {
         static_cast<derived_t&>(*this).update(std::forward<Args>(args)...);
     }
@@ -137,7 +138,7 @@ template <typename derived_t>
 template <typename... Args>
 constexpr inline void entity<derived_t>::sync(Args&&... args)
 {
-    if constexpr (::has_sync<entity<derived_t>, derived_t, Args...>)
+    if constexpr (::has_sync_v<entity<derived_t>, derived_t, Args...>)
     {
         static_cast<derived_t&>(*this).sync(std::forward<Args>(args)...);
     }
@@ -148,7 +149,7 @@ constexpr inline void entity<derived_t>::scheme_created(scheme_entities_map&& en
 {
     _entities = std::move(entities);
 
-    if constexpr (has_scheme_created<entity<derived_t>, derived_t>)
+    if constexpr (has_scheme_created_v<entity<derived_t>, derived_t>)
     {
         static_cast<derived_t&>(*this).scheme_created();
     }
@@ -160,7 +161,7 @@ constexpr inline void entity<derived_t>::scheme_information(S<components...>& sc
 {
     _scheme = &scheme;
 
-    if constexpr (has_scheme_information<entity<derived_t>, derived_t, S, components...>)
+    if constexpr (has_scheme_information_v<entity<derived_t>, derived_t, S, components...>)
     {
         static_cast<derived_t&>(*this).scheme_information(scheme);
     }

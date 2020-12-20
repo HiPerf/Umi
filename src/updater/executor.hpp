@@ -215,7 +215,7 @@ public:
         ] () mutable {
             // Create entities by using each allocator and arguments
             // Call callback now too
-            auto entities = tao::apply(std::move(callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
+            auto entities = tao::tuple(create(id, scheme, std::move(scheme_args)) ...);
 
             // Create dynamic content
             scheme_entities_map entities_dynamic(entities);
@@ -223,7 +223,9 @@ public:
             // Notify of complete scheme creation
             tao::apply([&entities_dynamic](auto&&... entities) mutable {
                 (..., entities->base()->scheme_created(entities_dynamic.clone()));
-            }, std::move(entities));
+            }, entities);
+
+            tao::apply(std::move(callback), std::move(entities));
         });
 
         return id;
@@ -255,16 +257,16 @@ public:
             // Call callback now too
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
 
-            // Call the creation branch of the callback
-            tao::apply(std::move(always_callback), entities);
-
             // Create dynamic content
             scheme_entities_map entities_dynamic(entities);
 
             // Notify of complete scheme creation
             tao::apply([&entities_dynamic](auto&&... entities) mutable {
                 (..., entities->base()->scheme_created(entities_dynamic.clone()));
-            }, std::move(entities));
+            }, entities);
+
+            // Call the creation branch of the callback
+            tao::apply(std::move(always_callback), entities);
         });
     }
 
@@ -294,16 +296,16 @@ public:
             // Call callback now too
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
 
-            // Call the creation branch of the callback
-            std::move(always_callback)(tao::get<std::remove_pointer_t<I>*>(entities));
-
             // Create dynamic content
             scheme_entities_map entities_dynamic(entities);
 
             // Notify of complete scheme creation
             tao::apply([&entities_dynamic](auto&&... entities) mutable {
                 (..., entities->base()->scheme_created(entities_dynamic.clone()));
-                }, std::move(entities));
+                }, entities);
+
+            // Call the creation branch of the callback
+            std::move(always_callback)(tao::get<std::remove_pointer_t<I>*>(entities));
         });
     }
 
@@ -333,16 +335,16 @@ public:
             // Call callback now too
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
 
-            // Call the creation branch of the callback
-            std::move(always_callback)(tao::get<std::remove_pointer_t<I>*>(entities));
-
             // Create dynamic content
             scheme_entities_map entities_dynamic(entities);
 
             // Notify of complete scheme creation
             tao::apply([&entities_dynamic](auto&&... entities) {
                 (..., entities->base()->scheme_created(entities_dynamic.clone()));
-                }, std::move(entities));
+                }, entities);
+
+            // Call the creation branch of the callback
+            std::move(always_callback)(tao::get<std::remove_pointer_t<I>*>(entities));
         });
     }
 
