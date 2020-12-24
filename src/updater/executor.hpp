@@ -90,10 +90,11 @@ public:
             ts->execute();
         }
 
-        for (auto ts : _async_tasks)
-        {
-            ts->execute();
-        }
+        // TODO(gpascualg): Do we need to reenable async_tasks?
+        //for (auto ts : _async_tasks)
+        //{
+        //    ts->execute();
+        //}
 
         pop_instance();
     }

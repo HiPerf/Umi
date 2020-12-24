@@ -12,14 +12,14 @@
 
 class executor_registry;
 
+
 class tasks
 {
 public:
     using task_t = fu2::unique_function<void()>;
-    using container_t = std::vector<task_t>;
 
 public:
-    tasks(executor_registry* executor) noexcept;
+    tasks(executor_registry* executor, uint16_t max_size) noexcept;
 
     template <typename T>
     void schedule(T&& task) noexcept;
@@ -27,40 +27,29 @@ public:
     void execute() noexcept;
 
 protected:
-    void execute(container_t* buffer) noexcept;
-
-protected:
-    container_t* _current_buffer;
-    container_t _tasks_buffer1;
-    container_t _tasks_buffer2;
+    uint16_t _max_size;
+    task_t* _container;
+    std::atomic<uint16_t> _write_head;
+    std::atomic<uint16_t> _end;
+    uint16_t _begin;
 };
 
 
 template <typename T>
 void tasks::schedule(T&& task) noexcept
 {
-    _current_buffer->emplace_back(std::move(task));
-}
-
-
-class async_tasks : public tasks
-{
-public:
-    using tasks::tasks;
+    // Update write head
+    uint16_t current = _write_head++;
+    uint16_t expected = current + 1;
+    _write_head.compare_exchange_strong(expected, expected % _max_size);
     
-    template <typename T>
-    void schedule(T&& task) noexcept;
-    void execute() noexcept;
+    // TODO(gpascualg): Assert we have not reached max queued tasks (ie. _write_head != _begin)
 
-private:
-    boost::fibers::mutex _mutex;
-};
+    // Write task
+    _container[current % _max_size] = std::move(task);
 
-
-template <typename T>
-void async_tasks::schedule(T&& task) noexcept
-{
-    std::lock_guard<boost::fibers::mutex> lock{ _mutex };
-
-    _current_buffer->emplace_back(std::move(task));
+    // Update read head
+    current = _end++;
+    expected = current + 1;
+    _end.compare_exchange_strong(expected, expected % _max_size);
 }

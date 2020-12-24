@@ -19,6 +19,8 @@ public:
     template <typename T> using bare_t = typename std::remove_pointer_t<std::decay_t<T>>;
 
     scheme_entities_map() = default;
+    scheme_entities_map(scheme_entities_map&& other) noexcept = default;
+    scheme_entities_map& operator=(scheme_entities_map&& other) noexcept = default;
 
     template <typename... Ts>
     scheme_entities_map(const tao::tuple<Ts...>& entities)
@@ -30,9 +32,6 @@ public:
             );
         }, entities);
     }
-
-    explicit scheme_entities_map(scheme_entities_map&& other) noexcept = default;
-    scheme_entities_map& operator=(scheme_entities_map&& other) noexcept = default;
 
     inline auto clone() const
     {

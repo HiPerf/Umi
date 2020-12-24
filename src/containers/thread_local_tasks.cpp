@@ -4,41 +4,24 @@
 #include <mutex>
 
 
-tasks::tasks(executor_registry* executor) noexcept
+tasks::tasks(executor_registry* executor, uint16_t max_size) noexcept :
+    _max_size(max_size),
+    _write_head(0),
+    _end(0),
+    _begin(0)
 {
-    _current_buffer = &_tasks_buffer1;
+    _container = new task_t[max_size];
     executor->register_tasks(this);
 }
 
 void tasks::execute() noexcept
 {
-    auto old = _current_buffer;
-    auto other = _current_buffer == &_tasks_buffer1 ? &_tasks_buffer2 : &_tasks_buffer1;
-    execute(other);
-    _current_buffer = other;
-    execute(old);
-}
+    uint16_t current = _begin;
 
-void tasks::execute(container_t* buffer) noexcept
-{
-    for (auto it = buffer->begin(); it != buffer->end(); ++it)
+    for (; current != (_end % _max_size); current = (current + 1) % _max_size)
     {
-        std::move(*it)();
+        std::move(_container[current])();
     }
 
-    buffer->clear();
-}
-
-
-void async_tasks::execute() noexcept
-{
-    auto old = _current_buffer;
-    auto other = _current_buffer == &_tasks_buffer1 ? &_tasks_buffer2 : &_tasks_buffer1;
-    tasks::execute(other);
-
-    _mutex.lock();
-    _current_buffer = other;
-    _mutex.unlock();
-
-    tasks::execute(old);
+    _begin = current;
 }

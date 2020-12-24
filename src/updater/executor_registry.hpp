@@ -66,7 +66,7 @@ protected:
 
     inline tasks& get_scheduler() noexcept
     {
-        thread_local tasks ts(this);
+        thread_local tasks ts(this, 2048);
         return ts;
     }
 

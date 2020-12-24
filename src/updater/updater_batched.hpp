@@ -39,7 +39,7 @@ protected:
                 auto it  = range.begin() + group * _batch_size;
 
                 // TODO(gpascualg): can't go beyond end (cannot seek value-initialized vector iterator), better solution?
-                auto end = range.begin() + std::min(num_elements, (group + 1) * _batch_size);
+                auto end = it + std::min(num_elements, (group + 1) * _batch_size);
                 
                 int num_updates = 0;
                 for (; it != end; ++it, ++num_updates)
