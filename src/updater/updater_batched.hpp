@@ -5,6 +5,8 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/join.hpp>
 
+#include <cmath>
+
 
 template <typename... types>
 class updater_batched : public updater<updater_batched<types...>, types...>
@@ -29,7 +31,7 @@ protected:
     template <typename T, typename... Args>
     constexpr void update_fiber(T* vector, Args&&... args) noexcept
     {
-        int num_groups = static_cast<int>(std::ceilf(vector->size() / static_cast<float>(_batch_size)));
+        int num_groups = static_cast<int>(std::ceil(vector->size() / static_cast<float>(_batch_size)));
         auto range = vector->range();
         uint32_t num_elements = vector->size();
 

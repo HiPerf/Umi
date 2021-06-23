@@ -13,7 +13,7 @@ template <template <typename...> typename C, class... Out, class InCar, class...
 struct filter<C, C<Out...>, C<InCar, InCdr...>>
 {
   using type = typename std::conditional<
-    contains<C, C<Out...>, InCar>::value
+    contains<InCar, Out...>::value
     , typename filter<C, C<Out...>, C<InCdr...>>::type
     , typename filter<C, C<Out..., InCar>, C<InCdr...>>::type
   >::type;
