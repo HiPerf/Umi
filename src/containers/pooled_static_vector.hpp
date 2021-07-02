@@ -221,6 +221,9 @@ void pooled_static_vector<T, B, InitialSize, Track>::free_impl(T* object)
         if (!_extra.empty())
         {
             replacement = _extra.back();
+            *object = std::move(*replacement);
+            object->_ticket->_ptr = object;
+
             _extra.pop_back();
             _pool.free(replacement);
         }
@@ -230,13 +233,9 @@ void pooled_static_vector<T, B, InitialSize, Track>::free_impl(T* object)
             if (_current != object)
             {
                 replacement = _current;
+                *object = std::move(*replacement);
+                object->_ticket->_ptr = object;
             }
-        }
-
-        if (replacement)
-        {
-            *object = std::move(*replacement);
-            object->_ticket->_ptr = object;
         }
     }
     else
