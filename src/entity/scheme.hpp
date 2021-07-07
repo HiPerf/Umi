@@ -39,10 +39,10 @@ struct scheme_store
     {}
 
     template <typename T>
-    constexpr inline T& get()
+    constexpr inline auto get() noexcept -> std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>
     {
-        //using D = typename base_dic<T, tao::tuple<vectors...>>::type;
-        return tao::get<T>(components);
+        using D = typename base_dic<T, tao::tuple<vectors...>>::type;
+        return tao::get<D>(components);
     }
 
     tao::tuple<vectors...> components;
