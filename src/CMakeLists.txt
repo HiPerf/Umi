@@ -42,7 +42,8 @@ set(CORE_SOURCES
     updater/updater.hpp
     updater/updater_all_async.hpp
     updater/updater_batched.hpp
-    updater/updater_contiguous.hpp)
+    updater/updater_contiguous.hpp
+    view/view.hpp)
 
 add_library(umi_core_lib STATIC ${CORE_SOURCES})
 
