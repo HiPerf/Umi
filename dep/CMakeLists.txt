@@ -71,3 +71,18 @@ endif()
 target_link_libraries_system(umi_core_lib PUBLIC ctti)
 
 
+
+
+FetchContent_Declare(
+    range_v3_dep
+    GIT_REPOSITORY https://github.com/ericniebler/range-v3
+    GIT_TAG        master
+)
+
+FetchContent_GetProperties(range_v3_dep)
+if(NOT range_v3_dep_POPULATED)
+    FetchContent_Populate(range_v3_dep)
+    add_subdirectory(${range_v3_dep_SOURCE_DIR} ${range_v3_dep_BINARY_DIR})
+endif()
+
+target_link_libraries_system(umi_core_lib PUBLIC range-v3)
