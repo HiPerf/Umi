@@ -3,7 +3,7 @@
 #include "common/tao.hpp"
 #include "ids/generator.hpp"
 #include "traits/shared_function.hpp"
-#include "updater/executor_registry.hpp"
+#include "updater/tasks_manager.hpp"
 #include "updater/updater.hpp"
 
 #include <boost/fiber/fiber.hpp>
@@ -25,22 +25,20 @@ concept has_on_worker_thread = requires() {
 };
 
 template <typename D>
-class base_executor : public executor_registry
+class base_executor : public tasks_manager
 {
+private:
+    static inline base_executor<D>* _instance = nullptr;
+
 public:
     base_executor() noexcept
     {
-        instances[0] = this; // First entry always point to the last executor created
+        _instance = this;
     }
 
-    static inline base_executor* last()
+    static inline base_executor* instance()
     {
-        return (base_executor*)executor_registry::last();
-    }
-
-    static inline base_executor* current()
-    {
-        return (base_executor*)executor_registry::current();
+        return _instance;
     }
 
     void start(uint8_t num_workers, bool suspend) noexcept
@@ -81,66 +79,34 @@ public:
         }
     }
 
-    void execute_tasks() noexcept
-    {
-        push_instance();
-
-        for (auto ts : _tasks)
-        {
-            ts->execute();
-        }
-
-        // TODO(gpascualg): Do we need to reenable async_tasks?
-        //for (auto ts : _async_tasks)
-        //{
-        //    ts->execute();
-        //}
-
-        pop_instance();
-    }
-
     template <typename U, typename... Args>
     constexpr void update(U& updater, Args&&... args) noexcept
     {
-        push_instance();
-
         boost::fibers::fiber([&updater, ...args{ std::forward<Args>(args) }]() mutable {
             updater.update(std::forward<Args>(args)...);
             updater.wait_update();
         }).join();
-
-        pop_instance();
     }
 
     template <typename U, typename... Args>
     constexpr void update_no_wait(U& updater, Args&&... args) noexcept
     {
-        push_instance();
-
         boost::fibers::fiber([&updater, ...args{ std::forward<Args>(args) }]() mutable {
             updater.update(std::forward<Args>(args)...);
         }).join();
-
-        pop_instance();
     }
 
     template <typename U, typename... Args>
     constexpr void wait_update(U& updater, Args&&... args) noexcept
     {
-        push_instance();
-
         boost::fibers::fiber([&updater, ...args{ std::forward<Args>(args) }]() mutable {
             updater.wait_update();
         }).join();
-
-        pop_instance();
     }
 
     template <typename... U, typename... Args>
     constexpr void update_many(tao::tuple<Args...>&& args, U&... updaters) noexcept
     {
-        push_instance();
-
         boost::fibers::fiber([... updaters{ &updaters }, args{ std::forward<tao::tuple<Args...>>(args) }]() mutable {
             tao::apply([&](auto&&... args) {
                 ((updaters->update(std::forward<decltype(args)>(args)...)), ...);
@@ -148,16 +114,12 @@ public:
             
             (updaters->wait_update(), ...);
         }).join();
-
-        pop_instance();
     }
 
     template <typename U, typename... Args>
     constexpr void sync(U& updater, Args&&... args) noexcept
     {
-        push_instance();
         updater.sync(std::forward<Args>(args)...);
-        pop_instance();
     }
 
     template <template <typename...> typename S, typename... A, typename... vecs>

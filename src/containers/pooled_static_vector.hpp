@@ -9,8 +9,10 @@
 #include <vector>
 
 #include <boost/pool/pool.hpp>
-#include <boost/range/adaptors.hpp>
-#include <boost/range/join.hpp>
+
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/slice.hpp>
+#include <range/v3/view/transform.hpp>
 
 #include <tao/tuple/tuple.hpp>
 
@@ -44,11 +46,13 @@ public:
     
     inline auto range()
     {
-        return boost::join(
-            boost::adaptors::transform(
-                boost::adaptors::slice(_objects, 0, static_cast<std::size_t>(_current - &_objects[0])),
-                [](T& obj) { return &obj; }), 
-            _extra);
+        return ranges::views::concat(
+            ranges::views::transform(
+                ranges::views::slice(_objects, static_cast<uint16_t>(0), static_cast<std::size_t>(_current - &_objects[0])),
+                [this](T& obj) { return &obj; }
+            ),
+            _extra
+        );
     }
 
 protected:

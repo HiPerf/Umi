@@ -37,8 +37,8 @@ set(CORE_SOURCES
     traits/shared_function.hpp
     traits/tuple.hpp
     traits/without_duplicates.hpp
-    updater/executor_registry.hpp
     updater/executor.hpp
+    updater/tasks_manager.hpp
     updater/updater.hpp
     updater/updater_all_async.hpp
     updater/updater_batched.hpp

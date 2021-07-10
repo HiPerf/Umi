@@ -10,7 +10,7 @@
 #include <vector>
 
 
-class executor_registry;
+class tasks_manager;
 
 
 class tasks
@@ -19,7 +19,7 @@ public:
     using task_t = fu2::unique_function<void()>;
 
 public:
-    tasks(executor_registry* executor, uint16_t max_size) noexcept;
+    tasks(tasks_manager* manager, uint16_t max_size) noexcept;
 
     template <typename T>
     void schedule(T&& task) noexcept;
