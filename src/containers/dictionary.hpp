@@ -27,6 +27,12 @@ public:
     template <uint16_t OtherSize, typename OtherST>
     B* move(const typename ticket<B>::ptr ticket, dictionary<T, B, OtherSize, OtherST>& to);
 
+    template <uint16_t OtherSize, typename OtherST>
+    B* move_with_partition(bool p, entity_id_t id, dictionary<T, B, OtherSize, OtherST>& to);
+
+    template <uint16_t OtherSize, typename OtherST>
+    B* move_with_partition(bool p, const typename ticket<B>::ptr ticket, dictionary<T, B, OtherSize, OtherST>& to);
+
     void clear();
 
 protected:
@@ -56,6 +62,24 @@ B* dictionary<T, B, InitialSize, ST>::move(const typename ticket<B>::ptr ticket,
 {
     return pooled_static_vector<T, B, InitialSize, dictionary<T, B, InitialSize, ST>>::move_impl(
         reinterpret_cast<T*>(ticket->get()), to);
+}
+
+template <typename T, typename B, uint16_t InitialSize, typename ST>
+template <uint16_t OtherSize, typename OtherST>
+B* dictionary<T, B, InitialSize, ST>::move_with_partition(bool p, entity_id_t id, dictionary<T, B, OtherSize, OtherST>& to)
+{
+    if (auto ticket = ST::get(id); ticket && ticket->valid())
+    {
+        return move_with_partition(p, ticket, to);
+    }
+}
+
+template <typename T, typename B, uint16_t InitialSize, typename ST>
+template <uint16_t OtherSize, typename OtherST>
+B* dictionary<T, B, InitialSize, ST>::move_with_partition(bool p, const typename ticket<B>::ptr ticket, dictionary<T, B, OtherSize, OtherST>& to)
+{
+    return pooled_static_vector<T, B, InitialSize, dictionary<T, B, InitialSize, ST>>::move_with_partition_impl(
+        p, reinterpret_cast<T*>(ticket->get()), to);
 }
 
 template <typename T, typename B, uint16_t InitialSize, typename ST>

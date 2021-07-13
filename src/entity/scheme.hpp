@@ -9,6 +9,9 @@
 #include "traits/tuple.hpp"
 #include "traits/without_duplicates.hpp"
 
+#include <range/v3/algorithm/partition.hpp>
+#include <range/v3/view/zip.hpp>
+
 #include <tao/tuple/tuple.hpp>
 
 
@@ -122,6 +125,12 @@ public:
         get<T>().free(object);
     }
 
+    template <typename T>
+    constexpr void free_with_partition(bool p, T* object)
+    {
+        get<T>().free_with_partition(p, object);
+    }
+
     template <typename... Entities>
     constexpr auto move(scheme<vectors...>& to, Entities&&... entities) noexcept
     {
@@ -129,6 +138,35 @@ public:
             (entities->base()->scheme_information(*this), ...);
             return tao::tuple(entities...);
         }, tao::tuple(get<vectors>().move(entities->ticket(), to.get<vectors>())...));
+    }
+
+    template <typename... Entities>
+    constexpr auto move_with_partition(bool p, scheme<vectors...>& to, Entities&&... entities) noexcept
+    {
+        return tao::apply([this](auto... entities) mutable {
+            (entities->base()->scheme_information(*this), ...);
+            return tao::tuple(entities...);
+        }, tao::tuple(get<vectors>().move_with_partition(p, entities->ticket(), to.get<vectors>())...));
+    }
+
+    constexpr inline std::size_t size() const
+    {
+        return tao::get<0>(components).size();
+    }
+
+    template <typename Sorter, typename UnaryPredicate>
+    void partition(UnaryPredicate&& p)
+    {
+        ranges::partition(ranges::views::zip(get<vectors>().range_as_ref()...),
+            [p = std::forward<UnaryPredicate>(p)](const auto&... elems) {
+                return p(std::get<Sorter>(std::forward_as_tuple(elems...)));
+            });
+    }
+
+    template <typename T>
+    T* partition_change(bool p, T* object)
+    {
+        return get<T>().partition_change(p, object);
     }
 
     template <typename... T, typename... D>

@@ -143,6 +143,13 @@ public:
         return create_with_callback(id, scheme, std::move(callback), std::forward<A>(scheme_args)...);
     }
 
+    template <template <typename...> typename S, typename C, typename... A, typename... vecs>
+    constexpr uint64_t create_with_callback_and_partition(bool p, S<vecs...>& scheme, C&& callback, A&&... scheme_args) noexcept
+    {
+        uint64_t id = id_generator<S<vecs...>>().next();
+        return create_with_callback_and_partition(p, id, scheme, std::move(callback), std::forward<A>(scheme_args)...);
+    }
+
     //template <template <typename...> typename S, typename C, typename... A, typename... vecs>
     //__declspec(noinline) constexpr uint64_t create_with_callback(uint64_t id, S<vecs...>& scheme, C&& callback, A&&... scheme_args)
     //{
@@ -179,6 +186,57 @@ public:
             // Create entities by using each allocator and arguments
             // Call callback now too
             auto entities = tao::tuple(create(id, scheme, std::move(scheme_args)) ...);
+
+            // Create dynamic content
+            scheme_entities_map entities_dynamic(entities);
+
+            // Notify of complete scheme creation
+            tao::apply([&entities_dynamic](auto&&... entities) mutable {
+                (..., entities->base()->scheme_created(entities_dynamic.clone()));
+            }, entities);
+
+            tao::apply(std::move(callback), std::move(entities));
+        });
+
+        return id;
+    }
+
+    template <template <typename...> typename S, typename... A, typename... vecs>
+    auto create_unsafe(uint64_t id, S<vecs...>& scheme, A&&... scheme_args) noexcept
+        requires (... && !std::is_lvalue_reference<A>::value)
+    {
+        static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
+
+        auto entities = tao::tuple(create(id, scheme, std::move(scheme_args)) ...);
+
+        // Create dynamic content
+        scheme_entities_map entities_dynamic(entities);
+
+        // Notify of complete scheme creation
+        tao::apply([&entities_dynamic](auto&&... entities) mutable {
+            (..., entities->base()->scheme_created(entities_dynamic.clone()));
+        }, entities);
+
+        return entities;
+    }
+
+    template <template <typename...> typename S, typename C, typename... A, typename... vecs>
+    constexpr uint64_t create_with_callback_and_partition(bool p, uint64_t id, S<vecs...>& scheme, C&& callback, A&&... scheme_args) noexcept
+        requires (... && !std::is_lvalue_reference<A>::value)
+    {
+        static_assert(sizeof...(vecs) == sizeof...(scheme_args), "Incomplete scheme creation");
+
+        schedule([
+            this,
+            p,
+            id,
+            &scheme,
+            callback = std::move(callback),
+            ... scheme_args = std::forward<A>(scheme_args)
+        ] () mutable {
+            // Create entities by using each allocator and arguments
+            // Call callback now too
+            auto entities = tao::tuple(create_with_partition(p, id, scheme, std::move(scheme_args)) ...);
 
             // Create dynamic content
             scheme_entities_map entities_dynamic(entities);
@@ -318,6 +376,20 @@ private:
         // Create by invoking with arguments
         auto entity = tao::apply([&scheme_args, &id](auto&&... args) {
             return scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+        }, scheme_args.args);
+
+        // Notify of creation
+        entity->base()->scheme_information(scheme);
+
+        return entity;
+    }
+
+    template <template <typename...> typename S, typename... vecs, typename T>
+    constexpr auto create_with_partition(bool p, uint64_t id, S<vecs...>& scheme, T&& scheme_args) noexcept
+    {
+        // Create by invoking with arguments
+        auto entity = tao::apply([&scheme_args, p, &id](auto&&... args) {
+            return scheme_args.comp.alloc_with_partition(p, id, std::forward<std::decay_t<decltype(args)>>(args)...);
         }, scheme_args.args);
 
         // Notify of creation
