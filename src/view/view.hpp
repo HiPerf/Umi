@@ -63,7 +63,7 @@ struct entity_view
     }
 
     template <template <typename...> class S, typename C, typename... types>
-    inline constexpr void contiguous(S<types...>& scheme, C&& callback)
+    inline constexpr void continuous(S<types...>& scheme, C&& callback)
     {
         _pending_updates = scheme.size();
 

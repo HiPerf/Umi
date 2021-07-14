@@ -72,11 +72,22 @@ public:
         return D<std::add_pointer_t<vectors>...>(std::forward<Args>(args)..., components_ptr(tao::seq::make_index_sequence<sizeof...(vectors)> {}));
     }
 
+    constexpr inline void clear() noexcept
+    {
+        (get<vectors>().clear(), ...);
+    }
+
     template <typename T>
     constexpr inline auto get() const noexcept -> std::add_lvalue_reference_t<typename base_dic<T, tao::tuple<vectors...>>::type>
     {
         using D = typename base_dic<T, tao::tuple<vectors...>>::type;
         return tao::get<std::add_lvalue_reference_t<D>>(components);
+    }
+
+    template <typename T>
+    constexpr inline T* get(entity_id_t id) const noexcept
+    {
+        return get<T>().get_derived_or_null(id);
     }
 
     constexpr inline auto search(uint64_t id) const noexcept -> tao::tuple<std::add_pointer_t<typename vectors::derived_t>...>
@@ -122,31 +133,25 @@ public:
     template <typename T>
     constexpr void free(T* object)
     {
-        get<T>().free(object);
+        free_impl(object->template get<typename vectors::derived_t>()...);
     }
 
     template <typename T>
     constexpr void free_with_partition(bool p, T* object)
     {
-        get<T>().free_with_partition(p, object);
+        free_with_partition_impl(p, object->template get<typename vectors::derived_t>()...);
     }
 
-    template <typename... Entities>
-    constexpr auto move(scheme<vectors...>& to, Entities&&... entities) noexcept
+    template <typename T>
+    constexpr auto move(scheme<vectors...>& to, T* object) noexcept
     {
-        return tao::apply([this](auto... entities) mutable {
-            (entities->base()->scheme_information(*this), ...);
-            return tao::tuple(entities...);
-        }, tao::tuple(get<vectors>().move(entities->ticket(), to.get<vectors>())...));
+        return move_impl(to, object->template get<typename vectors::derived_t>()...);
     }
 
-    template <typename... Entities>
-    constexpr auto move_with_partition(bool p, scheme<vectors...>& to, Entities&&... entities) noexcept
+    template <typename T>
+    constexpr auto move_with_partition(bool p, scheme<vectors...>& to, T* object) noexcept
     {
-        return tao::apply([this](auto... entities) mutable {
-            (entities->base()->scheme_information(*this), ...);
-            return tao::tuple(entities...);
-        }, tao::tuple(get<vectors>().move_with_partition(p, entities->ticket(), to.get<vectors>())...));
+        return move_with_partition_impl(p, to, object->template get<typename vectors::derived_t>()...);
     }
 
     constexpr inline std::size_t size() const
@@ -164,9 +169,9 @@ public:
     }
 
     template <typename T>
-    T* partition_change(bool p, T* object)
+    auto partition_change(bool p, T* object)
     {
-        return get<T>().partition_change(p, object);
+        return partition_change_impl(p, object->template get<typename vectors::derived_t>()...);
     }
 
     template <typename... T, typename... D>
@@ -178,10 +183,47 @@ public:
 
 private:
     template <std::size_t... I>
-    constexpr auto components_ptr(std::index_sequence<I...>) noexcept
+    inline constexpr auto components_ptr(std::index_sequence<I...>) noexcept
     {
         return tao::tuple(&tao::get<I>(components)...);
     }
+
+    template <typename... Ts>
+    inline constexpr void free_impl(Ts... objects)
+    {
+        (get<vectors>().free(objects), ...);
+    }
+
+    template <typename... Ts>
+    inline constexpr void free_with_partition_impl(bool p, Ts... objects)
+    {
+        (get<vectors>().free_with_partition(p, objects), ...);
+    }
+
+    template <typename... Ts>
+    inline constexpr auto move_impl(scheme<vectors...>& to, Ts&&... entities) noexcept
+    {
+        return tao::apply([this](auto... entities) mutable {
+            (entities->base()->scheme_information(*this), ...);
+            return tao::tuple(entities...);
+        }, tao::tuple(get<vectors>().move(entities->ticket(), to.get<vectors>())...));
+    }
+
+    template <typename... Ts>
+    inline constexpr auto move_with_partition_impl(bool p, scheme<vectors...>& to, Ts... entities) noexcept
+    {
+        return tao::apply([this](auto... entities) mutable {
+            (entities->base()->scheme_information(*this), ...);
+            return tao::tuple(entities...);
+        }, tao::tuple(get<vectors>().move_with_partition(p, entities->ticket(), to.get<vectors>())...));
+    }
+
+    template <typename... Ts>
+    inline auto partition_change_impl(bool p, Ts... objects)
+    {
+        return tao::tuple(get<vectors>().partition_change(p, objects)...);
+    }
+
 };
 
 
