@@ -30,6 +30,12 @@ exclusive_work_stealing<SLOT>::init_(std::uint32_t thread_count,
 }
 
 template <int SLOT>
+void
+exclusive_work_stealing<SLOT>::reset() noexcept {
+    counter_ = 0;
+}
+
+template <int SLOT>
 exclusive_work_stealing<SLOT>::exclusive_work_stealing(std::uint32_t thread_count, bool suspend) :
     id_{ counter_++ },
     thread_count_{ thread_count },

@@ -56,6 +56,8 @@ public:
     void suspend_until(std::chrono::steady_clock::time_point const&) noexcept override;
 
     void notify() noexcept override;
+
+    static void reset() noexcept;
 };
 
 inline boost::fibers::algo::algorithm::ptr_t& get_scheduling_algorithm()
