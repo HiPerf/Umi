@@ -91,6 +91,7 @@ struct entity_view
                         {
                             std::apply(callback, combined);
 
+                            // TODO(gpascualg): Make _pending_updates atomic and benchmark performance
                             _updates_mutex.lock();
                             --_pending_updates;
                             _updates_mutex.unlock();

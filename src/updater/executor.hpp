@@ -31,7 +31,8 @@ private:
     static inline base_executor<D>* _instance = nullptr;
 
 public:
-    base_executor() noexcept
+    base_executor() noexcept :
+        _stop(false)
     {
         _instance = this;
     }
@@ -39,6 +40,11 @@ public:
     static inline base_executor* instance()
     {
         return _instance;
+    }
+
+    inline bool stopped() const noexcept
+    {
+        return _stop;
     }
 
     void start(uint8_t num_workers, bool suspend) noexcept
@@ -58,7 +64,7 @@ public:
 
                     _mutex.lock();
                     // suspend main-fiber from the worker thread
-                    _cv.wait(_mutex);
+                    _cv.wait(_mutex, [this]() { return _stop; });
                     _mutex.unlock();
                 })
             );
@@ -71,6 +77,7 @@ public:
     void stop() noexcept
     {
         // Notify, wait and join workers
+        _stop = true;
         _cv.notify_all();
 
         for (auto& t : _workers)
@@ -405,6 +412,9 @@ protected:
         thread_local generator<T> gen;
         return gen;
     }
+
+protected:
+    bool _stop;
 
 private:
     // Workers

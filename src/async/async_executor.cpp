@@ -19,3 +19,11 @@ void async_executor_base::worker_impl()
     }
 }
 
+void async_executor_base::stop()
+{
+    _channel.close();
+    for (auto& t : _workers)
+    {
+        t.join();
+    }
+}

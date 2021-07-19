@@ -15,6 +15,8 @@ public:
     template <typename F>
     void submit(F&& function);
 
+    void stop();
+
 protected:
     async_executor_base(uint16_t number_of_threads, std::size_t capacity);
     void worker_impl();
