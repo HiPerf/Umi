@@ -122,7 +122,7 @@ public:
     template <typename T, typename... Args>
     constexpr T* alloc(uint64_t id, Args&&... constructor_args)
     {
-        return create(id, args<T>(std::forward<Args>(constructor_args)...));
+        return tao::get<T*>(create(id, args<T>(std::forward<Args>(constructor_args)...)));
     }
 
     template <typename... A>

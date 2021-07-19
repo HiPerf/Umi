@@ -27,7 +27,7 @@ concept has_on_worker_thread = requires() {
 template <typename D>
 class base_executor : public tasks_manager
 {
-private:
+protected:
     static inline base_executor<D>* _instance = nullptr;
 
 public:
@@ -37,7 +37,7 @@ public:
         _instance = this;
     }
 
-    static inline base_executor* instance()
+    static inline base_executor<D>* instance()
     {
         return _instance;
     }
@@ -376,6 +376,11 @@ public:
         });
     }
 
+    inline generator& id_generator() noexcept
+    {
+        return _global_id_gen;
+    }
+
 private:
     template <template <typename...> typename S, typename... vecs, typename T>
     constexpr auto create(uint64_t id, S<vecs...>& scheme, T&& scheme_args) noexcept
@@ -403,12 +408,6 @@ private:
         entity->base()->scheme_information(scheme);
 
         return entity;
-    }
-
-protected:
-    inline generator& id_generator() noexcept
-    {
-        return _global_id_gen;
     }
 
 protected:

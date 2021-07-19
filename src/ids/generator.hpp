@@ -20,9 +20,7 @@ private:
 
 constexpr generator::generator() noexcept:
     _current(0)
-{
-    generators_collection<T>::store(this);
-}
+{}
 
 inline constexpr uint64_t generator::peek() const noexcept
 {
