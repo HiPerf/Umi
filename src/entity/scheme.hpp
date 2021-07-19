@@ -122,12 +122,45 @@ public:
     template <typename T, typename... Args>
     constexpr T* alloc(uint64_t id, Args&&... constructor_args)
     {
-        auto scheme_args = args<T>(std::forward<Args>(constructor_args)...);
-        return tao::apply([this, &scheme_args, &id](auto&&... args) mutable {
-            auto entity = scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
-            entity->base()->scheme_information(*this);
-            return entity;
-        }, scheme_args.args);
+        return create(id, args<T>(std::forward<Args>(constructor_args)...));
+    }
+
+    template <typename... A>
+    auto create(uint64_t id, A&&... scheme_args) noexcept
+        requires (... && !std::is_lvalue_reference<A>::value)
+    {
+        static_assert(sizeof...(vectors) == sizeof...(scheme_args), "Incomplete scheme allocation");
+
+        auto entities = tao::tuple(create_impl(id, std::move(scheme_args)) ...);
+
+        // Create dynamic content
+        scheme_entities_map entities_dynamic(entities);
+
+        // Notify of complete scheme creation
+        tao::apply([&entities_dynamic](auto&&... entities) mutable {
+            (..., entities->base()->scheme_created(entities_dynamic.clone()));
+        }, entities);
+
+        return entities;
+    }
+
+    template <typename... A>
+    auto create_with_partition(bool p, uint64_t id, A&&... scheme_args) noexcept
+        requires (... && !std::is_lvalue_reference<A>::value)
+    {
+        static_assert(sizeof...(vectors) == sizeof...(scheme_args), "Incomplete scheme allocation");
+
+        auto entities = tao::tuple(create_with_partition_impl(p, id, std::move(scheme_args)) ...);
+
+        // Create dynamic content
+        scheme_entities_map entities_dynamic(entities);
+
+        // Notify of complete scheme creation
+        tao::apply([&entities_dynamic](auto&&... entities) mutable {
+            (..., entities->base()->scheme_created(entities_dynamic.clone()));
+        }, entities);
+
+        return entities;
     }
 
     template <typename T>
@@ -224,6 +257,33 @@ private:
         return tao::tuple(get<vectors>().partition_change(p, objects)...);
     }
 
+    template <typename T>
+    constexpr auto create_impl(uint64_t id, T&& scheme_args) noexcept
+    {
+        // Create by invoking with arguments
+        auto entity = tao::apply([&scheme_args, &id](auto&&... args) {
+            return scheme_args.comp.alloc(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+        }, scheme_args.args);
+
+        // Notify of creation
+        entity->base()->scheme_information(*this);
+
+        return entity;
+    }
+
+    template <typename T>
+    constexpr auto create_with_partition_impl(bool p, uint64_t id, T&& scheme_args) noexcept
+    {
+        // Create by invoking with arguments
+        auto entity = tao::apply([&scheme_args, p, &id](auto&&... args) {
+            return scheme_args.comp.alloc_with_partition(p, id, std::forward<std::decay_t<decltype(args)>>(args)...);
+        }, scheme_args.args);
+
+        // Notify of creation
+        entity->base()->scheme_information(*this);
+
+        return entity;
+    }
 };
 
 

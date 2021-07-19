@@ -146,14 +146,14 @@ public:
     template <template <typename...> typename S, typename C, typename... A, typename... vecs>
     constexpr uint64_t create_with_callback(S<vecs...>& scheme, C&& callback, A&&... scheme_args) noexcept
     {
-        uint64_t id = id_generator<S<vecs...>>().next();
+        uint64_t id = id_generator().next();
         return create_with_callback(id, scheme, std::move(callback), std::forward<A>(scheme_args)...);
     }
 
     template <template <typename...> typename S, typename C, typename... A, typename... vecs>
     constexpr uint64_t create_with_callback_and_partition(bool p, S<vecs...>& scheme, C&& callback, A&&... scheme_args) noexcept
     {
-        uint64_t id = id_generator<S<vecs...>>().next();
+        uint64_t id = id_generator().next();
         return create_with_callback_and_partition(p, id, scheme, std::move(callback), std::forward<A>(scheme_args)...);
     }
 
@@ -280,7 +280,7 @@ public:
                 return;
             }
             
-            uint64_t id = id_generator<S<vecs...>>().next();
+            uint64_t id = id_generator().next();
             // Create entities by using each allocator and arguments
             // Call callback now too
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
@@ -319,7 +319,7 @@ public:
                 return;
             }
 
-            uint64_t id = id_generator<S<vecs...>>().next();
+            uint64_t id = id_generator().next();
             // Create entities by using each allocator and arguments
             // Call callback now too
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
@@ -406,17 +406,18 @@ private:
     }
 
 protected:
-    template <typename T>
-    inline generator<T>& id_generator() noexcept
+    inline generator& id_generator() noexcept
     {
-        thread_local generator<T> gen;
-        return gen;
+        return _global_id_gen;
     }
 
 protected:
     bool _stop;
 
 private:
+    // Helpers
+    generator _global_id_gen;
+
     // Workers
     std::vector<std::thread> _workers;
     boost::fibers::mutex _mutex;
