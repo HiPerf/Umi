@@ -145,8 +145,8 @@ void pooled_static_vector<T, B, InitialSize, Track>::clear(Args&&... args)
     // progressively add them to said DB
     for (auto object : range())
     {
-        object->invalidate();
         static_cast<B&>(*object).destroy(std::forward<Args>(args)...);
+        object->invalidate();
     }
 
     // Point static to start again
