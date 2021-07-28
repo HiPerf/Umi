@@ -3,7 +3,7 @@
 #include "common/types.hpp"
 #include "containers/pool_item.hpp"
 #include "containers/dictionary.hpp"
-#include "entity/scheme_entities_map.hpp"
+#include "entity/components_map.hpp"
 #include "entity/scheme.hpp"
 
 #include <any_ptr.h>
@@ -25,7 +25,33 @@ public:
     using derived_t = T;
 
 public:
-    inline entity_id_t id();
+    inline entity_id_t id() const noexcept
+    {
+        return _id;
+    }
+
+    template <typename S>
+    inline std::decay_t<S>* scheme() const noexcept
+    {
+        return xxx::any_ptr_cast<std::decay_t<S>>(_scheme);
+    }
+
+    inline std::shared_ptr<components_map>& components() noexcept
+    {
+        return _components;
+    }
+
+    template <typename D>
+    inline D* get() const noexcept
+    {
+        return _components->template get<D>();
+    }
+
+    template <typename D>
+    inline void push_component(entity<D>* component) noexcept
+    {
+        _components->template push<D>(component);
+    }
 
     template <typename... Args>
     static inline constexpr bool has_update()
@@ -49,24 +75,6 @@ public:
         return reinterpret_cast<derived_t*> (this);
     }
 
-    template <typename S>
-    inline std::decay_t<S>* scheme() const
-    {
-        return xxx::any_ptr_cast<std::decay_t<S>>(_scheme);
-    }
-
-    template <typename D>
-    inline D* get() const
-    {
-        return _entities.template get<D>();
-    }
-
-    template <typename D>
-    inline void push_component(entity<D>* component)
-    {
-        _entities.template push<D>(component);
-    }
-
 private:
     template <typename... Args>
     constexpr inline void update(Args&&... args);
@@ -80,23 +88,17 @@ private:
     template <typename... Args>
     constexpr inline void destroy(Args&&... args);
 
-    constexpr inline void scheme_created(scheme_entities_map&& entities);
+    constexpr inline void scheme_created(const std::shared_ptr<components_map>& map);
 
     template <template <typename...> typename S, typename... components>
     constexpr inline void scheme_information(S<components...>& scheme);
 
-private:
+protected:
     entity_id_t _id;
     xxx::any_ptr _scheme;
-    scheme_entities_map _entities;
+    std::shared_ptr<components_map> _components;
 };
 
-
-template <typename derived_t>
-inline entity_id_t entity<derived_t>::id()
-{
-    return _id;
-}
 
 template <typename derived_t>
 template <typename... Args>
@@ -145,9 +147,9 @@ constexpr inline void entity<derived_t>::sync(Args&&... args)
 }
 
 template <typename derived_t>
-constexpr inline void entity<derived_t>::scheme_created(scheme_entities_map&& entities)
+constexpr inline void entity<derived_t>::scheme_created(const std::shared_ptr<components_map>& map)
 {
-    _entities = std::move(entities);
+    _components = map;
 
     if constexpr (has_scheme_created_v<entity<derived_t>, derived_t>)
     {

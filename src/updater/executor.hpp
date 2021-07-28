@@ -195,11 +195,11 @@ public:
             auto entities = tao::tuple(create(id, scheme, std::move(scheme_args)) ...);
 
             // Create dynamic content
-            scheme_entities_map entities_dynamic(entities);
+            auto map = std::make_shared<components_map>(entities);
 
             // Notify of complete scheme creation
-            tao::apply([&entities_dynamic](auto&&... entities) mutable {
-                (..., entities->base()->scheme_created(entities_dynamic.clone()));
+            tao::apply([&map](auto&&... entities) mutable {
+                (..., entities->base()->scheme_created(map));
             }, entities);
 
             tao::apply(std::move(callback), std::move(entities));
@@ -217,11 +217,11 @@ public:
         auto entities = tao::tuple(create(id, scheme, std::move(scheme_args)) ...);
 
         // Create dynamic content
-        scheme_entities_map entities_dynamic(entities);
+        auto map = std::make_shared<components_map>(entities);
 
         // Notify of complete scheme creation
-        tao::apply([&entities_dynamic](auto&&... entities) mutable {
-            (..., entities->base()->scheme_created(entities_dynamic.clone()));
+        tao::apply([&map](auto&&... entities) mutable {
+            (..., entities->base()->scheme_created(map));
         }, entities);
 
         return entities;
@@ -246,11 +246,11 @@ public:
             auto entities = tao::tuple(create_with_partition(p, id, scheme, std::move(scheme_args)) ...);
 
             // Create dynamic content
-            scheme_entities_map entities_dynamic(entities);
+            auto map = std::make_shared<components_map>(entities);
 
             // Notify of complete scheme creation
-            tao::apply([&entities_dynamic](auto&&... entities) mutable {
-                (..., entities->base()->scheme_created(entities_dynamic.clone()));
+            tao::apply([&map](auto&&... entities) mutable {
+                (..., entities->base()->scheme_created(map));
             }, entities);
 
             tao::apply(std::move(callback), std::move(entities));
@@ -286,11 +286,11 @@ public:
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
 
             // Create dynamic content
-            scheme_entities_map entities_dynamic(entities);
+            auto map = std::make_shared<components_map>(entities);
 
             // Notify of complete scheme creation
-            tao::apply([&entities_dynamic](auto&&... entities) mutable {
-                (..., entities->base()->scheme_created(entities_dynamic.clone()));
+            tao::apply([&map](auto&&... entities) mutable {
+                (..., entities->base()->scheme_created(map));
             }, entities);
 
             // Call the creation branch of the callback
@@ -325,11 +325,11 @@ public:
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
 
             // Create dynamic content
-            scheme_entities_map entities_dynamic(entities);
+            auto map = std::make_shared<components_map>(entities);
 
             // Notify of complete scheme creation
-            tao::apply([&entities_dynamic](auto&&... entities) mutable {
-                (..., entities->base()->scheme_created(entities_dynamic.clone()));
+            tao::apply([&map](auto&&... entities) mutable {
+                (..., entities->base()->scheme_created(map));
                 }, entities);
 
             // Call the creation branch of the callback
@@ -364,11 +364,11 @@ public:
             auto entities = tao::apply(std::move(created_callback), tao::forward_as_tuple(create(id, scheme, std::move(scheme_args)) ...));
 
             // Create dynamic content
-            scheme_entities_map entities_dynamic(entities);
+            auto map = std::make_shared<components_map>(entities);
 
             // Notify of complete scheme creation
-            tao::apply([&entities_dynamic](auto&&... entities) {
-                (..., entities->base()->scheme_created(entities_dynamic.clone()));
+            tao::apply([&map](auto&&... entities) {
+                (..., entities->base()->scheme_created(map));
                 }, entities);
 
             // Call the creation branch of the callback

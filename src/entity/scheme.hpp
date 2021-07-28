@@ -134,11 +134,11 @@ public:
         auto entities = tao::tuple(create_impl(id, std::move(scheme_args)) ...);
 
         // Create dynamic content
-        scheme_entities_map entities_dynamic(entities);
+        auto map = std::make_shared<components_map>(entities);
 
         // Notify of complete scheme creation
-        tao::apply([&entities_dynamic](auto&&... entities) mutable {
-            (..., entities->base()->scheme_created(entities_dynamic.clone()));
+        tao::apply([&map](auto&&... entities) mutable {
+            (..., entities->base()->scheme_created(map));
         }, entities);
 
         return entities;
@@ -153,11 +153,11 @@ public:
         auto entities = tao::tuple(create_with_partition_impl(p, id, std::move(scheme_args)) ...);
 
         // Create dynamic content
-        scheme_entities_map entities_dynamic(entities);
+        auto map = std::make_shared<components_map>(entities);
 
         // Notify of complete scheme creation
-        tao::apply([&entities_dynamic](auto&&... entities) mutable {
-            (..., entities->base()->scheme_created(entities_dynamic.clone()));
+        tao::apply([&map](auto&&... entities) mutable {
+            (..., entities->base()->scheme_created(map));
         }, entities);
 
         return entities;
