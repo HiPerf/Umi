@@ -15,7 +15,6 @@ set(CORE_SOURCES
     containers/thread_local_tasks.cpp
     containers/thread_local_tasks.hpp
     containers/ticket.hpp
-    containers/unsafe_ticket_ref.hpp
     entity/components_map.hpp
     entity/entity.hpp
     entity/scheme.hpp

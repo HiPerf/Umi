@@ -1,7 +1,6 @@
 #pragma once
 
 #include "containers/ticket.hpp"
-#include "containers/unsafe_ticket_ref.hpp"
 #include "common/tao.hpp"
 #include "entity/entity.hpp"
 #include "traits/contains.hpp"
