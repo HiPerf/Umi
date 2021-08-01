@@ -11,15 +11,18 @@ class pool_item
     template <typename D, typename E, uint16_t I, typename R> friend class pooled_static_vector;
 
 public:
-    pool_item();
+    pool_item() noexcept;
     pool_item(const pool_item&) = delete;
-    pool_item(pool_item&& other);
+    pool_item(pool_item&& other) noexcept;
     pool_item& operator=(const pool_item&) = delete;
-    pool_item& operator=(pool_item&& other);
+    pool_item& operator=(pool_item&& other) noexcept;
 
     inline typename ticket<T>::ptr ticket() { return _ticket; }
 
 protected:
+    inline void recreate_ticket() noexcept;
+    inline void refresh_ticket() noexcept;
+    inline void invalidate_ticket() noexcept;
     void invalidate();
 
 private:
@@ -27,24 +30,44 @@ private:
 };
 
 template <typename T>
-pool_item<T>::pool_item() :
+pool_item<T>::pool_item() noexcept :
     _ticket(nullptr)
 {}
 
 template <typename T>
-pool_item<T>::pool_item(pool_item&& other) :
+pool_item<T>::pool_item(pool_item&& other) noexcept :
     _ticket(std::move(other._ticket))
+{
+    refresh_ticket();
+}
+
+template <typename T>
+pool_item<T>& pool_item<T>::operator=(pool_item&& other) noexcept
+{
+    _ticket = std::move(other._ticket);
+    refresh_ticket();
+    return *this;
+}
+
+template <typename T>
+inline void pool_item<T>::recreate_ticket()  noexcept
+{
+    _ticket = typename ::ticket<T>::ptr(new ::ticket<T>(reinterpret_cast<T*>(this)));
+}
+
+template <typename T>
+inline void pool_item<T>::refresh_ticket()  noexcept
 {
     _ticket->_ptr = reinterpret_cast<T*>(this);
 }
 
 template <typename T>
-pool_item<T>& pool_item<T>::operator=(pool_item&& other)
+inline void pool_item<T>::invalidate_ticket() noexcept
 {
-    _ticket = std::move(other._ticket);
-    _ticket->_ptr = reinterpret_cast<T*>(this);
-    return *this;
+    _ticket->invalidate();
+    _ticket = nullptr;
 }
+
 
 template <typename T>
 void pool_item<T>::invalidate()
