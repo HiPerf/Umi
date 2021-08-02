@@ -9,16 +9,23 @@
 template <pool_item_derived T, uint32_t N>
 class partitioned_growable_storage
 {
+    template <template <typename> storage, typename T>
+    friend class orchestrator;
+    
 public:
-    using tag == storage_tag(storage_grow::growable, storage_layout::partitioned);
+    using tag = storage_tag(storage_grow::growable, storage_layout::partitioned);
 
     partitioned_growable_storage();
 
     template <typename... Args>
     T* push(bool predicate, Args&&... args);
+    T* push(bool predicate, T* object);
 
     template <typename... Args>
     void pop(T* obj, Args&&... args);
+
+private:
+    void release(T* obj);
 
 private:
     std::vector<T> _data;
@@ -53,12 +60,35 @@ T* partitioned_growable_storage<T, N>::push(bool predicate, Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
+T* partitioned_growable_storage<T, N>::push(bool predicate, T* object)
+{
+    T* obj = &_data.emplace_back();
+
+    if (predicate)
+    {
+        // Move partition to last
+        *obj = std::move(_data[_partition_pos]);
+
+        // Increment partition and write
+        obj = &_data[_partition_pos++];
+    }
+
+    *obj = std::move(*object);
+    return obj;
+}
+
+template <pool_item_derived T, uint32_t N>
 template <typename... Args>
 void partitioned_growable_storage<T, N>::pop(T* obj, Args&&... args)
 {
     obj->destroy(std::forward<Args>(args)...); 
     obj->invalidate_ticket();
+    release(obj);
+}
 
+template <pool_item_derived T, uint32_t N>
+void partitioned_growable_storage<T, N>::release(T* obj)
+{
     if (obj - _data.data() < _partition_pos)
     {
         // True predicate, move partition one down and move that one

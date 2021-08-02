@@ -8,16 +8,23 @@
 template <pool_item_derived T, uint32_t N>
 class partitioned_static_storage
 {
+    template <template <typename> storage, typename T>
+    friend class orchestrator;
+    
 public:
-    using tag == storage_tag(storage_grow::fixed, storage_layout::partitioned);
+    using tag = storage_tag(storage_grow::fixed, storage_layout::partitioned);
 
     partitioned_static_storage();
 
     template <typename... Args>
     T* push(bool predicate, Args&&... args);
+    T* push(bool predicate, T* object);
 
     template <typename... Args>
     void pop(T* obj, Args&&... args);
+
+private:
+    void release(T* obj);
 
 private:
     std::array<T, N> _data;
@@ -51,7 +58,27 @@ T* partitioned_static_storage<T, N>::push(bool predicate, Args&&... args)
     ++_current;
     obj->construct(std::forward<Args>(args)...); 
     obj->recreate_ticket();
-    return obj++;
+    return obj;
+}
+
+template <pool_item_derived T, uint32_t N>
+template <typename... Args>
+T* partitioned_static_storage<T, N>::push(bool predicate, T* object)
+{
+    assert(_current < &_data[0] + N && "Writing out of bounds");
+    T* obj = _current;
+    if (predicate)
+    {
+        // Move partition to last
+        *_current = std::move(*_partition);
+
+        // Increment partition and write
+        obj = _partition++;
+    }
+
+    ++_current;
+    *obj = std::move(*object);
+    return obj;
 }
 
 template <pool_item_derived T, uint32_t N>
@@ -60,7 +87,12 @@ void partitioned_static_storage<T, N>::pop(T* obj, Args&&... args)
 {
     obj->destroy(std::forward<Args>(args)...); 
     obj->invalidate_ticket();
+    release(obj);
+}
 
+template <pool_item_derived T, uint32_t N>
+void partitioned_static_storage<T, N>::release(T* obj)
+{
     if (obj < _partition)
     {
         // True predicate, move partition one down and move that one

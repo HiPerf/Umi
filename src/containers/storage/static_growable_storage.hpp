@@ -9,18 +9,23 @@
 template <pool_item_derived T, uint32_t N>
 class static_growable_storage
 {
+    template <template <typename> storage, typename T>
+    friend class orchestrator;
+    
 public:
-    using tag == storage_tag(storage_grow::mixed, storage_layout::continuous);
+    using tag = storage_tag(storage_grow::mixed, storage_layout::continuous);
 
     static_growable_storage();
 
     template <typename... Args>
     T* push(Args&&... args);
+    T* push(T* object);
 
     template <typename... Args>
     void pop(T* obj, Args&&... args);
 
 private:
+    void release(T* obj);
     bool is_static(T* obj) noexcept const;
     bool is_static_full() noexcept const;
 
@@ -71,12 +76,35 @@ T* static_growable_storage<T, N>::push(Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
+T* static_growable_storage<T, N>::push(T* object)
+{
+    T* obj = _current;
+    if (!is_static_full())
+    {
+        assert(_current < &_data[0] + N && "Writing out of bounds");
+        ++_current;
+        *obj = std::move(*object);
+    }
+    else
+    {
+        obj = &_growable.emplace_back(std::move(*object));
+    }
+    
+    return obj;
+}
+
+template <pool_item_derived T, uint32_t N>
 template <typename... Args>
 void static_growable_storage<T, N>::pop(T* obj, Args&&... args)
 {
     obj->destroy(std::forward<Args>(args)...); 
     obj->invalidate_ticket();
-    
+    release(obj);
+}
+
+template <pool_item_derived T, uint32_t N>
+void static_growable_storage<T, N>::release(T* obj)
+{   
     if (is_static(obj))
     {
         *obj = std::move(*--_current);
