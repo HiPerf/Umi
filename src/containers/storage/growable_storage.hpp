@@ -11,7 +11,7 @@ class growable_storage
 {
     template <template <typename> storage, typename T>
     friend class orchestrator;
-    
+
 public:
     using tag = storage_tag(storage_grow::growable, storage_layout::continuous);
     
@@ -23,6 +23,13 @@ public:
 
     template <typename... Args>
     void pop(T* obj, Args&&... args);
+    
+    inline auto range()
+    {
+        return ranges::views::transform(
+            _data,
+            [](T& obj) { return &obj; });
+    }
 
 private:
     void release(T* obj);

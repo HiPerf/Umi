@@ -23,6 +23,27 @@ public:
 
     template <typename... Args>
     void pop(T* obj, Args&&... args);
+    
+    inline auto range()
+    {
+        return ranges::views::transform(
+            _data,
+            [](T& obj) { return &obj; });
+    }
+    
+    inline auto range_until_partition()
+    {
+        return ranges::views::transform(
+            ranges::views::slice(_data, 0, static_cast<std::size_t>(_partition_pos)),
+            [](T& obj) { return &obj; });
+    }
+    
+    inline auto range_from_partition()
+    {
+        return ranges::views::transform(
+            ranges::views::slice(_data, static_cast<std::size_t>(_partition_pos), _data.size()),
+            [](T& obj) { return &obj; });
+    }
 
 private:
     void release(T* obj);

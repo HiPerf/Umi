@@ -22,6 +22,27 @@ public:
 
     template <typename... Args>
     void pop(T* obj, Args&&... args);
+    
+    inline auto range()
+    {
+        return ranges::views::transform(
+            ranges::views::slice(_data, static_cast<uint16_t>(0), static_cast<std::size_t>(_current - &_data[0])),
+            [](T& obj) { return &obj; });
+    }
+    
+    inline auto range_until_partition()
+    {
+        return ranges::views::transform(
+            ranges::views::slice(_data, 0, static_cast<std::size_t>(_partition - &_data[0])),
+            [](T& obj) { return &obj; });
+    }
+    
+    inline auto range_from_partition()
+    {
+        return ranges::views::transform(
+            ranges::views::slice(_data, static_cast<std::size_t>(_partition - &_data[0]), static_cast<std::size_t>(_current - &_data[0])),
+            [](T& obj) { return &obj; });
+    }
 
 private:
     void release(T* obj);

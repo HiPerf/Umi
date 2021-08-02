@@ -23,6 +23,15 @@ public:
 
     template <typename... Args>
     void pop(T* obj, Args&&... args);
+    
+    inline auto range()
+    {
+        return ranges::views::transform(
+            ranges::views::concat(
+                ranges::views::slice(_data, static_cast<uint16_t>(0), static_cast<std::size_t>(_current - &_data[0])),
+                _growable),
+            [](T& obj) { return &obj; });
+    }
 
 private:
     void release(T* obj);
