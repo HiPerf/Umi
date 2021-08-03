@@ -1,6 +1,6 @@
 #pragma once
 
-#include "containers/storage/storage.hpp"
+#include "storage/storage.hpp"
 
 #include <array>
 
@@ -13,6 +13,8 @@ class static_storage
     
 public:
     using tag = storage_tag(storage_grow::fixed, storage_layout::continuous);
+    using base_t = entity<T>;
+    using derived_t = T;
 
     static_storage();
 
@@ -50,8 +52,8 @@ template <typename... Args>
 T* static_storage<T, N>::push(Args&&... args)
 {
     assert(_current < &_data[0] + N && "Writing out of bounds");
-    _current->construct(std::forward<Args>(args)...); 
-    _current->recreate_ticket();
+    static_cast<base_t&>(*_current).construct(std::forward<Args>(args)...); 
+    static_cast<base_t&>(*_current).recreate_ticket();
     return _current++;
 }
 
@@ -67,8 +69,8 @@ template <pool_item_derived T, uint32_t N>
 template <typename... Args>
 void static_storage<T, N>::pop(T* obj, Args&&... args)
 {
-    obj->destroy(std::forward<Args>(args)...); 
-    obj->invalidate_ticket();
+    static_cast<base_t&>(*obj).destroy(std::forward<Args>(args)...); 
+    static_cast<base_t&>(*obj).invalidate_ticket();
     release(obj);
 }
 

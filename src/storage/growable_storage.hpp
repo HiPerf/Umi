@@ -1,6 +1,6 @@
 #pragma once
 
-#include "containers/storage/storage.hpp"
+#include "storage/storage.hpp"
 
 #include <array>
 #include <vector>
@@ -14,6 +14,8 @@ class growable_storage
 
 public:
     using tag = storage_tag(storage_grow::growable, storage_layout::continuous);
+    using base_t = entity<T>;
+    using derived_t = T;
     
     growable_storage();
 
@@ -49,8 +51,8 @@ template <typename... Args>
 T* growable_storage<T, N>::push(Args&&... args)
 {
     T* obj = &_data.emplace_back();
-    obj->construct(std::forward<Args>(args)...); 
-    obj->recreate_ticket();
+    static_cast<base_t&>(*obj).construct(std::forward<Args>(args)...); 
+    static_cast<base_t&>(*obj).recreate_ticket();
     return obj;
 }
 
@@ -65,8 +67,8 @@ template <pool_item_derived T, uint32_t N>
 template <typename... Args>
 void growable_storage<T, N>::pop(T* obj, Args&&... args)
 {
-    obj->destroy(std::forward<Args>(args)...); 
-    obj->invalidate_ticket();
+    static_cast<base_t&>(*obj).destroy(std::forward<Args>(args)...); 
+    static_cast<base_t&>(*obj).invalidate_ticket();
 
     release(obj);
 }
