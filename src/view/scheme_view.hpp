@@ -1,5 +1,7 @@
 #pragma once
 
+#include "storage/storage.hpp"
+
 #include <boost/fiber/fiber.hpp>
 #include <boost/fiber/mutex.hpp>
 #include <boost/fiber/condition_variable.hpp>
