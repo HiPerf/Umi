@@ -101,10 +101,10 @@ void static_storage<T, N>::release(T* obj) noexcept
 template <pool_item_derived T, uint32_t N>
 void static_storage<T, N>::clear() noexcept
 {
-    for (auto& obj : _data)
+    for (auto obj : range())
     {
-        static_cast<base_t&>(obj).destroy();
-        static_cast<base_t&>(obj).invalidate_ticket();
+        static_cast<base_t&>(*obj).destroy();
+        static_cast<base_t&>(*obj).invalidate_ticket();
     }
 
     _current = &_data[0];

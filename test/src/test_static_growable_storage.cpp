@@ -106,7 +106,7 @@ SCENARIO("We can create and use storage type" + std::string(typeid(storage_type_
 
             THEN("The size increases")
             {
-                REQUIRE(storage.size() == max_elements);
+                REQUIRE(storage.size() == (has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : max_elements));
             }
 
             THEN("It can be iterated and all items are found")
@@ -122,21 +122,20 @@ SCENARIO("We can create and use storage type" + std::string(typeid(storage_type_
 
         WHEN("Many items are allocated")
         {
-            const int max_elements = 612;
+            const int max_elements = has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : 612;
             for (int i = 0; i < max_elements; ++i)
             {
-                if (i >= initial_size && has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none))
-                {
-                    REQUIRE(storage.full());
-                    break;
-                }
-
                 push_random_partition_if_available(storage, i);
+            }
+
+            if constexpr (has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none))
+            {
+                REQUIRE(storage.full());
             }
 
             THEN("The size increases")
             {
-                REQUIRE(storage.size() == max_elements);
+                REQUIRE(storage.size() == (has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : max_elements));
             }
 
             THEN("It can be iterated and all items are found")
@@ -221,16 +220,15 @@ SCENARIO("We can create and use " + std::string(typeid(storage_type_t).name()) +
 
         WHEN("Many items are allocated")
         {
-            const int max_elements = 612;
+            const int max_elements = has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : 612;
             for (int i = 0; i < max_elements; ++i)
             {
-                if (i >= initial_size && has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none))
-                {
-                    REQUIRE(orchestrator.full());
-                    break;
-                }
-
                 push_random_partition_if_available(orchestrator, i);
+            }
+
+            if constexpr (has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none))
+            {
+                REQUIRE(orchestrator.full());
             }
 
             THEN("The size increases")

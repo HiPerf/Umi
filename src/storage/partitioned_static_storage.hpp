@@ -86,7 +86,10 @@ T* partitioned_static_storage<T, N>::push(bool predicate, Args&&... args) noexce
     if (predicate)
     {
         // Move partition to last
-        *_current = std::move(*_partition);
+        if (_current != _partition)
+        {
+            *_current = std::move(*_partition);
+        }
 
         // Increment partition and write
         obj = _partition++;
@@ -151,10 +154,10 @@ void partitioned_static_storage<T, N>::release(T* obj) noexcept
 template <pool_item_derived T, uint32_t N>
 void partitioned_static_storage<T, N>::clear() noexcept
 {
-    for (auto& obj : _data)
+    for (auto obj : range())
     {
-        static_cast<base_t&>(obj).destroy();
-        static_cast<base_t&>(obj).invalidate_ticket();
+        static_cast<base_t&>(*obj).destroy();
+        static_cast<base_t&>(*obj).invalidate_ticket();
     }
 
     _current = _partition = &_data[0];
