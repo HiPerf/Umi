@@ -4,6 +4,10 @@
 #include <entity/entity.hpp>
 #include <entity/scheme.hpp>
 #include <storage/growable_storage.hpp>
+#include <storage/partitioned_growable_storage.hpp>
+#include <storage/partitioned_static_storage.hpp>
+#include <storage/static_growable_storage.hpp>
+#include <storage/static_storage.hpp>
 
 
 class client : public entity<client>
@@ -13,16 +17,12 @@ public:
 };
 
 constexpr uint32_t initial_size = 128;
-
-template <typename T, uint32_t N>
-using storage_base_t = growable_storage<T, N>;
-using storage_type_t = storage_base_t<client, initial_size>;
-
+constexpr uint32_t random_splits = 10;
 
 template <typename S>
-int push_simple(S& storage, uint64_t id = 0)
+inline int push_simple(S& storage, uint64_t id = 0)
 {
-    if constexpr (has_storage_tag(storage_type_t::tag, storage_grow::none, storage_layout::partitioned))
+    if constexpr (has_storage_tag(S::tag, storage_grow::none, storage_layout::partitioned))
     {
         storage.push(true, id);
         storage.push(false, id + 1);
@@ -36,9 +36,9 @@ int push_simple(S& storage, uint64_t id = 0)
 }
 
 template <typename S>
-void push_random_partition_if_available(S& storage, uint64_t id)
+inline void push_random_partition_if_available(S& storage, uint64_t id)
 {
-    if constexpr (has_storage_tag(storage_type_t::tag, storage_grow::none, storage_layout::partitioned))
+    if constexpr (has_storage_tag(S::tag, storage_grow::none, storage_layout::partitioned))
     {
         static std::random_device rd;  //Will be used to obtain a seed for the random number engine
         static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
@@ -52,12 +52,16 @@ void push_random_partition_if_available(S& storage, uint64_t id)
     }
 }
 
+template <template <typename, uint32_t> typename T>
+inline void generate_test_cases()
+{
+    using storage_t = T<client, initial_size>;
+    using orchestrator_t = orchestrator<T, client, initial_size>;
 
-SCENARIO("We can create and use storage type" + std::string(typeid(storage_type_t).name()), "[scheme]") {
-    storage_type_t storage;
-
-    GIVEN("The growable storage")
+    GIVEN("The bare storage " + std::string(typeid(storage_t).name()))
     {
+        storage_t storage;
+        
         WHEN("Nothing is done")
         {
             THEN("The storage is empty")
@@ -106,7 +110,7 @@ SCENARIO("We can create and use storage type" + std::string(typeid(storage_type_
 
             THEN("The size increases")
             {
-                REQUIRE(storage.size() == max_elements);
+                REQUIRE(storage.size() == (has_storage_tag(storage_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size - 5 : max_elements));
             }
 
             THEN("It can be iterated and all items are found")
@@ -122,20 +126,20 @@ SCENARIO("We can create and use storage type" + std::string(typeid(storage_type_
 
         WHEN("Many items are allocated")
         {
-            const int max_elements = has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : 612;
+            const int max_elements = has_storage_tag(storage_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : 612;
             for (int i = 0; i < max_elements; ++i)
             {
                 push_random_partition_if_available(storage, i);
             }
 
-            if constexpr (has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none))
+            if constexpr (has_storage_tag(storage_t::tag, storage_grow::fixed, storage_layout::none))
             {
                 REQUIRE(storage.full());
             }
 
             THEN("The size increases")
             {
-                REQUIRE(storage.size() == max_elements);
+                REQUIRE(storage.size() == (has_storage_tag(storage_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : max_elements));
             }
 
             THEN("It can be iterated and all items are found")
@@ -149,13 +153,11 @@ SCENARIO("We can create and use storage type" + std::string(typeid(storage_type_
             }
         }
     }
-}
 
-SCENARIO("We can create and use " + std::string(typeid(storage_type_t).name()) + " with orchestrators", "[scheme]") {
-    orchestrator<storage_base_t, client, initial_size> orchestrator;
-
-    GIVEN("The growable storage")
+    GIVEN("The orchestrator " + std::string(typeid(orchestrator_t).name()))
     {
+        orchestrator_t orchestrator;
+
         WHEN("Nothing is done")
         {
             THEN("The storage is empty")
@@ -220,13 +222,13 @@ SCENARIO("We can create and use " + std::string(typeid(storage_type_t).name()) +
 
         WHEN("Many items are allocated")
         {
-            const int max_elements = has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : 612;
+            const int max_elements = has_storage_tag(orchestrator_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : 612;
             for (int i = 0; i < max_elements; ++i)
             {
                 push_random_partition_if_available(orchestrator, i);
             }
 
-            if constexpr (has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none))
+            if constexpr (has_storage_tag(orchestrator_t::tag, storage_grow::fixed, storage_layout::none))
             {
                 REQUIRE(orchestrator.full());
             }
@@ -248,24 +250,23 @@ SCENARIO("We can create and use " + std::string(typeid(storage_type_t).name()) +
         }
 
 
-        for (int split = 0; split < 10; ++split)
+        for (int split = 0; split < random_splits; ++split)
         {
             WHEN("Many items are allocated and then randomly deleted (" + std::to_string(split) + "/10 times)")
             {
                 orchestrator.clear();
 
                 std::set<uint64_t> ids;
-                const int max_elements = 1012;
+                const int max_elements = has_storage_tag(orchestrator_t::tag, storage_grow::fixed, storage_layout::none) ? initial_size : 1012;
                 for (int i = 0; i < max_elements; ++i)
                 {
-                    if (i >= initial_size && has_storage_tag(storage_type_t::tag, storage_grow::fixed, storage_layout::none))
-                    {
-                        REQUIRE(orchestrator.full());
-                        break;
-                    }
-
                     push_random_partition_if_available(orchestrator, i);
                     ids.insert(i);
+                }
+
+                if constexpr (has_storage_tag(orchestrator_t::tag, storage_grow::fixed, storage_layout::none))
+                {
+                    REQUIRE(orchestrator.full());
                 }
 
                 const int delete_expect = max_elements / 2;
@@ -320,4 +321,14 @@ SCENARIO("We can create and use " + std::string(typeid(storage_type_t).name()) +
             }
         }
     }
+}
+
+
+SCENARIO("Tests all storages types", "[storage]")
+{
+    generate_test_cases<growable_storage>();
+    generate_test_cases<partitioned_growable_storage>();
+    generate_test_cases<partitioned_static_storage>();
+    generate_test_cases<static_growable_storage>();
+    generate_test_cases<static_storage>();
 }

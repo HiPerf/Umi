@@ -73,7 +73,7 @@ static_growable_storage<T, N>::~static_growable_storage() noexcept
 template <pool_item_derived T, uint32_t N>
 bool static_growable_storage<T, N>::is_static(T* obj) const noexcept
 {
-    return obj >= &_data[0] + N;
+    return obj < &_data[0] + N;
 }
 
 template <pool_item_derived T, uint32_t N>

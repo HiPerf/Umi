@@ -141,14 +141,15 @@ void partitioned_static_storage<T, N>::release(T* obj) noexcept
         }
 
         // And now fill partiton again
-        *_partition = std::move(*_current);
+        if (auto candidate = --_current; _partition != candidate)
+        {
+            *_partition = std::move(*candidate);
+        }
     }
-    else if (obj != _current)
+    else if (obj != --_current)
     {
         *obj = std::move(*_current);
     }
-
-    --_current;
 }
 
 template <pool_item_derived T, uint32_t N>

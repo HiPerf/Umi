@@ -44,6 +44,8 @@ class orchestrator
 {
 public:
     static constexpr inline uint8_t tag = storage<T, N>::tag;
+    
+    orchestrator() noexcept;
 
     T* get(uint64_t id) const noexcept;
 
@@ -81,6 +83,12 @@ private:
     std::unordered_map<uint64_t, typename ::ticket<entity<typename T::derived_t>>::ptr> _tickets;
     storage<T, N> _storage;
 };
+
+template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
+orchestrator<storage, T, N>::orchestrator() noexcept :
+    _tickets(),
+    _storage()
+{}
 
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 T* orchestrator<storage, T, N>::get(uint64_t id) const noexcept
