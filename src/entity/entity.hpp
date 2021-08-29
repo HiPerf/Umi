@@ -5,6 +5,7 @@
 #include "containers/dictionary.hpp"
 #include "entity/components_map.hpp"
 #include "entity/scheme.hpp"
+#include "storage/storage.hpp"
 
 #include <any_ptr.h>
 
@@ -20,6 +21,13 @@ class entity : public pool_item<entity<T>>
     template <typename... types> friend class updater_all_async;
     template <typename D> friend class base_executor;
     friend class scheme_entities_map;
+
+    // Friends with all storage types
+    template <pool_item_derived T, uint32_t N> friend class growable_storage;
+    template <pool_item_derived T, uint32_t N> friend class partitioned_growable_storage;
+    template <pool_item_derived T, uint32_t N> friend class partitioned_static_storage;
+    template <pool_item_derived T, uint32_t N> friend class static_growable_storage;
+    template <pool_item_derived T, uint32_t N> friend class static_storage;
 
 public:
     using derived_t = T;

@@ -8,46 +8,54 @@
 template <pool_item_derived T, uint32_t N>
 class partitioned_static_storage
 {
-    template <template <typename> storage, typename T>
+    template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
     friend class orchestrator;
     
 public:
-    using tag = storage_tag(storage_grow::fixed, storage_layout::partitioned);
+    static constexpr inline uint8_t tag = storage_tag(storage_grow::fixed, storage_layout::partitioned);
+
     using base_t = entity<T>;
     using derived_t = T;
 
-    partitioned_static_storage();
+    partitioned_static_storage() noexcept;
+    ~partitioned_static_storage() noexcept;
 
     template <typename... Args>
-    T* push(bool predicate, Args&&... args);
-    T* push(bool predicate, T* object);
+    T* push(bool predicate, Args&&... args) noexcept;
+    T* push(bool predicate, T* object) noexcept;
 
     template <typename... Args>
-    void pop(T* obj, Args&&... args);
+    void pop(T* obj, Args&&... args) noexcept;
     
-    inline auto range()
+    void clear() noexcept;
+    
+    inline auto range() noexcept
     {
         return ranges::views::transform(
             ranges::views::slice(_data, static_cast<uint16_t>(0), static_cast<std::size_t>(_current - &_data[0])),
             [](T& obj) { return &obj; });
     }
     
-    inline auto range_until_partition()
+    inline auto range_until_partition() noexcept
     {
         return ranges::views::transform(
             ranges::views::slice(_data, 0, static_cast<std::size_t>(_partition - &_data[0])),
             [](T& obj) { return &obj; });
     }
     
-    inline auto range_from_partition()
+    inline auto range_from_partition() noexcept
     {
         return ranges::views::transform(
             ranges::views::slice(_data, static_cast<std::size_t>(_partition - &_data[0]), static_cast<std::size_t>(_current - &_data[0])),
             [](T& obj) { return &obj; });
     }
 
+    inline uint32_t size() const noexcept;
+    inline bool empty() const noexcept;
+    inline bool full() const noexcept;
+
 private:
-    void release(T* obj);
+    void release(T* obj) noexcept;
 
 private:
     std::array<T, N> _data;
@@ -57,15 +65,21 @@ private:
 
 
 template <pool_item_derived T, uint32_t N>
-partitioned_static_storage<T, N>::partitioned_static_storage() :
+partitioned_static_storage<T, N>::partitioned_static_storage() noexcept :
     _data(),
     _current(&_data[0]),
     _partition(&_data[0])
 {}
 
 template <pool_item_derived T, uint32_t N>
+partitioned_static_storage<T, N>::~partitioned_static_storage() noexcept
+{
+    clear();
+}
+
+template <pool_item_derived T, uint32_t N>
 template <typename... Args>
-T* partitioned_static_storage<T, N>::push(bool predicate, Args&&... args)
+T* partitioned_static_storage<T, N>::push(bool predicate, Args&&... args) noexcept
 {
     assert(_current < &_data[0] + N && "Writing out of bounds");
     T* obj = _current;
@@ -85,8 +99,7 @@ T* partitioned_static_storage<T, N>::push(bool predicate, Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
-template <typename... Args>
-T* partitioned_static_storage<T, N>::push(bool predicate, T* object)
+T* partitioned_static_storage<T, N>::push(bool predicate, T* object) noexcept
 {
     assert(_current < &_data[0] + N && "Writing out of bounds");
     T* obj = _current;
@@ -106,7 +119,7 @@ T* partitioned_static_storage<T, N>::push(bool predicate, T* object)
 
 template <pool_item_derived T, uint32_t N>
 template <typename... Args>
-void partitioned_static_storage<T, N>::pop(T* obj, Args&&... args)
+void partitioned_static_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 {
     static_cast<base_t&>(*obj).destroy(std::forward<Args>(args)...); 
     static_cast<base_t&>(*obj).invalidate_ticket();
@@ -114,20 +127,55 @@ void partitioned_static_storage<T, N>::pop(T* obj, Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
-void partitioned_static_storage<T, N>::release(T* obj)
+void partitioned_static_storage<T, N>::release(T* obj) noexcept
 {
     if (obj < _partition)
     {
         // True predicate, move partition one down and move that one
-        *obj = std::move(*--_partition);
+        if (auto candidate = --_partition; obj != candidate)
+        {
+            *obj = std::move(*candidate);
+        }
 
         // And now fill partiton again
         *_partition = std::move(*_current);
     }
-    else
+    else if (obj != _current)
     {
         *obj = std::move(*_current);
     }
 
     --_current;
 }
+
+template <pool_item_derived T, uint32_t N>
+void partitioned_static_storage<T, N>::clear() noexcept
+{
+    for (auto& obj : _data)
+    {
+        static_cast<base_t&>(obj).destroy();
+        static_cast<base_t&>(obj).invalidate_ticket();
+    }
+
+    _current = _partition = &_data[0];
+}
+
+template <pool_item_derived T, uint32_t N>
+inline uint32_t partitioned_static_storage<T, N>::size() const noexcept
+{
+    return _current - &_data[0];
+}
+
+template <pool_item_derived T, uint32_t N>
+inline bool partitioned_static_storage<T, N>::empty() const noexcept
+{
+    return size() == 0;
+}
+
+template <pool_item_derived T, uint32_t N>
+inline bool partitioned_static_storage<T, N>::full() const noexcept
+{
+    return _current == &_data[0] + N;
+}
+
+

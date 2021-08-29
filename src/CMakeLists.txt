@@ -30,6 +30,12 @@ set(CORE_SOURCES
     pools/plain_pool.hpp
     pools/singleton_pool.hpp
     pools/thread_local_pool.hpp
+    storage/growable_storage.hpp
+    storage/partitioned_growable_storage.hpp
+    storage/partitioned_static_storage.hpp
+    storage/static_growable_storage.hpp
+    storage/static_storage.hpp
+    storage/storage.hpp
     traits/base_dic.hpp
     traits/contains.hpp
     traits/has_type.hpp

@@ -20,6 +20,7 @@ client* alloc_one(uint64_t id, S& scheme)
     }, scheme_args.args);
 }
 
+/*
 SCENARIO( "schemes can be created and used", "[scheme]" ) {
 
     GIVEN( "A scheme with duplicate types" ) {
@@ -176,4 +177,4 @@ SCENARIO( "schemes can be created and used", "[scheme]" ) {
             }
         }
     }
-}
+}*/

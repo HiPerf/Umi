@@ -1,5 +1,10 @@
 add_executable(umi_core_test 
-    test_scheme.cpp)
+    test_scheme.cpp
+    test_growable_storage.cpp
+    test_partitioned_growable_storage.cpp
+    test_partitioned_static_storage.cpp
+    test_static_growable_storage.cpp
+    test_static_storage.cpp)
 
 target_link_libraries(umi_core_test PRIVATE umi_core_lib)
 target_compile_features(umi_core_test PRIVATE cxx_std_20)

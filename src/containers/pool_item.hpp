@@ -17,6 +17,7 @@ public:
     pool_item& operator=(const pool_item&) = delete;
     pool_item& operator=(pool_item&& other) noexcept;
 
+    inline bool has_ticket() const { return _ticket != nullptr; }
     inline typename ticket<T>::ptr ticket() { return _ticket; }
 
 protected:

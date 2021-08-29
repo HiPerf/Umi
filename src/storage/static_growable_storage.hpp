@@ -9,24 +9,28 @@
 template <pool_item_derived T, uint32_t N>
 class static_growable_storage
 {
-    template <template <typename> storage, typename T>
+    template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
     friend class orchestrator;
     
 public:
-    using tag = storage_tag(storage_grow::mixed, storage_layout::continuous);
+    static constexpr inline uint8_t tag = storage_tag(storage_grow::growable, storage_layout::continuous);
+
     using base_t = entity<T>;
     using derived_t = T;
 
-    static_growable_storage();
+    static_growable_storage() noexcept;
+    ~static_growable_storage() noexcept;
 
     template <typename... Args>
-    T* push(Args&&... args);
-    T* push(T* object);
+    T* push(Args&&... args) noexcept;
+    T* push(T* object) noexcept;
 
     template <typename... Args>
-    void pop(T* obj, Args&&... args);
+    void pop(T* obj, Args&&... args) noexcept;
+
+    void clear() noexcept;
     
-    inline auto range()
+    inline auto range() noexcept
     {
         return ranges::views::transform(
             ranges::views::concat(
@@ -35,10 +39,14 @@ public:
             [](T& obj) { return &obj; });
     }
 
+    inline uint32_t size() const noexcept;
+    inline bool empty() const noexcept;
+    inline bool full() const noexcept;
+
 private:
-    void release(T* obj);
-    bool is_static(T* obj) noexcept const;
-    bool is_static_full() noexcept const;
+    void release(T* obj) noexcept;
+    bool is_static(T* obj) const noexcept;
+    bool is_static_full() const noexcept;
 
 private:
     std::array<T, N> _data;
@@ -48,27 +56,35 @@ private:
 
 
 template <pool_item_derived T, uint32_t N>
-static_growable_storage<T, N>::static_growable_storage() :
+static_growable_storage<T, N>::static_growable_storage() noexcept :
     _data(),
     _current(&_data[0]),
-    _growable(N)
-{}
+    _growable()
+{
+    _growable.reserve(N);
+}
 
 template <pool_item_derived T, uint32_t N>
-bool static_growable_storage<T, N>::is_static(T* obj) noexcept const
+static_growable_storage<T, N>::~static_growable_storage() noexcept
+{
+    clear();
+}
+
+template <pool_item_derived T, uint32_t N>
+bool static_growable_storage<T, N>::is_static(T* obj) const noexcept
 {
     return obj >= &_data[0] + N;
 }
 
 template <pool_item_derived T, uint32_t N>
-bool static_growable_storage<T, N>::is_static_full() noexcept const
+bool static_growable_storage<T, N>::is_static_full() const noexcept
 {
     return _current == &_data[0] + N;
 }
 
 template <pool_item_derived T, uint32_t N>
 template <typename... Args>
-T* static_growable_storage<T, N>::push(Args&&... args)
+T* static_growable_storage<T, N>::push(Args&&... args) noexcept
 {
     T* obj = _current;
     if (!is_static_full())
@@ -87,7 +103,7 @@ T* static_growable_storage<T, N>::push(Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
-T* static_growable_storage<T, N>::push(T* object)
+T* static_growable_storage<T, N>::push(T* object) noexcept
 {
     T* obj = _current;
     if (!is_static_full())
@@ -106,7 +122,7 @@ T* static_growable_storage<T, N>::push(T* object)
 
 template <pool_item_derived T, uint32_t N>
 template <typename... Args>
-void static_growable_storage<T, N>::pop(T* obj, Args&&... args)
+void static_growable_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 {
     static_cast<base_t&>(*obj).destroy(std::forward<Args>(args)...); 
     static_cast<base_t&>(*obj).invalidate_ticket();
@@ -114,15 +130,53 @@ void static_growable_storage<T, N>::pop(T* obj, Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
-void static_growable_storage<T, N>::release(T* obj)
+void static_growable_storage<T, N>::release(T* obj) noexcept
 {   
     if (is_static(obj))
     {
-        *obj = std::move(*--_current);
+        if (auto candidate = --_current; obj != candidate)
+        {
+            *obj = std::move(*candidate);
+        }
     }
     else
     {
-        std::move(*obj, _growable.back());
+        if (obj != &_growable.back())
+        {
+            *obj = std::move(_growable.back());
+        }
+        
         _growable.pop_back();
     }
+}
+
+template <pool_item_derived T, uint32_t N>
+void static_growable_storage<T, N>::clear() noexcept
+{
+    for (auto obj : range())
+    {
+        static_cast<base_t&>(*obj).destroy();
+        static_cast<base_t&>(*obj).invalidate_ticket();
+    }
+    
+    _current = &_data[0];
+    _growable.clear();
+}
+
+template <pool_item_derived T, uint32_t N>
+inline uint32_t static_growable_storage<T, N>::size() const noexcept
+{
+    return _current - &_data[0] + _growable.size();
+}
+
+template <pool_item_derived T, uint32_t N>
+inline bool static_growable_storage<T, N>::empty() const noexcept
+{
+    return size() == 0;
+}
+
+template <pool_item_derived T, uint32_t N>
+inline bool static_growable_storage<T, N>::full() const noexcept
+{
+    return false;
 }

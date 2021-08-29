@@ -9,32 +9,40 @@
 template <pool_item_derived T, uint32_t N>
 class growable_storage
 {
-    template <template <typename> storage, typename T>
+    template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
     friend class orchestrator;
 
 public:
-    using tag = storage_tag(storage_grow::growable, storage_layout::continuous);
+    static constexpr inline uint8_t tag = storage_tag(storage_grow::growable, storage_layout::continuous);
+
     using base_t = entity<T>;
     using derived_t = T;
     
-    growable_storage();
+    growable_storage() noexcept;
+    ~growable_storage() noexcept;
 
     template <typename... Args>
-    T* push(Args&&... args);
-    T* push(T* obj);
+    T* push(Args&&... args) noexcept;
+    T* push(T* obj) noexcept;
 
     template <typename... Args>
-    void pop(T* obj, Args&&... args);
+    void pop(T* obj, Args&&... args) noexcept;
+
+    void clear() noexcept;
     
-    inline auto range()
+    inline auto range() noexcept
     {
         return ranges::views::transform(
             _data,
             [](T& obj) { return &obj; });
     }
 
+    inline uint32_t size() const noexcept;
+    inline bool empty() const noexcept;
+    inline bool full() const noexcept;
+
 private:
-    void release(T* obj);
+    void release(T* obj) noexcept;
 
 private:
     std::vector<T> _data;
@@ -42,13 +50,21 @@ private:
 
 
 template <pool_item_derived T, uint32_t N>
-growable_storage<T, N>::growable_storage() :
-    _data(N)
-{}
+growable_storage<T, N>::growable_storage() noexcept :
+    _data()
+{
+    _data.reserve(N);
+}
+
+template <pool_item_derived T, uint32_t N>
+growable_storage<T, N>::~growable_storage() noexcept
+{
+    clear();
+}
 
 template <pool_item_derived T, uint32_t N>
 template <typename... Args>
-T* growable_storage<T, N>::push(Args&&... args)
+T* growable_storage<T, N>::push(Args&&... args) noexcept
 {
     T* obj = &_data.emplace_back();
     static_cast<base_t&>(*obj).construct(std::forward<Args>(args)...); 
@@ -57,7 +73,7 @@ T* growable_storage<T, N>::push(Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
-T* growable_storage<T, N>::push(T* obj)
+T* growable_storage<T, N>::push(T* obj) noexcept
 {
     obj = &_data.emplace_back(std::move(*obj));
     return obj;
@@ -65,7 +81,7 @@ T* growable_storage<T, N>::push(T* obj)
 
 template <pool_item_derived T, uint32_t N>
 template <typename... Args>
-void growable_storage<T, N>::pop(T* obj, Args&&... args)
+void growable_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 {
     static_cast<base_t&>(*obj).destroy(std::forward<Args>(args)...); 
     static_cast<base_t&>(*obj).invalidate_ticket();
@@ -74,8 +90,44 @@ void growable_storage<T, N>::pop(T* obj, Args&&... args)
 }
 
 template <pool_item_derived T, uint32_t N>
-void growable_storage<T, N>::release(T* obj)
+void growable_storage<T, N>::release(T* obj) noexcept
 {
-    *obj = std::move(_data.back());
+    assert(_data.size() > 0 && "Attempting to release from an empty vector");
+    if (obj != &_data.back())
+    {
+        *obj = std::move(_data.back());
+    }
+
     _data.pop_back();
+    assert((_data.size() == 0 || _data.back().has_ticket()) && "Operation would leave the vector in an invalid state");
+}
+
+template <pool_item_derived T, uint32_t N>
+void growable_storage<T, N>::clear() noexcept
+{
+    for (auto& obj : _data)
+    {
+        static_cast<base_t&>(obj).destroy();
+        static_cast<base_t&>(obj).invalidate_ticket();
+    }
+
+    _data.clear();
+}
+
+template <pool_item_derived T, uint32_t N>
+inline uint32_t growable_storage<T, N>::size() const noexcept
+{
+    return static_cast<uint32_t>(_data.size());
+}
+
+template <pool_item_derived T, uint32_t N>
+inline bool growable_storage<T, N>::empty() const noexcept
+{
+    return size() == 0;
+}
+
+template <pool_item_derived T, uint32_t N>
+inline bool growable_storage<T, N>::full() const noexcept
+{
+    return false;
 }
