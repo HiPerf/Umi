@@ -90,8 +90,8 @@ private:
 
     constexpr inline void scheme_created(const std::shared_ptr<components_map>& map);
 
-    template <template <typename...> typename S, typename... components>
-    constexpr inline void scheme_information(S<components...>& scheme);
+    template <template <typename...> typename S, typename... Components>
+    constexpr inline void scheme_information(S<Components...>& scheme);
 
 protected:
     entity_id_t _id;
@@ -158,8 +158,8 @@ constexpr inline void entity<derived_t>::scheme_created(const std::shared_ptr<co
 }
 
 template <typename derived_t>
-template <template <typename...> typename S, typename... components>
-constexpr inline void entity<derived_t>::scheme_information(S<components...>& scheme)
+template <template <typename...> typename S, typename... Components>
+constexpr inline void entity<derived_t>::scheme_information(S<Components...>& scheme)
 {
     _scheme = &scheme;
 

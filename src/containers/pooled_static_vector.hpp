@@ -55,11 +55,20 @@ public:
     
     inline auto range()
     {
+        // MSVC requires an extra transform to drop a reference that the compiler is not able to automatically do
+#ifdef __unix__
         return ranges::views::concat(
             ranges::views::transform(
                 ranges::views::slice(_objects, static_cast<uint16_t>(0), static_cast<std::size_t>(_current - &_objects[0])),
-                [](T& obj) { return &obj; }),
+                [](T& obj) -> T* { return &obj; }),
             _extra);
+#else
+        return ranges::views::concat(
+            ranges::views::transform(
+                ranges::views::slice(_objects, static_cast<uint16_t>(0), static_cast<std::size_t>(_current - &_objects[0])),
+                [](T& obj) -> T* { return &obj; }),
+            ranges::views::transform(_extra, [](T*& obj) -> T* { return obj; }));
+#endif
     }
 
     inline auto range_as_ref()
@@ -68,7 +77,7 @@ public:
             ranges::views::slice(_objects, static_cast<uint16_t>(0), static_cast<std::size_t>(_current - &_objects[0])),
             ranges::views::transform(
                 _extra,
-                [this](T* obj) -> T& { return *obj; }
+                [this](T* obj) mutable -> T& { return *obj; }
             )
         );
     }
