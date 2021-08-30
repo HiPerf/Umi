@@ -14,6 +14,19 @@ class client : public entity<client>
 {
 public:
     using entity<client>::entity;
+
+    inline void construct(bool partition)
+    {
+        _partition = partition;
+    }
+    
+    inline bool partition() const
+    {
+        return _partition;
+    }
+
+private:
+    bool _partition;
 };
 
 constexpr uint32_t initial_size = 128;
@@ -24,8 +37,8 @@ inline int push_simple(S& storage, uint64_t id = 0)
 {
     if constexpr (has_storage_tag(S::tag, storage_grow::none, storage_layout::partitioned))
     {
-        storage.push(true, id);
-        storage.push(false, id + 1);
+        storage.push(true, id, true);
+        storage.push(false, id + 1, false);
         return 2;
     }
     else
@@ -44,7 +57,8 @@ inline void push_random_partition_if_available(S& storage, uint64_t id)
         static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
         static std::uniform_int_distribution<> distrib(0, 1);
 
-        storage.push((bool)distrib(gen), id);
+        bool part = (bool)distrib(gen);
+        storage.push(part, id, part);
     }
     else
     {
@@ -122,6 +136,38 @@ inline void generate_test_cases()
                 }
                 REQUIRE(count == max_elements);
             }
+
+            if constexpr (has_storage_tag(storage_t::tag, storage_grow::none, storage_layout::partitioned))
+            {
+                THEN("Both partitions summed contain the total amount of elements")
+                {
+                    int count = 0;
+                    for (auto x : storage.range_until_partition())
+                    {
+                        ++count;
+                    }
+
+                    for (auto x : storage.range_from_partition())
+                    {
+                        ++count;
+                    }
+
+                    REQUIRE(count == storage.size());
+                }
+
+                THEN("Each partition contains elements of only its own partition")
+                {
+                    for (auto x : storage.range_until_partition())
+                    {
+                        REQUIRE(x->partition());
+                    }
+
+                    for (auto x : storage.range_from_partition())
+                    {
+                        REQUIRE(!x->partition());
+                    }
+                }
+            }
         }
 
         WHEN("Many items are allocated")
@@ -150,6 +196,38 @@ inline void generate_test_cases()
                     ++count;
                 }
                 REQUIRE(count == max_elements);
+            }
+
+            if constexpr (has_storage_tag(storage_t::tag, storage_grow::none, storage_layout::partitioned))
+            {
+                THEN("Both partitions summed contain the total amount of elements")
+                {
+                    int count = 0;
+                    for (auto x : storage.range_until_partition())
+                    {
+                        ++count;
+                    }
+
+                    for (auto x : storage.range_from_partition())
+                    {
+                        ++count;
+                    }
+
+                    REQUIRE(count == storage.size());
+                }
+
+                THEN("Each partition contains elements of only its own partition")
+                {
+                    for (auto x : storage.range_until_partition())
+                    {
+                        REQUIRE(x->partition());
+                    }
+
+                    for (auto x : storage.range_from_partition())
+                    {
+                        REQUIRE(!x->partition());
+                    }
+                }
             }
         }
     }
@@ -218,6 +296,38 @@ inline void generate_test_cases()
                 }
                 REQUIRE(count == max_elements);
             }
+
+            if constexpr (has_storage_tag(orchestrator_t::tag, storage_grow::none, storage_layout::partitioned))
+            {
+                THEN("Both partitions summed contain the total amount of elements")
+                {
+                    int count = 0;
+                    for (auto x : orchestrator.range_until_partition())
+                    {
+                        ++count;
+                    }
+
+                    for (auto x : orchestrator.range_from_partition())
+                    {
+                        ++count;
+                    }
+
+                    REQUIRE(count == orchestrator.size());
+                }
+
+                THEN("Each partition contains elements of only its own partition")
+                {
+                    for (auto x : orchestrator.range_until_partition())
+                    {
+                        REQUIRE(x->partition());
+                    }
+
+                    for (auto x : orchestrator.range_from_partition())
+                    {
+                        REQUIRE(!x->partition());
+                    }
+                }
+            }
         }
 
         WHEN("Many items are allocated")
@@ -246,6 +356,38 @@ inline void generate_test_cases()
                     ++count;
                 }
                 REQUIRE(count == max_elements);
+            }
+
+            if constexpr (has_storage_tag(orchestrator_t::tag, storage_grow::none, storage_layout::partitioned))
+            {
+                THEN("Both partitions summed contain the total amount of elements")
+                {
+                    int count = 0;
+                    for (auto x : orchestrator.range_until_partition())
+                    {
+                        ++count;
+                    }
+
+                    for (auto x : orchestrator.range_from_partition())
+                    {
+                        ++count;
+                    }
+
+                    REQUIRE(count == orchestrator.size());
+                }
+
+                THEN("Each partition contains elements of only its own partition")
+                {
+                    for (auto x : orchestrator.range_until_partition())
+                    {
+                        REQUIRE(x->partition());
+                    }
+
+                    for (auto x : orchestrator.range_from_partition())
+                    {
+                        REQUIRE(!x->partition());
+                    }
+                }
             }
         }
 
@@ -316,6 +458,38 @@ inline void generate_test_cases()
                     {
                         REQUIRE(!unique_ids.contains(obj->id()));
                         unique_ids.insert(obj->id());
+                    }
+                }
+
+                if constexpr (has_storage_tag(orchestrator_t::tag, storage_grow::none, storage_layout::partitioned))
+                {
+                    THEN("Both partitions summed contain the total amount of elements")
+                    {
+                        int count = 0;
+                        for (auto x : orchestrator.range_until_partition())
+                        {
+                            ++count;
+                        }
+
+                        for (auto x : orchestrator.range_from_partition())
+                        {
+                            ++count;
+                        }
+
+                        REQUIRE(count == orchestrator.size());
+                    }
+
+                    THEN("Each partition contains elements of only its own partition")
+                    {
+                        for (auto x : orchestrator.range_until_partition())
+                        {
+                            REQUIRE(x->partition());
+                        }
+
+                        for (auto x : orchestrator.range_from_partition())
+                        {
+                            REQUIRE(!x->partition());
+                        }
                     }
                 }
             }
