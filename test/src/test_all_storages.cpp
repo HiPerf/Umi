@@ -29,7 +29,7 @@ private:
     bool _partition;
 };
 
-constexpr uint32_t initial_size = 128;
+constexpr uint32_t initial_size = 100;
 constexpr uint32_t random_splits = 10;
 
 template <typename S>

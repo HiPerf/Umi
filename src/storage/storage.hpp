@@ -42,6 +42,9 @@ inline constexpr bool has_storage_tag(uint8_t tag, storage_grow grow, storage_la
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 class orchestrator
 {
+    template <template <typename, uint32_t> typename S, typename D, uint32_t M>
+    friend class orchestrator;
+
 public:
     static constexpr inline uint8_t tag = storage<T, N>::tag;
     
@@ -55,8 +58,8 @@ public:
 
     void clear() noexcept;
     
-    template <template <typename, uint32_t> typename other_storage, uint32_t M>
-    T* move(other_storage<T, M>& other, T* obj) noexcept;
+    template <template <typename, uint32_t> typename S, uint32_t M, typename... Args>
+    T* move(orchestrator<S, T, M>& other, T* obj, Args... args) noexcept;
 
     inline auto range() noexcept
     {
@@ -78,6 +81,8 @@ public:
     inline uint32_t size() const noexcept;
     inline bool empty() const noexcept;
     inline bool full() const noexcept;
+
+    inline storage<T, N>& raw_storage() noexcept;
 
 private:
     std::unordered_map<uint64_t, typename ::ticket<entity<typename T::derived_t>>::ptr> _tickets;
@@ -128,13 +133,35 @@ void orchestrator<storage, T, N>::clear() noexcept
 }
 
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
-template <template <typename, uint32_t> typename other_storage, uint32_t M>
-T* orchestrator<storage, T, N>::move(other_storage<T, M>& other, T* obj) noexcept
+template <template <typename, uint32_t> typename S, uint32_t M, typename... Args>
+T* orchestrator<storage, T, N>::move(orchestrator<S, T, M>& other, T* obj, Args... args) noexcept
 {
     // Change vectors
-    T* new_ptr = other.push(obj);
-    _storage.release(obj);
-    
+    T* new_ptr = nullptr;
+    if constexpr (has_storage_tag(orchestrator<S, T, M>::tag, storage_grow::none, storage_layout::partitioned))
+    {
+        if constexpr (has_storage_tag(tag, storage_grow::none, storage_layout::partitioned))
+        {
+            new_ptr = other.raw_storage().push_ptr(_storage.partition(obj), obj);
+            raw_storage().release(obj);
+        }
+        else
+        {
+            // Moving from a non-partitioned storage to another, what should we do?
+            static_assert(sizeof...(Args) == 1, "Must provide a boolean parameter indicating the partition when moving from non-partitioned to partitioned");
+            auto part = std::get<0>(std::forward_as_tuple(args...));
+            static_assert(std::is_same_v<std::remove_const_t<std::remove_reference_t<decltype(part)>>, bool>, "Partition must be a boolean parameter");
+
+            new_ptr = other.raw_storage().push_ptr(part, obj);
+            raw_storage().release(obj);
+        }
+    }
+    else
+    {
+        new_ptr = other.raw_storage().push_ptr(obj);
+        raw_storage().release(obj);
+    }
+
     // Add to dicts
     _tickets.erase(new_ptr->id());
     other._tickets.emplace(new_ptr->id(), new_ptr->ticket());
@@ -150,11 +177,17 @@ inline uint32_t orchestrator<storage, T, N>::size() const noexcept
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 inline bool orchestrator<storage, T, N>::empty() const noexcept
 {
-    return size() == 0;
+    return _storage.empty();
 }
 
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 inline bool orchestrator<storage, T, N>::full() const noexcept
 {
     return _storage.full();
+}
+
+template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
+inline storage<T, N>& orchestrator<storage, T, N>::raw_storage() noexcept
+{
+    return _storage;
 }

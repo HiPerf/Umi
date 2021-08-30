@@ -23,7 +23,7 @@ public:
 
     template <typename... Args>
     T* push(Args&&... args) noexcept;
-    T* push(T* object) noexcept;
+    T* push_ptr(T* object) noexcept;
 
     template <typename... Args>
     void pop(T* obj, Args&&... args) noexcept;
@@ -103,7 +103,7 @@ T* static_growable_storage<T, N>::push(Args&&... args) noexcept
 }
 
 template <pool_item_derived T, uint32_t N>
-T* static_growable_storage<T, N>::push(T* object) noexcept
+T* static_growable_storage<T, N>::push_ptr(T* object) noexcept
 {
     T* obj = _current;
     if (!is_static_full())

@@ -22,7 +22,7 @@ public:
 
     template <typename... Args>
     T* push(bool predicate, Args&&... args) noexcept;
-    T* push(bool predicate, T* object) noexcept;
+    T* push_ptr(bool predicate, T* object) noexcept;
 
     template <typename... Args>
     void pop(T* obj, Args&&... args) noexcept;
@@ -53,6 +53,8 @@ public:
     inline uint32_t size() const noexcept;
     inline bool empty() const noexcept;
     inline bool full() const noexcept;
+
+    inline bool partition(T* obj) const noexcept;
 
 private:
     void release(T* obj) noexcept;
@@ -102,7 +104,7 @@ T* partitioned_static_storage<T, N>::push(bool predicate, Args&&... args) noexce
 }
 
 template <pool_item_derived T, uint32_t N>
-T* partitioned_static_storage<T, N>::push(bool predicate, T* object) noexcept
+T* partitioned_static_storage<T, N>::push_ptr(bool predicate, T* object) noexcept
 {
     assert(_current < &_data[0] + N && "Writing out of bounds");
     T* obj = _current;
@@ -182,4 +184,8 @@ inline bool partitioned_static_storage<T, N>::full() const noexcept
     return _current == &_data[0] + N;
 }
 
-
+template <pool_item_derived T, uint32_t N>
+inline bool partitioned_static_storage<T, N>::partition(T* obj) const noexcept
+{
+    return obj < _partition;
+}

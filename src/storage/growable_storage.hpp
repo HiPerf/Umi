@@ -23,7 +23,7 @@ public:
 
     template <typename... Args>
     T* push(Args&&... args) noexcept;
-    T* push(T* obj) noexcept;
+    T* push_ptr(T* obj) noexcept;
 
     template <typename... Args>
     void pop(T* obj, Args&&... args) noexcept;
@@ -73,7 +73,7 @@ T* growable_storage<T, N>::push(Args&&... args) noexcept
 }
 
 template <pool_item_derived T, uint32_t N>
-T* growable_storage<T, N>::push(T* obj) noexcept
+T* growable_storage<T, N>::push_ptr(T* obj) noexcept
 {
     obj = &_data.emplace_back(std::move(*obj));
     return obj;
