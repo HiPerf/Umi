@@ -16,6 +16,7 @@ public:
 
     using base_t = entity<T>;
     using derived_t = T;
+    using orchestrator_t = orchestrator<partitioned_static_storage, T, N>;
 
     partitioned_static_storage() noexcept;
     ~partitioned_static_storage() noexcept;
@@ -26,6 +27,8 @@ public:
 
     template <typename... Args>
     void pop(T* obj, Args&&... args) noexcept;
+
+    T* change_partition(bool predicate, T* obj) noexcept;
     
     void clear() noexcept;
     
@@ -111,14 +114,21 @@ T* partitioned_static_storage<T, N>::push_ptr(bool predicate, T* object) noexcep
     if (predicate)
     {
         // Move partition to last
-        *_current = std::move(*_partition);
+        if (_current != _partition)
+        {
+            *_current = std::move(*_partition);
+        }
 
         // Increment partition and write
         obj = _partition++;
     }
 
     ++_current;
-    *obj = std::move(*object);
+    if (obj != object)
+    {
+        *obj = std::move(*object);
+    }
+
     return obj;
 }
 
@@ -134,7 +144,7 @@ void partitioned_static_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 template <pool_item_derived T, uint32_t N>
 void partitioned_static_storage<T, N>::release(T* obj) noexcept
 {
-    if (obj < _partition)
+    if (partition(obj))
     {
         // True predicate, move partition one down and move that one
         if (auto candidate = --_partition; obj != candidate)
@@ -151,6 +161,34 @@ void partitioned_static_storage<T, N>::release(T* obj) noexcept
     else if (obj != --_current)
     {
         *obj = std::move(*_current);
+    }
+}
+
+template <pool_item_derived T, uint32_t N>
+T* partitioned_static_storage<T, N>::change_partition(bool predicate, T* obj) noexcept
+{
+    assert(predicate != partition(obj) && "Can't change to the same partition");
+
+    if (predicate)
+    {
+        // Moving from false (>= partition) to true (< partition)
+        if (obj != _partition)
+        {
+            std::swap(*_partition, *obj);
+        }
+
+        // Now move partition
+        ++_partition;
+    }
+    else
+    {
+        if (auto candidate = _partition - 1; obj != candidate)
+        {
+            std::swap(candidate, obj);
+        }
+
+        // Move partition
+        --_partition;
     }
 }
 

@@ -205,9 +205,4 @@ SCENARIO("Tests orchestrator moves", "[orchestrator]")
     generate_test_cases<static_storage, partitioned_static_storage>();
     generate_test_cases<static_storage, static_growable_storage>();
     generate_test_cases<static_storage, static_storage>();
-
-    //generate_test_cases<partitioned_growable_storage>();
-    //generate_test_cases<partitioned_static_storage>();
-    //generate_test_cases<static_growable_storage>();
-    //generate_test_cases<static_storage>();
 }

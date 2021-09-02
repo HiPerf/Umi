@@ -17,6 +17,7 @@ public:
 
     using base_t = entity<T>;
     using derived_t = T;
+    using orchestrator_t = orchestrator<partitioned_growable_storage, T, N>;
 
     partitioned_growable_storage() noexcept;
     ~partitioned_growable_storage() noexcept;
@@ -27,6 +28,8 @@ public:
 
     template <typename... Args>
     void pop(T* obj, Args&&... args) noexcept;
+
+    T* change_partition(bool predicate, T* obj) noexcept;
 
     void clear() noexcept;
     
@@ -133,7 +136,7 @@ void partitioned_growable_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 template <pool_item_derived T, uint32_t N>
 void partitioned_growable_storage<T, N>::release(T* obj) noexcept
 {
-    if (obj - _data.data() < _partition_pos)
+    if (partition(obj))
     {
         // True predicate, move partition one down and move that one
         if (auto& candidate = _data[--_partition_pos]; obj != &candidate)
@@ -142,9 +145,10 @@ void partitioned_growable_storage<T, N>::release(T* obj) noexcept
         }
 
         // And now fill partition
-        // There is no need to perform a check as the obj lies on the left side of the partition,
-        // while the back lies on the right
-        _data[_partition_pos] = std::move(_data.back());
+        if (_partition_pos != _data.size() - 1)
+        {
+            _data[_partition_pos] = std::move(_data.back());
+        }
     }
     else if (obj != &_data.back())
     {
@@ -152,6 +156,35 @@ void partitioned_growable_storage<T, N>::release(T* obj) noexcept
     }
 
     _data.pop_back();
+}
+
+template <pool_item_derived T, uint32_t N>
+T* partitioned_growable_storage<T, N>::change_partition(bool predicate, T* obj) noexcept
+{
+    assert(predicate != partition(obj) && "Can't change to the same partition");
+
+    auto position = obj - _data.data();
+    if (predicate)
+    {
+        // Moving from false (>= partition) to true (< partition)
+        if (position != _partition_pos)
+        {
+            std::swap(_data[_partition_pos], *obj);
+        }
+
+        // Now move partition
+        ++_partition_pos;
+    }
+    else
+    {
+        if (auto candidate = _partition_pos - 1; position != candidate)
+        {
+            std::swap(_data[_partition_pos - 1], obj);
+        }
+
+        // Move partition
+        --_partition_pos;
+    }
 }
 
 template <pool_item_derived T, uint32_t N>

@@ -17,6 +17,7 @@ public:
 
     using base_t = entity<T>;
     using derived_t = T;
+    using orchestrator_t = orchestrator<static_growable_storage, T, N>;
 
     static_growable_storage() noexcept;
     ~static_growable_storage() noexcept;

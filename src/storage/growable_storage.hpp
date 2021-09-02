@@ -17,6 +17,7 @@ public:
 
     using base_t = entity<T>;
     using derived_t = T;
+    using orchestrator_t = orchestrator<growable_storage, T, N>;
     
     growable_storage() noexcept;
     ~growable_storage() noexcept;
@@ -105,10 +106,15 @@ void growable_storage<T, N>::release(T* obj) noexcept
 template <pool_item_derived T, uint32_t N>
 void growable_storage<T, N>::clear() noexcept
 {
-    for (auto& obj : _data)
+    auto beg = _data.begin();
+    auto end = _data.end();
+    // HACK(gpascualg): For some reason i can't find, iterating the vector itself produces an infinite loop in MSVC
+    //  Offending code:
+    //      for (auto& obj : _data)
+    for (auto obj : range())
     {
-        static_cast<base_t&>(obj).destroy();
-        static_cast<base_t&>(obj).invalidate_ticket();
+        static_cast<base_t&>(*obj).destroy();
+        static_cast<base_t&>(*obj).invalidate_ticket();
     }
 
     _data.clear();

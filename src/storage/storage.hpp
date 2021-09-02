@@ -28,16 +28,20 @@ enum class storage_layout : uint8_t
     partitioned     = 2
 };
 
-inline constexpr uint8_t storage_tag(storage_grow grow, storage_layout layout)
+inline constexpr uint8_t storage_tag(storage_grow grow, storage_layout layout) noexcept
 {
     return (static_cast<uint8_t>(grow) << 4) | static_cast<uint8_t>(layout);
 }
 
-inline constexpr bool has_storage_tag(uint8_t tag, storage_grow grow, storage_layout layout)
+inline constexpr bool has_storage_tag(uint8_t tag, storage_grow grow, storage_layout layout) noexcept
 {
     return tag & ((static_cast<uint8_t>(grow) << 4) | static_cast<uint8_t>(layout));
 }
 
+inline constexpr bool is_partitioned_storage(uint8_t tag) noexcept
+{
+    return has_storage_tag(tag, storage_grow::none, storage_layout::partitioned);
+}
 
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 class orchestrator
@@ -47,6 +51,10 @@ class orchestrator
 
 public:
     static constexpr inline uint8_t tag = storage<T, N>::tag;
+
+    using base_t = typename storage<T, N>::base_t;
+    using derived_t = typename storage<T, N>::derived_t;
+    using orchestrator_t = orchestrator<storage, T, N>;
     
     orchestrator() noexcept;
 
