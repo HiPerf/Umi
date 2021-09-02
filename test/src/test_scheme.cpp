@@ -293,22 +293,32 @@ void test_destruction_with_storage()
                 get_args<client, S<client, 128>>(scheme),
                 get_args<npc, S<npc, 128>>(scheme));
 
-            auto ticket = tao::get<client*>(entity)->ticket();
-            auto other_ticket = tao::get<client*>(other)->ticket();
+            auto tickets = entity.tickets();
+            auto other_tickets = other.tickets();
 
             scheme.destroy(entity);
 
             THEN("the entity no longer exists")
             {
-                REQUIRE(!ticket->valid());
+                REQUIRE(!tao::get<0>(tickets)->valid());
+                REQUIRE(!tao::get<1>(tickets)->valid());
+
+                REQUIRE(!tickets.valid<client>());
+                REQUIRE(!tickets.valid<npc>());
+
                 REQUIRE(scheme.size() == 1);
             }
 
             THEN("the second entity's ptr has changed")
             {
-                REQUIRE(other_ticket->valid());
-                REQUIRE(tao::get<client*>(other) != other_ticket->get());
-                REQUIRE(other_ticket->get()->id() == 2);
+                REQUIRE(tao::get<0>(other_tickets)->valid());
+                REQUIRE(tao::get<1>(other_tickets)->valid());
+
+                REQUIRE(other_tickets.valid<client>());
+                REQUIRE(other_tickets.valid<npc>());
+
+                REQUIRE(tao::get<client*>(other) != other_tickets.get<client>());
+                REQUIRE(other_tickets.get<client>()->id() == 2);
             }
         }
 

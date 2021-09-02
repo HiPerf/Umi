@@ -55,6 +55,42 @@ struct scheme_store
 };
 
 template <typename... comps>
+struct tickets_tuple : public tao::tuple<comps...>
+{
+    using tao::tuple<comps...>::tuple;
+
+    template <typename T>
+    inline auto valid() const noexcept
+    {
+        return tao::get<typename ticket<entity<T>>::ptr>(*this)->valid();
+    }
+
+    template <typename T>
+    inline auto get() const noexcept
+    {
+        return tao::get<typename ticket<entity<T>>::ptr>(*this)->get();
+    }
+};
+
+template <typename... comps>
+struct entity_tuple : public tao::tuple<comps...>
+{
+    using tao::tuple<comps...>::tuple;
+
+    inline auto tickets() const noexcept
+    {
+        return tao::apply([](auto... args) {
+            return tickets_tuple(args->ticket()...);
+        }, downcast());
+    }
+
+    inline auto downcast() const noexcept
+    {
+        return static_cast<const tao::tuple<comps...>&>(*this);
+    }
+};
+
+template <typename... comps>
 class scheme
 {
     template <typename... T> friend class scheme;
@@ -65,6 +101,7 @@ public:
     template <typename T>
     using orchestrator_t = orchestrator_type<T, comps...>;
     using tuple_t = tao::tuple<std::add_pointer_t<typename comps::derived_t>...>;
+    using entity_tuple_t = entity_tuple<std::add_pointer_t<typename comps::derived_t>...>;
 
     template <typename... T>
     constexpr scheme(scheme_store<T...>& store) noexcept :
@@ -94,9 +131,9 @@ public:
         return get<T>().get_derived_or_null(id);
     }
 
-    constexpr inline auto search(entity_id_t id) const noexcept -> tuple_t
+    constexpr inline auto search(entity_id_t id) const noexcept -> entity_tuple_t
     {
-        return tao::tuple(get<comps>().get_derived_or_null(id)...);
+        return entity_tuple_t(get<comps>().get_derived_or_null(id)...);
     }
 
     template <typename T>
@@ -148,7 +185,7 @@ public:
     {
         static_assert(sizeof...(comps) == sizeof...(scheme_args), "Incomplete scheme allocation");
 
-        auto entities = tao::tuple(create_impl(id, std::move(scheme_args)) ...);
+        auto entities = entity_tuple_t(create_impl(id, std::move(scheme_args)) ...);
 
         // Create dynamic content
         auto map = std::make_shared<components_map>(entities);
@@ -156,7 +193,7 @@ public:
         // Notify of complete scheme creation
         tao::apply([&map](auto&&... entities) mutable {
             (..., entities->base()->scheme_created(map));
-        }, entities);
+        }, static_cast<tuple_t&>(entities));
 
         return entities;
     }
@@ -174,17 +211,31 @@ public:
         (..., get<orchestrator_t<std::remove_pointer_t<Args>>>().pop(args));
     }
     
-    constexpr void destroy(tuple_t entity)
+    constexpr void destroy(entity_tuple_t entity)
     {
         tao::apply([this](auto... args) {
             destroy(args...);
-        }, entity);
+        }, entity.downcast());
     }
 
     template <typename T>
     constexpr auto move(scheme<comps...>& to, T* object) noexcept
     {
         return move_impl(to, object->template get<typename comps::derived_t>()...);
+    }
+
+    template <typename... Args>
+    constexpr auto move(scheme<comps...>& to, Args... args)
+    {
+        static_assert(sizeof...(Args) == sizeof...(comps), "Must provide the whole entity components");
+        return move_impl(to, args...);
+    }
+
+    constexpr auto move(scheme<comps...>& to, entity_tuple_t entity)
+    {
+        return tao::apply([this, &to](auto... args) {
+            return move_impl(to, args...);
+        }, entity.downcast());
     }
 
     constexpr inline std::size_t size() const
