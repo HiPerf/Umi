@@ -1,6 +1,7 @@
 add_executable(umi_core_test 
     test_all_storages.cpp
     test_orchestrator_moves.cpp
+    test_scheme_view.cpp
     test_scheme.cpp)
 
 target_link_libraries(umi_core_test PRIVATE umi_core_lib)

@@ -19,14 +19,19 @@ struct waitable
     friend struct scheme_view;
 
 public:
-    inline void wait()
+    inline void wait() noexcept
     {
-        boost::fibers::fiber([this, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([this]() mutable
         {
             _updates_mutex.lock();
             _updates_cv.wait(_updates_mutex, [this]() { return _pending_updates == 0; });
             _updates_mutex.unlock();
         }).join();
+    }
+
+    inline bool done() const noexcept
+    {
+        return _pending_updates == 0;
     }
 
 private:
@@ -38,7 +43,7 @@ private:
 struct scheme_view
 {
     template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous(waitable& waitable, S<types...>& scheme, C&& callback)
+    inline static constexpr void continuous(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) || 
@@ -48,7 +53,7 @@ struct scheme_view
         
         waitable._pending_updates += scheme.size();
 
-        boost::fibers::fiber([this, &waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
             {
                 for (auto combined : ::ranges::views::zip(scheme.template get<types>().range()...))
                 {
@@ -59,11 +64,11 @@ struct scheme_view
     }
 
     template <typename By, template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous_by(waitable& waitable, S<types...>& scheme, C&& callback)
+    inline static constexpr void continuous_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {   
         waitable._pending_updates += scheme.size();
 
-        boost::fibers::fiber([this, &waitable, &scheme, &component, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
             {
                 auto& component = scheme.get<By>();
                 for (auto obj : component.range())
@@ -75,7 +80,7 @@ struct scheme_view
     }
 
     template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void parallel(waitable& waitable, S<types...>& scheme, C&& callback)
+    inline static constexpr void parallel(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) || 
@@ -86,12 +91,12 @@ struct scheme_view
         waitable._pending_updates += scheme.size();
 
         // TODO(gpascualg): Do we need this outter fiber?
-        boost::fibers::fiber([this, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
             {
                 for (auto combined : ::ranges::views::zip(scheme.template get<types>().range()...))
                 {
                     // TODO(gpascualg): Is it safe to get a reference to combined here?
-                    boost::fibers::fiber([this, &waitable, combined, callback = std::move(callback)]() mutable
+                    boost::fibers::fiber([&waitable, combined, callback = std::move(callback)]() mutable
                         {
                             std::apply(callback, combined);
                             
@@ -105,16 +110,16 @@ struct scheme_view
     }
 
     template <typename By, template <typename...> class S, typename O, typename C, typename... types>
-    inline static constexpr void parallel_by(waitable& waitable, S<types...>& scheme, C&& callback)
+    inline static constexpr void parallel_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         waitable._pending_updates += scheme.size();
 
-        boost::fibers::fiber([this, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
             {
                 auto& component = scheme.get<By>();
                 for (auto obj : component.range())
                 {
-                    boost::fibers::fiber([this, &waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
+                    boost::fibers::fiber([&waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
                         {
                             std::apply(callback, scheme.search(id));
                             
