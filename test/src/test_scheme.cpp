@@ -102,68 +102,68 @@ void test_scheme_creation_with_storage()
 
         THEN("schemes with one component can be manually created")
         {
-            scheme<S<client, 128>::orchestrator_t> client_scheme(store);
+            scheme<typename S<client, 128>::orchestrator_t> client_scheme(store);
 
-            REQUIRE(client_scheme.has<client>());
-            REQUIRE(!client_scheme.has<npc>());
-            REQUIRE(!client_scheme.has<non_registered_component>());
-            REQUIRE(!client_scheme.has<invalid_component>());
+            REQUIRE(client_scheme.template has<client>());
+            REQUIRE(!client_scheme.template has<npc>());
+            REQUIRE(!client_scheme.template has<non_registered_component>());
+            REQUIRE(!client_scheme.template has<invalid_component>());
 
-            client_scheme.require<client>();
+            client_scheme.template require<client>();
         }
 
         THEN("schemes with multiple components can be manually created")
         {
             scheme<
-                S<client, 128>::orchestrator_t,
-                S<npc, 128>::orchestrator_t
+                typename S<client, 128>::orchestrator_t,
+                typename S<npc, 128>::orchestrator_t
             > client_scheme(store);
 
-            REQUIRE(client_scheme.has<client>());
-            REQUIRE(client_scheme.has<npc>());
-            REQUIRE(!client_scheme.has<non_registered_component>());
-            REQUIRE(!client_scheme.has<invalid_component>());
+            REQUIRE(client_scheme.template has<client>());
+            REQUIRE(client_scheme.template has<npc>());
+            REQUIRE(!client_scheme.template has<non_registered_component>());
+            REQUIRE(!client_scheme.template has<invalid_component>());
 
-            client_scheme.require<client>();
-            client_scheme.require<npc>();
+            client_scheme.template require<client>();
+            client_scheme.template require<npc>();
         }
 
         THEN("a scheme with one component can be created through scheme makers")
         {
             auto scheme = scheme_maker<client>()(store);
 
-            REQUIRE(scheme.has<client>());
-            REQUIRE(!scheme.has<npc>());
-            REQUIRE(!scheme.has<non_registered_component>());
-            REQUIRE(!scheme.has<invalid_component>());
+            REQUIRE(scheme.template has<client>());
+            REQUIRE(!scheme.template has<npc>());
+            REQUIRE(!scheme.template has<non_registered_component>());
+            REQUIRE(!scheme.template has<invalid_component>());
 
-            scheme.require<client>();
+            scheme.template require<client>();
         }
 
         THEN("a scheme with multiple components can be created through scheme makers")
         {
             auto scheme = scheme_maker<client, npc>()(store);
 
-            REQUIRE(scheme.has<client>());
-            REQUIRE(scheme.has<npc>());
-            REQUIRE(!scheme.has<non_registered_component>());
-            REQUIRE(!scheme.has<invalid_component>());
+            REQUIRE(scheme.template has<client>());
+            REQUIRE(scheme.template has<npc>());
+            REQUIRE(!scheme.template has<non_registered_component>());
+            REQUIRE(!scheme.template has<invalid_component>());
 
-            scheme.require<client>();
-            scheme.require<npc>();
+            scheme.template require<client>();
+            scheme.template require<npc>();
         }
 
         THEN("a scheme with all components can be created through scheme makers")
         {
             auto scheme = scheme_maker()(store);
 
-            REQUIRE(scheme.has<client>());
-            REQUIRE(scheme.has<npc>());
-            REQUIRE(!scheme.has<non_registered_component>());
-            REQUIRE(!scheme.has<invalid_component>());
+            REQUIRE(scheme.template has<client>());
+            REQUIRE(scheme.template has<npc>());
+            REQUIRE(!scheme.template has<non_registered_component>());
+            REQUIRE(!scheme.template has<invalid_component>());
 
-            scheme.require<client>();
-            scheme.require<npc>();
+            scheme.template require<client>();
+            scheme.template require<npc>();
         }
     }
 }

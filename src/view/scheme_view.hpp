@@ -89,7 +89,7 @@ struct scheme_view
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
             {
-                auto& component = scheme.get<By>();
+                auto& component = scheme.template get<By>();
                 for (auto obj : component.range())
                 {
                     std::apply(callback, scheme.search(obj->id()));
@@ -135,7 +135,7 @@ struct scheme_view
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
             {
-                auto& component = scheme.get<By>();
+                auto& component = scheme.template get<By>();
                 for (auto obj : component.range())
                 {
                     boost::fibers::fiber([&waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
@@ -185,7 +185,7 @@ struct scheme_view_until_partition
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
-            auto& component = scheme.get<By>();
+            auto& component = scheme.template get<By>();
             for (auto obj : component.range_until_partition())
             {
                 std::apply(callback, scheme.search(obj->id()));
@@ -231,7 +231,7 @@ struct scheme_view_until_partition
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
-            auto& component = scheme.get<By>();
+            auto& component = scheme.template get<By>();
             for (auto obj : component.range_until_partition())
             {
                 boost::fibers::fiber([&waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
@@ -281,7 +281,7 @@ struct scheme_view_from_partition
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
-            auto& component = scheme.get<By>();
+            auto& component = scheme.template get<By>();
             for (auto obj : component.range_from_partition())
             {
                 std::apply(callback, scheme.search(obj->id()));
@@ -327,7 +327,7 @@ struct scheme_view_from_partition
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
-            auto& component = scheme.get<By>();
+            auto& component = scheme.template get<By>();
             for (auto obj : component.range_from_partition())
             {
                 boost::fibers::fiber([&waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
