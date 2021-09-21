@@ -49,11 +49,11 @@ auto get_args(S& scheme, Args&&... args)
 {
     if constexpr (is_partitioned_storage(O::tag))
     {
-        return scheme.args<T>(true, std::forward<Args>(args)...);
+        return scheme.template args<T>(true, std::forward<Args>(args)...);
     }
     else
     {
-        return scheme.args<T>(std::forward<Args>(args)...);
+        return scheme.template args<T>(std::forward<Args>(args)...);
     }
 }
 

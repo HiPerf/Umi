@@ -173,11 +173,11 @@ auto get_args(S& scheme, Args&&... args)
 {
     if constexpr (is_partitioned_storage(O::tag))
     {
-        return scheme.args<T>(true, std::forward<Args>(args)...);
+        return scheme.template args<T>(true, std::forward<Args>(args)...);
     }
     else
     {
-        return scheme.args<T>(std::forward<Args>(args)...);
+        return scheme.template args<T>(std::forward<Args>(args)...);
     }
 }
 
@@ -195,7 +195,7 @@ void test_instantiation_with_storage()
 
         WHEN("a component is allocated in the scheme without any parameters")
         {
-            auto component = scheme.alloc<client>(1, get_args<client, S<client, 128>>(scheme));
+            auto component = scheme.template alloc<client>(1, get_args<client, S<client, 128>>(scheme));
 
             THEN("the component is valid")
             {
@@ -212,7 +212,7 @@ void test_instantiation_with_storage()
 
         WHEN("a component is allocated in the scheme with parameters")
         {
-            auto component = scheme.alloc<client>(1, get_args<client, S<client, 128>>(scheme, 1));
+            auto component = scheme.template alloc<client>(1, get_args<client, S<client, 128>>(scheme, 1));
 
             THEN("the component is valid")
             {
@@ -229,8 +229,8 @@ void test_instantiation_with_storage()
 
         WHEN("two components are allocated in the scheme")
         {
-            auto component1 = scheme.alloc<client>(1, get_args<client, S<client, 128>>(scheme));
-            auto component2 = scheme.alloc<client>(2, get_args<client, S<client, 128>>(scheme));
+            auto component1 = scheme.template alloc<client>(1, get_args<client, S<client, 128>>(scheme));
+            auto component2 = scheme.template alloc<client>(2, get_args<client, S<client, 128>>(scheme));
 
             THEN("the component is valid")
             {
@@ -303,8 +303,8 @@ void test_destruction_with_storage()
                 REQUIRE(!tao::get<0>(tickets)->valid());
                 REQUIRE(!tao::get<1>(tickets)->valid());
 
-                REQUIRE(!tickets.valid<client>());
-                REQUIRE(!tickets.valid<npc>());
+                REQUIRE(!tickets.template valid<client>());
+                REQUIRE(!tickets.template valid<npc>());
 
                 REQUIRE(scheme.size() == 1);
             }
@@ -314,8 +314,8 @@ void test_destruction_with_storage()
                 REQUIRE(tao::get<0>(other_tickets)->valid());
                 REQUIRE(tao::get<1>(other_tickets)->valid());
 
-                REQUIRE(other_tickets.valid<client>());
-                REQUIRE(other_tickets.valid<npc>());
+                REQUIRE(other_tickets.template valid<client>());
+                REQUIRE(other_tickets.template valid<npc>());
 
                 REQUIRE(tao::get<client*>(other) != other_tickets.template get<client>());
                 REQUIRE(other_tickets.template get<client>()->id() == 2);
