@@ -64,7 +64,7 @@ SCENARIO("orchestrators can be derived from storages", "[scheme]")
 template <template <typename, uint32_t> typename S>
 void test_scheme_creation_with_storage()
 {
-    GIVEN("type " + std::string(typeid(S).name()))
+    GIVEN("type " + std::string(typeid(S<client, 128>).name()))
     {
         THEN("we can create stores with one component")
         {
@@ -72,13 +72,13 @@ void test_scheme_creation_with_storage()
 
             // All three methods work
             //  Note: We use & to get a pointer, but the compiler would error in case either of theese was wrong
-            REQUIRE(&store.get<client>());
-            REQUIRE(&store.get<S<client, 128>>());
-            REQUIRE(&store.get<S<client, 128>::orchestrator_t>());
+            REQUIRE(&store.template get<client>());
+            REQUIRE(&store.template get<S<client, 128>>());
+            REQUIRE(&store.template get<S<client, 128>::orchestrator_t>());
 
             // Check returned types
             // TODO(gpascualg): MSVC fails to parse S<client, 128>::... in the next line
-            //REQUIRE(std::is_same_v<decltype(store.get<client>()), S<client, 128>::orchestrator_t&>);
+            //REQUIRE(std::is_same_v<decltype(store.template get<client>()), S<client, 128>::orchestrator_t&>);
         }
 
         THEN("we can create stores with multiple components")
@@ -88,12 +88,12 @@ void test_scheme_creation_with_storage()
                 S<npc, 128>
             > store;
 
-            REQUIRE(&store.get<client>());
-            REQUIRE(&store.get<npc>());
+            REQUIRE(&store.template get<client>());
+            REQUIRE(&store.template get<npc>());
         }
     }
 
-    GIVEN("one " + std::string(typeid(S).name()) + " store with two components")
+    GIVEN("one " + std::string(typeid(S<client, 128>).name()) + " store with two components")
     {
         scheme_store<
             S<client, 128>,
@@ -184,7 +184,7 @@ auto get_args(S& scheme, Args&&... args)
 template <template <typename, uint32_t> typename S>
 void test_instantiation_with_storage()
 {
-    GIVEN("a " + std::string(typeid(S).name()) + " store and a scheme with two components")
+    GIVEN("a " + std::string(typeid(S<client, 128>).name()) + " store and a scheme with two components")
     {
         scheme_store<
             S<client, 128>,
@@ -260,7 +260,7 @@ void test_instantiation_with_storage()
 template <template <typename, uint32_t> typename S>
 void test_destruction_with_storage()
 {
-    GIVEN("a " + std::string(typeid(S).name()) + " store and a scheme with two components")
+    GIVEN("a " + std::string(typeid(S<client, 128>).name()) + " store and a scheme with two components")
     {
         scheme_store<
             S<client, 128>,
@@ -317,8 +317,8 @@ void test_destruction_with_storage()
                 REQUIRE(other_tickets.valid<client>());
                 REQUIRE(other_tickets.valid<npc>());
 
-                REQUIRE(tao::get<client*>(other) != other_tickets.get<client>());
-                REQUIRE(other_tickets.get<client>()->id() == 2);
+                REQUIRE(tao::get<client*>(other) != other_tickets.template get<client>());
+                REQUIRE(other_tickets.template get<client>()->id() == 2);
             }
         }
 

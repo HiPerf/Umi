@@ -60,7 +60,7 @@ auto get_args(S& scheme, Args&&... args)
 template <template <typename, uint32_t> typename S>
 void test_iteration_with_single_storage()
 {
-    GIVEN("a " + std::string(typeid(S).name()) + " store and a scheme with two components")
+    GIVEN("a " + std::string(typeid(S<client, 128>).name()) + " store and a scheme with two components")
     {
         scheme_store<
             S<client, 128>,
@@ -116,23 +116,23 @@ void test_iteration_with_single_storage()
         }
     }
 }
-
-template <template <typename, uint32_t> typename S1, template <typename, uint32_t> typename S2>
-void test_iteration_with_single_storage()
-{
-    GIVEN("a " + std::string(typeid(S1).name()) + " store, a " + std::string(typeid(S2).name()) + " store and a scheme with two components")
-    {
-        scheme_store<
-            S1<client, 128>,
-            S2<npc, 128>
-        > store;
-
-        if constexpr (is_partitioned(S1<client, 128>::tag))
-        {
-            //GIVEN()
-        }
-    }
-}
+//
+//template <template <typename, uint32_t> typename S1, template <typename, uint32_t> typename S2>
+//void test_iteration_with_single_storage()
+//{
+//    GIVEN("a " + std::string(typeid(S1<client, 128>).name()) + " store, a " + std::string(typeid(S2<client, 128>).name()) + " store and a scheme with two components")
+//    {
+//        scheme_store<
+//            S1<client, 128>,
+//            S2<npc, 128>
+//        > store;
+//
+//        if constexpr (is_partitioned(S1<client, 128>::tag))
+//        {
+//            //GIVEN()
+//        }
+//    }
+//}
 
 SCENARIO("schemes can be iterated with scheme views")
 {
