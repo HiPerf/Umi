@@ -23,11 +23,11 @@ class entity : public pool_item<entity<T>>
     friend class scheme_entities_map;
 
     // Friends with all storage types
-    template <pool_item_derived T, uint32_t N> friend class growable_storage;
-    template <pool_item_derived T, uint32_t N> friend class partitioned_growable_storage;
-    template <pool_item_derived T, uint32_t N> friend class partitioned_static_storage;
-    template <pool_item_derived T, uint32_t N> friend class static_growable_storage;
-    template <pool_item_derived T, uint32_t N> friend class static_storage;
+    template <pool_item_derived D, uint32_t N> friend class growable_storage;
+    template <pool_item_derived D, uint32_t N> friend class partitioned_growable_storage;
+    template <pool_item_derived D, uint32_t N> friend class partitioned_static_storage;
+    template <pool_item_derived D, uint32_t N> friend class static_growable_storage;
+    template <pool_item_derived D, uint32_t N> friend class static_storage;
 
 public:
     using derived_t = T;
