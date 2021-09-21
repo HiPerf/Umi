@@ -77,19 +77,19 @@ public:
         return _storage.range();
     }
 
-    template <typename = std::enable_if_t<has_storage_tag(tag, storage_grow::none, storage_layout::partitioned)>>
+    template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
     inline auto range_until_partition() noexcept
     {
         return _storage.range_until_partition();
     }
     
-    template <typename = std::enable_if_t<has_storage_tag(tag, storage_grow::none, storage_layout::partitioned)>>
+    template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
     inline auto range_from_partition() noexcept
     {
         return _storage.range_from_partition();
     }
 
-    template <typename = std::enable_if_t<has_storage_tag(tag, storage_grow::none, storage_layout::partitioned)>>
+    template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
     inline auto change_partition(bool predicate, T* obj) noexcept
     {
         return _storage.change_partition(predicate, obj);

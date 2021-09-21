@@ -8,7 +8,7 @@
 template <pool_item_derived T, uint32_t N>
 class partitioned_static_storage
 {
-    template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
+    template <template <typename, uint32_t> typename storage, typename D, uint32_t M>
     friend class orchestrator;
     
 public:

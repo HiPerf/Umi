@@ -195,7 +195,7 @@ public:
     }
 
     template <typename T, typename... Args>
-    constexpr T* alloc(uint64_t id, detail::scheme_arguments<orchestrator_t<T>, std::add_lvalue_reference_t<orchestrator_t<T>>, Args...>&& args)
+    T* alloc(uint64_t id, detail::scheme_arguments<orchestrator_t<T>, std::add_lvalue_reference_t<orchestrator_t<T>>, Args...>&& args)
     {
         return create_impl(id, std::move(args));
     }
@@ -310,7 +310,7 @@ private:
     }
 
     template <typename T>
-    constexpr auto create_impl(uint64_t id, T&& scheme_args) noexcept
+    auto create_impl(uint64_t id, T&& scheme_args) noexcept
     {
         // Create by invoking with arguments
         auto entity = tao::apply([&scheme_args, &id](auto&&... args) {

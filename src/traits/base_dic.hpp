@@ -75,10 +75,10 @@ template <typename Candidate, typename InCar, typename... InCdr>
 inline constexpr const auto& orchestrator_type_impl()
 {
     if constexpr (
-        std::is_same_v<Candidate, InCar::orchestrator_t> ||         // We are given an orchestrator and we might have storages 
-        std::is_same_v<Candidate, InCar> ||                         // Provided candidate is already an storage type
-        std::is_same_v<Candidate, typename InCar::base_t> ||        // Provided type is the base entity<X> type
-        std::is_same_v<Candidate, typename InCar::derived_t>)       // Provided type is the derived X type
+        std::is_same_v<Candidate, InCar> ||                             // Provided candidate is already an storage type
+        std::is_same_v<Candidate, typename InCar::orchestrator_t> ||    // We are given an orchestrator and we might have storages 
+        std::is_same_v<Candidate, typename InCar::base_t> ||            // Provided type is the base entity<X> type
+        std::is_same_v<Candidate, typename InCar::derived_t>)           // Provided type is the derived X type
     {
         return std::declval<InCar::orchestrator_t>();
     }
