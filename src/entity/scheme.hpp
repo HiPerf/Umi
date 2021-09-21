@@ -72,15 +72,21 @@ struct tickets_tuple : public tao::tuple<comps...>
     }
 };
 
+template <typename... Types>
+tickets_tuple<std::unwrap_ref_decay_t<Types>...> make_tickets_tuple(Types&&... args)
+{
+    return tickets_tuple<std::unwrap_ref_decay_t<Types>...>(std::forward<Types>(args)...);
+}
+
 template <typename... comps>
 struct entity_tuple : public tao::tuple<comps...>
 {
     using tao::tuple<comps...>::tuple;
 
-    inline auto tickets() const noexcept
+    inline auto tickets() noexcept
     {
         return tao::apply([](auto... args) {
-            return tickets_tuple(args->ticket()...);
+            return make_tickets_tuple(args->ticket()...);
         }, downcast());
     }
 

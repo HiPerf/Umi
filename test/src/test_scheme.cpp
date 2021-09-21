@@ -74,7 +74,7 @@ void test_scheme_creation_with_storage()
             //  Note: We use & to get a pointer, but the compiler would error in case either of theese was wrong
             REQUIRE(&store.template get<client>());
             REQUIRE(&store.template get<S<client, 128>>());
-            REQUIRE(&store.template get<S<client, 128>::orchestrator_t>());
+            REQUIRE(&store.template get<typename S<client, 128>::orchestrator_t>());
 
             // Check returned types
             // TODO(gpascualg): MSVC fails to parse S<client, 128>::... in the next line
