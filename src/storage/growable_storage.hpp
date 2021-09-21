@@ -22,6 +22,9 @@ public:
     growable_storage() noexcept;
     ~growable_storage() noexcept;
 
+    growable_storage(growable_storage&& other) noexcept = default;
+    growable_storage& operator=(growable_storage && other) noexcept = default;
+
     template <typename... Args>
     T* push(Args&&... args) noexcept;
     T* push_ptr(T* obj) noexcept;

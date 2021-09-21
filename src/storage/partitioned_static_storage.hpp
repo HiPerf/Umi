@@ -21,6 +21,9 @@ public:
     partitioned_static_storage() noexcept;
     ~partitioned_static_storage() noexcept;
 
+    partitioned_static_storage(partitioned_static_storage&& other) noexcept = default;
+    partitioned_static_storage& operator=(partitioned_static_storage && other) noexcept = default;
+
     template <typename... Args>
     T* push(bool predicate, Args&&... args) noexcept;
     T* push_ptr(bool predicate, T* object) noexcept;

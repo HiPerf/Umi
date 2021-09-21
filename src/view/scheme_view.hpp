@@ -23,7 +23,7 @@ struct waitable
 public:
     waitable() = default;
 
-    waitable(waitable&& other) :
+    waitable(waitable&& other) noexcept :
         _pending_updates(static_cast<uint64_t>(other._pending_updates)),
         _updates_mutex(),
         _updates_cv()
@@ -31,7 +31,7 @@ public:
         assert(other.done() && "Cannot move while updates are pending");
     }
 
-    waitable& operator=(waitable&& rhs)
+    waitable& operator=(waitable&& rhs) noexcept
     {
         assert(rhs.done() && "Cannot move while updates are pending");
         _pending_updates = static_cast<uint64_t>(rhs._pending_updates);

@@ -22,6 +22,9 @@ public:
     partitioned_growable_storage() noexcept;
     ~partitioned_growable_storage() noexcept;
 
+    partitioned_growable_storage(partitioned_growable_storage&& other) noexcept = default;
+    partitioned_growable_storage& operator=(partitioned_growable_storage&& other) noexcept = default;
+
     template <typename... Args>
     T* push(bool predicate, Args&&... args) noexcept;
     T* push_ptr(bool predicate, T* object) noexcept;
@@ -179,7 +182,7 @@ T* partitioned_growable_storage<T, N>::change_partition(bool predicate, T* obj) 
     {
         if (auto candidate = _partition_pos - 1; position != candidate)
         {
-            std::swap(_data[_partition_pos - 1], obj);
+            std::swap(_data[_partition_pos - 1], *obj);
         }
 
         // Move partition

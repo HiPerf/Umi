@@ -58,6 +58,9 @@ public:
     
     orchestrator() noexcept;
 
+    orchestrator(orchestrator&& other) noexcept = default;
+    orchestrator& operator=(orchestrator && other) noexcept = default;
+
     T* get(uint64_t id) const noexcept;
 
     template <typename... Args>

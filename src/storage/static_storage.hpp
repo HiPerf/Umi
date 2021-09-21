@@ -21,6 +21,9 @@ public:
     static_storage() noexcept;
     ~static_storage() noexcept;
 
+    static_storage(static_storage&& other) noexcept = default;
+    static_storage& operator=(static_storage && other) noexcept = default;
+
     template <typename... Args>
     T* push(Args&&... args) noexcept;
     T* push_ptr(T* object) noexcept;
