@@ -7,6 +7,10 @@
 
 #include <cmath>
 
+#if _WIN32
+    #undef min
+    #undef max
+#endif
 
 template <typename... types>
 class updater_batched : public updater<updater_batched<types...>, types...>

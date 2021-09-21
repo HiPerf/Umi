@@ -18,7 +18,7 @@ public:
     pool_item& operator=(pool_item&& other) noexcept;
 
     inline bool has_ticket() const { return _ticket != nullptr; }
-    inline typename ticket<T>::ptr ticket() { return _ticket; }
+    inline typename ticket<T>::ptr ticket() const { return _ticket; }
 
 protected:
     inline void recreate_ticket() noexcept;

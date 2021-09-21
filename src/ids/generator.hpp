@@ -4,13 +4,19 @@
 #include <inttypes.h>
 
 
+#ifdef _WIN32
+    #define conditional_constexpr 
+#else
+    #define conditional_constexpr constexpr
+#endif
+
 class generator
 {
 public:
     constexpr generator() noexcept;
 
-    inline constexpr uint64_t peek() const noexcept;
-    inline constexpr uint64_t next() noexcept;
+    inline conditional_constexpr uint64_t peek() const noexcept;
+    inline conditional_constexpr uint64_t next() noexcept;
 
 private:
     // Current next id
@@ -22,12 +28,12 @@ constexpr generator::generator() noexcept:
     _current(0)
 {}
 
-inline constexpr uint64_t generator::peek() const noexcept
+inline conditional_constexpr uint64_t generator::peek() const noexcept
 {
     return _current;
 }
 
-inline constexpr uint64_t generator::next() noexcept
+inline conditional_constexpr uint64_t generator::next() noexcept
 {
     return _current++;
 }

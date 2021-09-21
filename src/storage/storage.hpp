@@ -86,6 +86,12 @@ public:
         return _storage.range_from_partition();
     }
 
+    template <typename = std::enable_if_t<has_storage_tag(tag, storage_grow::none, storage_layout::partitioned)>>
+    inline auto change_partition(bool predicate, T* obj) noexcept
+    {
+        return _storage.change_partition(predicate, obj);
+    }
+
     inline uint32_t size() const noexcept;
     inline bool empty() const noexcept;
     inline bool full() const noexcept;

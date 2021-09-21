@@ -84,7 +84,7 @@ inline constexpr const auto& orchestrator_type_impl()
     }
     else if constexpr (sizeof...(InCdr) == 0)
     {
-        static_assert(false, "Provided type is not a storage type");
+        //static_assert(false, "Provided type is not a storage type");
         return std::declval<InCar>();
     }
     else

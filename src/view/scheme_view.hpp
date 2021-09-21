@@ -17,8 +17,27 @@
 struct waitable
 {
     friend struct scheme_view;
+    friend struct scheme_view_until_partition;
+    friend struct scheme_view_from_partition;
 
 public:
+    waitable() = default;
+
+    waitable(waitable&& other) :
+        _pending_updates(static_cast<uint64_t>(other._pending_updates)),
+        _updates_mutex(),
+        _updates_cv()
+    {
+        assert(other.done() && "Cannot move while updates are pending");
+    }
+
+    waitable& operator=(waitable&& rhs)
+    {
+        assert(rhs.done() && "Cannot move while updates are pending");
+        _pending_updates = static_cast<uint64_t>(rhs._pending_updates);
+        return *this;
+    }
+
     inline void wait() noexcept
     {
         boost::fibers::fiber([this]() mutable
