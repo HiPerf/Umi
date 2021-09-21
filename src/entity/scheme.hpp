@@ -68,7 +68,7 @@ struct tickets_tuple : public tao::tuple<comps...>
     template <typename T>
     inline auto get() const noexcept
     {
-        return tao::get<typename ticket<entity<T>>::ptr>(*this)->get();
+        return tao::get<typename ticket<entity<T>>::ptr>(*this)->get()->derived();
     }
 };
 
@@ -84,9 +84,15 @@ struct entity_tuple : public tao::tuple<comps...>
         }, downcast());
     }
 
-    inline auto downcast() const noexcept
+    inline auto& downcast() const noexcept
     {
         return static_cast<const tao::tuple<comps...>&>(*this);
+    }
+
+    template <typename T>
+    inline auto get() const noexcept
+    {
+        return tao::get<typename ticket<entity<T>>::ptr>(downcast())->get()->derived();
     }
 };
 
@@ -199,9 +205,9 @@ public:
     }
 
     template <typename T>
-    constexpr void free(T* object)
+    constexpr void destroy(T* object)
     {
-        free_impl(object->template get<typename comps::derived_t>()...);
+        destroy(object->template get<typename comps::derived_t>()...);
     }
 
     template <typename... Args>
@@ -273,17 +279,11 @@ private:
     }
 
     template <typename... Ts>
-    inline constexpr void free_impl(Ts... objects)
-    {
-        (get<comps>().pop(objects), ...);
-    }
-
-    template <typename... Ts>
     inline constexpr auto move_impl(scheme<comps...>& to, Ts&&... entities) noexcept
     {
         return tao::apply([this](auto... entities) mutable {
             (entities->base()->scheme_information(*this), ...);
-            return tao::tuple(entities...);
+            return entity_tuple_t(entities...);
         }, tao::tuple(get<comps>().move(entities->ticket(), to.get<comps>())...));
     }
 
