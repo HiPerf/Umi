@@ -229,7 +229,7 @@ public:
     template <typename T>
     constexpr void destroy(T* object)
     {
-        destroy(object->template get<typename comps::derived_t>()...);
+        (..., get<comps>().pop(object->template get<typename comps::derived_t>()));
     }
 
     template <typename... Args>

@@ -176,6 +176,7 @@ T* partitioned_growable_storage<T, N>::change_partition(bool predicate, T* obj) 
         }
 
         // Now move partition
+        obj = &_data[_partition_pos];
         ++_partition_pos;
     }
     else
@@ -186,8 +187,11 @@ T* partitioned_growable_storage<T, N>::change_partition(bool predicate, T* obj) 
         }
 
         // Move partition
+        obj = &_data[_partition_pos - 1];
         --_partition_pos;
     }
+
+    return obj;
 }
 
 template <pool_item_derived T, uint32_t N>

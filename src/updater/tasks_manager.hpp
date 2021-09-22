@@ -18,6 +18,17 @@ class tasks_manager
     friend class tasks;
 
 public:
+    tasks_manager() = default;
+
+    tasks_manager(tasks_manager&& other) noexcept :
+        _tasks(std::move(other._tasks))
+    {}
+
+    tasks_manager& operator=(tasks_manager&& rhs) noexcept
+    {
+        _tasks = std::move(rhs._tasks);
+    }
+
     template <typename C>
     constexpr void schedule(C&& callback) noexcept
     {

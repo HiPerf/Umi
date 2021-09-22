@@ -181,6 +181,7 @@ T* partitioned_static_storage<T, N>::change_partition(bool predicate, T* obj) no
         }
 
         // Now move partition
+        obj = _partition;
         ++_partition;
     }
     else
@@ -191,8 +192,11 @@ T* partitioned_static_storage<T, N>::change_partition(bool predicate, T* obj) no
         }
 
         // Move partition
+        obj = _partition - 1;
         --_partition;
     }
+
+    return obj;
 }
 
 template <pool_item_derived T, uint32_t N>
