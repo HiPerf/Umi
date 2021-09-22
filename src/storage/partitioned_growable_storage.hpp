@@ -119,10 +119,14 @@ T* partitioned_growable_storage<T, N>::push_ptr(bool predicate, T* object) noexc
     if (predicate)
     {
         // Move partition to last
-        *obj = std::move(_data[_partition_pos]);
+        if (obj != &_data[_partition_pos])
+        {
+            *obj = std::move(_data[_partition_pos]);
+            obj = &_data[_partition_pos];
+        }
 
         // Increment partition and write
-        obj = &_data[_partition_pos++];
+        ++_partition_pos;
     }
 
     *obj = std::move(*object);
