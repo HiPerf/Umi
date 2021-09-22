@@ -32,6 +32,7 @@ protected:
 
 public:
     base_executor() noexcept :
+        tasks_manager(),
         _stop(false)
     {
         _instance = this;
