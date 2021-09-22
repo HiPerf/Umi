@@ -95,6 +95,12 @@ public:
         return _storage.change_partition(predicate, obj);
     }
 
+    template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
+    inline uint32_t size_until_partition() const noexcept;
+    
+    template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
+    inline uint32_t size_from_partition() const noexcept;
+
     inline uint32_t size() const noexcept;
     inline bool empty() const noexcept;
     inline bool full() const noexcept;
@@ -189,6 +195,20 @@ template <template <typename, uint32_t> typename storage, typename T, uint32_t N
 inline uint32_t orchestrator<storage, T, N>::size() const noexcept
 {
     return _storage.size();
+}
+
+template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
+template <typename D, typename>
+inline uint32_t orchestrator<storage, T, N>::size_until_partition() const noexcept
+{
+    return _storage.size_until_partition();
+}
+
+template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
+template <typename D, typename>
+inline uint32_t orchestrator<storage, T, N>::size_from_partition() const noexcept
+{
+    return _storage.size_from_partition();
 }
 
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>

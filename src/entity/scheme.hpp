@@ -271,6 +271,18 @@ public:
         return tao::get<0>(components).size();
     }
 
+    template <typename T = std::tuple_element_t<0, std::tuple<comps...>>, typename = std::enable_if_t<is_partitioned_storage(orchestrator_t<T>::tag)>>
+    constexpr inline std::size_t size_until_partition() const
+    {
+        return tao::get<0>(components).size_until_partition();
+    }
+
+    template <typename T = std::tuple_element_t<0, std::tuple<comps...>>, typename = std::enable_if_t<is_partitioned_storage(orchestrator_t<T>::tag)>>
+    constexpr inline std::size_t size_from_partition() const
+    {
+        return tao::get<0>(components).size_from_partition();
+    }
+
     //template <typename Sorter, typename UnaryPredicate>
     //void partition(UnaryPredicate&& p)
     //{

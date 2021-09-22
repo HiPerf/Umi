@@ -21,7 +21,11 @@ struct waitable
     friend struct scheme_view_from_partition;
 
 public:
-    waitable() = default;
+    waitable() noexcept :
+        _pending_updates(0),
+        _updates_mutex(),
+        _updates_cv()
+    {}
 
     waitable(waitable&& other) noexcept :
         _pending_updates(static_cast<uint64_t>(other._pending_updates)),
@@ -79,7 +83,12 @@ struct scheme_view
                     std::apply(callback, combined);
                     --waitable._pending_updates;
                 }
-            }).join();
+
+                if (waitable._pending_updates == 0)
+                {
+                    waitable._updates_cv.notify_all();
+                }
+            }).detach();
     }
 
     template <typename By, template <typename...> class S, typename C, typename... types>
@@ -95,7 +104,12 @@ struct scheme_view
                     std::apply(callback, scheme.search(obj->id()));
                     --waitable._pending_updates;
                 }
-            }).join();
+
+                if (waitable._pending_updates == 0)
+                {
+                    waitable._updates_cv.notify_all();
+                }
+            }).detach();
     }
 
     template <template <typename...> class S, typename C, typename... types>
@@ -125,7 +139,7 @@ struct scheme_view
                             }
                         }).detach();
                 }
-            }).join();
+            }).detach();
     }
 
     template <typename By, template <typename...> class S, typename O, typename C, typename... types>
@@ -148,7 +162,7 @@ struct scheme_view
                             }
                         }).detach();
                 }
-            }).join();
+            }).detach();
     }
 
 private:
@@ -175,7 +189,12 @@ struct scheme_view_until_partition
                 std::apply(callback, combined);
                 --waitable._pending_updates;
             }
-        }).join();
+
+            if (waitable._pending_updates == 0)
+            {
+                waitable._updates_cv.notify_all();
+            }
+        }).detach();
     }
 
     template <typename By, template <typename...> class S, typename C, typename... types>
@@ -191,7 +210,12 @@ struct scheme_view_until_partition
                 std::apply(callback, scheme.search(obj->id()));
                 --waitable._pending_updates;
             }
-        }).join();
+
+            if (waitable._pending_updates == 0)
+            {
+                waitable._updates_cv.notify_all();
+            }
+        }).detach();
     }
 
     template <template <typename...> class S, typename C, typename... types>
@@ -221,7 +245,7 @@ struct scheme_view_until_partition
                     }
                 }).detach();
             }
-        }).join();
+        }).detach();
     }
 
     template <typename By, template <typename...> class S, typename O, typename C, typename... types>
@@ -244,7 +268,7 @@ struct scheme_view_until_partition
                     }
                 }).detach();
             }
-        }).join();
+        }).detach();
     }
 
 private:
@@ -271,7 +295,12 @@ struct scheme_view_from_partition
                 std::apply(callback, combined);
                 --waitable._pending_updates;
             }
-        }).join();
+
+            if (waitable._pending_updates == 0)
+            {
+                waitable._updates_cv.notify_all();
+            }
+        }).detach();
     }
 
     template <typename By, template <typename...> class S, typename C, typename... types>
@@ -287,7 +316,12 @@ struct scheme_view_from_partition
                 std::apply(callback, scheme.search(obj->id()));
                 --waitable._pending_updates;
             }
-        }).join();
+
+            if (waitable._pending_updates == 0)
+            {
+                waitable._updates_cv.notify_all();
+            }
+        }).detach();
     }
 
     template <template <typename...> class S, typename C, typename... types>
@@ -317,7 +351,7 @@ struct scheme_view_from_partition
                     }
                 }).detach();
             }
-        }).join();
+        }).detach();
     }
 
     template <typename By, template <typename...> class S, typename O, typename C, typename... types>
@@ -340,7 +374,7 @@ struct scheme_view_from_partition
                     }
                 }).detach();
             }
-        }).join();
+        }).detach();
     }
 
 private:

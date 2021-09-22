@@ -58,6 +58,8 @@ public:
     }
 
     inline uint32_t size() const noexcept;
+    inline uint32_t size_until_partition() const noexcept;
+    inline uint32_t size_from_partition() const noexcept;
     inline bool empty() const noexcept;
     inline bool full() const noexcept;
 
@@ -210,6 +212,18 @@ template <pool_item_derived T, uint32_t N>
 inline uint32_t partitioned_growable_storage<T, N>::size() const noexcept
 {
     return _data.size();
+}
+
+template <pool_item_derived T, uint32_t N>
+inline uint32_t partitioned_growable_storage<T, N>::size_until_partition() const noexcept
+{
+    return _partition_pos;
+}
+
+template <pool_item_derived T, uint32_t N>
+inline uint32_t partitioned_growable_storage<T, N>::size_from_partition() const noexcept
+{
+    return _data.size() - _partition_pos;
 }
 
 template <pool_item_derived T, uint32_t N>

@@ -57,6 +57,8 @@ public:
     }
 
     inline uint32_t size() const noexcept;
+    inline uint32_t size_until_partition() const noexcept;
+    inline uint32_t size_from_partition() const noexcept;
     inline bool empty() const noexcept;
     inline bool full() const noexcept;
 
@@ -215,6 +217,18 @@ template <pool_item_derived T, uint32_t N>
 inline uint32_t partitioned_static_storage<T, N>::size() const noexcept
 {
     return _current - &_data[0];
+}
+
+template <pool_item_derived T, uint32_t N>
+inline uint32_t partitioned_static_storage<T, N>::size_until_partition() const noexcept
+{
+    return _partition - &_data[0];
+}
+
+template <pool_item_derived T, uint32_t N>
+inline uint32_t partitioned_static_storage<T, N>::size_from_partition() const noexcept
+{
+    return _partition - _current;
 }
 
 template <pool_item_derived T, uint32_t N>
