@@ -180,7 +180,7 @@ struct scheme_view_until_partition
             "Use continuous_by when the scheme contains mixed layouts"
             );
 
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_until_partition();
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
@@ -200,7 +200,7 @@ struct scheme_view_until_partition
     template <typename By, template <typename...> class S, typename C, typename... types>
     inline static constexpr void continuous_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_until_partition();
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
@@ -227,7 +227,7 @@ struct scheme_view_until_partition
             "Use parallel_by when the scheme contains mixed layouts"
             );
 
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_until_partition();
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
@@ -251,7 +251,7 @@ struct scheme_view_until_partition
     template <typename By, template <typename...> class S, typename O, typename C, typename... types>
     inline static constexpr void parallel_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_until_partition();
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
@@ -286,7 +286,7 @@ struct scheme_view_from_partition
             "Use continuous_by when the scheme contains mixed layouts"
             );
 
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_from_partition();
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
@@ -306,7 +306,7 @@ struct scheme_view_from_partition
     template <typename By, template <typename...> class S, typename C, typename... types>
     inline static constexpr void continuous_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_from_partition();
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
@@ -333,7 +333,7 @@ struct scheme_view_from_partition
             "Use parallel_by when the scheme contains mixed layouts"
             );
 
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_from_partition();
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
@@ -357,7 +357,7 @@ struct scheme_view_from_partition
     template <typename By, template <typename...> class S, typename O, typename C, typename... types>
     inline static constexpr void parallel_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        waitable._pending_updates += scheme.size();
+        waitable._pending_updates += scheme.size_from_partition();
 
         boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
         {
