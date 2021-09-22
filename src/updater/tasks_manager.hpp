@@ -27,6 +27,7 @@ public:
     tasks_manager& operator=(tasks_manager&& rhs) noexcept
     {
         _tasks = std::move(rhs._tasks);
+        return *this;
     }
 
     template <typename C>

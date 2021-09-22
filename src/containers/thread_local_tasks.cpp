@@ -17,11 +17,13 @@ tasks::tasks(tasks_manager* manager, uint16_t max_size) noexcept :
 void tasks::execute() noexcept
 {
     uint16_t current = _begin;
-
+    
+    spdlog::info("{:x} EXEC PROG ({:d} / {:d} / {:d})", (intptr_t)(void*)this, _begin, _write_head, _end);
     for (; current != (_end % _max_size); current = (current + 1) % _max_size)
     {
         std::move(_container[current])();
     }
 
     _begin = current;
+    spdlog::info("{:x} EXEC DONE ({:d} / {:d} / {:d})", (intptr_t)(void*)this, _begin, _write_head, _end);
 }

@@ -86,3 +86,23 @@ if(NOT range_v3_dep_POPULATED)
 endif()
 
 target_link_libraries_system(umi_core_lib PUBLIC range-v3)
+
+
+
+
+# ---------------------------------
+# ########### SPDLOG #############
+# ---------------------------------
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog
+    GIT_TAG        v1.9.2
+)
+
+FetchContent_GetProperties(spdlog)
+if(NOT spdlog_POPULATED)
+    FetchContent_Populate(spdlog)
+    add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
+endif()
+
+target_link_libraries(umi_core_lib PUBLIC spdlog)
