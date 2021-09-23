@@ -16,7 +16,7 @@
 
 
 
-template <typename D>
+template <typename D, uint16_t size>
 class base_executor;
 
 template <typename D>
@@ -24,21 +24,21 @@ concept has_on_worker_thread = requires() {
     { std::declval<D>().on_worker_thread() };
 };
 
-template <typename D>
-class base_executor : public tasks_manager
+template <typename D, uint16_t size>
+class base_executor : public tasks_manager<size>
 {
 protected:
-    static inline base_executor<D>* _instance = nullptr;
+    static inline base_executor<D, size>* _instance = nullptr;
 
 public:
-    base_executor() noexcept :
-        tasks_manager(),
+    base_executor(uint16_t max_tasks_size) noexcept :
+        tasks_manager<size>(max_tasks_size),
         _stop(false)
     {
         _instance = this;
     }
 
-    static inline base_executor<D>* instance()
+    static inline base_executor<D, size>* instance()
     {
         return _instance;
     }
@@ -425,5 +425,6 @@ private:
 };
 
 
-using executor = base_executor<void>;
+template <uint16_t size>
+using executor = base_executor<void, size>;
 

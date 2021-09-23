@@ -12,16 +12,15 @@
 #include <vector>
 
 
-class tasks_manager;
-
-
 class tasks
 {
 public:
     using task_t = fu2::unique_function<void()>;
 
 public:
-    tasks(tasks_manager* manager, uint16_t max_size) noexcept;
+    tasks(uint16_t max_size) noexcept;
+    tasks(tasks&& other) noexcept;
+    tasks& operator=(tasks&& other) noexcept;
 
     template <typename T>
     void schedule(T&& task) noexcept;

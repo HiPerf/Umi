@@ -8,24 +8,36 @@
 
 #include <array>
 #include <atomic>
-#include <vector>
 
 
 class tasks;
 
+
+namespace detail
+{
+    template<size_t...Is>
+    std::array<tasks, sizeof...(Is)> make_tasks(uint16_t max_size, std::index_sequence<Is...>) {
+        return { ((void)Is, tasks(max_size))... };
+    }
+}
+
+template <uint16_t max_threads>
 class tasks_manager
 {
-    friend class tasks;
-
 public:
-    tasks_manager() = default;
+    tasks_manager(uint16_t max_size) :
+        _current(0),
+        _tasks(detail::make_tasks(max_size, std::make_index_sequence<max_threads>()))
+    {}
 
     tasks_manager(tasks_manager&& other) noexcept :
+        _current(static_cast<uint16_t>(other._current)),
         _tasks(std::move(other._tasks))
     {}
 
     tasks_manager& operator=(tasks_manager&& rhs) noexcept
     {
+        _current = static_cast<uint16_t>(rhs._current);
         _tasks = std::move(rhs._tasks);
         return *this;
     }
@@ -49,28 +61,20 @@ public:
 
     inline tasks& get_scheduler() noexcept
     {
-        thread_local tasks ts(this, 2048);
-        return ts;
+        thread_local uint16_t index = _current++;
+        return _tasks[index];
     }
 
 protected:
     void execute_tasks() noexcept
     {
-        for (auto ts : tasks_manager::_tasks)
+        for (uint16_t i = 0; i < _current; ++i)
         {
-            ts->execute();
+            _tasks[i].execute();
         }
     }
 
-private:
-    inline void register_tasks(tasks* ts) noexcept
-    {
-        _mutex.lock();
-        _tasks.push_back(ts);
-        _mutex.unlock();
-    }
-
 protected:
-    boost::fibers::mutex _mutex;
-    std::vector<tasks*> _tasks;
+    std::atomic<uint16_t> _current;
+    std::array<tasks, max_threads> _tasks;
 };

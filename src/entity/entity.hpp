@@ -19,7 +19,7 @@ class entity : public pool_item<entity<T>>
     template <typename... types> friend class updater_batched;
     template <typename... types> friend class updater_contiguous;
     template <typename... types> friend class updater_all_async;
-    template <typename D> friend class base_executor;
+    template <typename D, uint16_t S> friend class base_executor;
     friend class scheme_entities_map;
 
     // Friends with all storage types

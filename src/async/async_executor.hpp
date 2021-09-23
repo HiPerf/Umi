@@ -37,6 +37,8 @@ public:
 
     template <typename C>
     void start(C&& callback);
+
+    void start();
 };
 
 
@@ -71,6 +73,12 @@ void async_executor<tag>::start(C&& callback)
 
     std::unique_lock<std::mutex> lk(m);
     cv.wait(lk, [&] { return waiting == 0; });
+}
+
+template <uint16_t tag>
+void async_executor<tag>::start()
+{
+    start([]() {});
 }
 
 template <typename F>

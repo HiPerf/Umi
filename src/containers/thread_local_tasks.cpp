@@ -4,14 +4,31 @@
 #include <mutex>
 
 
-tasks::tasks(tasks_manager* manager, uint16_t max_size) noexcept :
+tasks::tasks(uint16_t max_size) noexcept :
     _max_size(max_size),
     _write_head(0),
     _end(0),
     _begin(0)
 {
     _container = new task_t[max_size];
-    manager->register_tasks(this);
+}
+
+tasks::tasks(tasks&& other) noexcept :
+    _max_size(other._max_size),
+    _write_head(static_cast<uint16_t>(other._write_head)),
+    _end(static_cast<uint16_t>(other._end)),
+    _begin(other._end),
+    _container(std::move(other._container))
+{}
+
+tasks& tasks::operator=(tasks&& other) noexcept
+{
+    _max_size = other._max_size;
+    _write_head = static_cast<uint16_t>(other._write_head);
+    _end = static_cast<uint16_t>(other._end);
+    _begin = other._end;
+    _container = std::move(other._container);
+    return *this;
 }
 
 void tasks::execute() noexcept
