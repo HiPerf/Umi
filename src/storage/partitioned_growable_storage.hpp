@@ -22,8 +22,28 @@ public:
     partitioned_growable_storage() noexcept;
     ~partitioned_growable_storage() noexcept;
 
-    partitioned_growable_storage(partitioned_growable_storage&& other) noexcept = default;
-    partitioned_growable_storage& operator=(partitioned_growable_storage&& other) noexcept = default;
+    partitioned_growable_storage(partitioned_growable_storage&& other) noexcept :
+        _data(std::move(other._data)),
+        _partition_pos(std::move(other._partition_pos))
+    {
+        for (auto component : range())
+        {
+            component->refresh_ticket();
+        }
+    }
+
+    partitioned_growable_storage& operator=(partitioned_growable_storage&& other) noexcept
+    {
+        _data = std::move(other._data);
+        _partition_pos = std::move(other._partition_pos);
+
+        for (auto component : range())
+        {
+            component->refresh_ticket();
+        }
+
+        return *this;
+    }
 
     template <typename... Args>
     T* push(bool predicate, Args&&... args) noexcept;

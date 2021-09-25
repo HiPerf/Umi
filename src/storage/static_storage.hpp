@@ -21,8 +21,28 @@ public:
     static_storage() noexcept;
     ~static_storage() noexcept;
 
-    static_storage(static_storage&& other) noexcept = default;
-    static_storage& operator=(static_storage && other) noexcept = default;
+    static_storage(static_storage&& other) noexcept :
+        _data(std::move(other._data)),
+        _current(std::move(other._current))
+    {
+        for (auto component : range())
+        {
+            component->refresh_ticket();
+        }
+    }
+
+    static_storage& operator=(static_storage&& other) noexcept
+    {
+        _data = std::move(other._data);
+        _current = std::move(other._current);
+
+        for (auto component : range())
+        {
+            component->refresh_ticket();
+        }
+
+        return *this;
+    }
 
     template <typename... Args>
     T* push(Args&&... args) noexcept;

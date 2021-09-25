@@ -8,8 +8,6 @@
 template <typename T>
 class pool_item
 {
-    template <typename D, typename E, uint16_t I, typename R> friend class pooled_static_vector;
-
 public:
     pool_item() noexcept;
     pool_item(const pool_item&) = delete;
@@ -20,9 +18,10 @@ public:
     inline bool has_ticket() const { return _ticket != nullptr; }
     inline typename ticket<T>::ptr ticket() const { return _ticket; }
 
+    inline void refresh_ticket() noexcept;
+
 protected:
     inline void recreate_ticket() noexcept;
-    inline void refresh_ticket() noexcept;
     inline void invalidate_ticket() noexcept;
     void invalidate();
 
