@@ -21,7 +21,7 @@ namespace detail
     }
 }
 
-template <uint16_t max_threads>
+template <uint16_t max_threads, typename tag>
 class tasks_manager
 {
 public:

@@ -25,14 +25,14 @@ concept has_on_worker_thread = requires() {
 };
 
 template <typename D, uint16_t size>
-class base_executor : public tasks_manager<size>
+class base_executor : public tasks_manager<size, D>
 {
 protected:
     static inline base_executor<D, size>* _instance = nullptr;
 
 public:
     base_executor(uint16_t max_tasks_size) noexcept :
-        tasks_manager<size>(max_tasks_size),
+        tasks_manager<size, D>(max_tasks_size),
         _stop(false)
     {
         _instance = this;
