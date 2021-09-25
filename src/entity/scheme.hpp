@@ -42,8 +42,9 @@ struct scheme_store
 {
     template <typename T> using orchestrator_t = orchestrator_type<T, comps...>;
 
-    constexpr scheme_store()
-    {}
+    constexpr scheme_store() noexcept = default;
+    scheme_store(scheme_store&&) noexcept = default;
+    scheme_store& operator=(scheme_store&&) noexcept = default;
 
     template <typename T>
     constexpr inline auto get() noexcept -> std::add_lvalue_reference_t<orchestrator_t<T>>
@@ -132,8 +133,8 @@ public:
     {}
 
     // Allow move, not copy
-    scheme(scheme&& other) = default;
-    scheme& operator=(scheme&& rhs) = default;
+    scheme(scheme&& other) noexcept = default;
+    scheme& operator=(scheme&& rhs) noexcept = default;
 
     template <template <typename...> typename D, typename... Args>
     constexpr auto make_updater(Args&&... args) noexcept
