@@ -30,7 +30,7 @@ namespace detail
     {
         using orchestrator_t = O;
 
-        component& comp;
+        component comp;
         tao::tuple<Args...> args;
         bool predicate;
     };
@@ -120,7 +120,7 @@ class scheme
     template <typename... T> friend class scheme;
 
 public:
-    tao::tuple<std::add_lvalue_reference_t<comps>...> components;
+    tao::tuple<std::add_pointer_t<comps>...> components;
 
     template <typename T>
     using orchestrator_t = orchestrator_type<T, comps...>;
@@ -129,7 +129,7 @@ public:
 
     template <typename... T>
     constexpr scheme(scheme_store<T...>& store) noexcept :
-        components(store.template get<comps>()...)
+        components(&store.template get<comps>()...)
     {}
 
     // Allow move, not copy
@@ -139,7 +139,7 @@ public:
     template <template <typename...> typename D, typename... Args>
     constexpr auto make_updater(Args&&... args) noexcept
     {
-        return D<std::add_pointer_t<comps>...>(std::forward<Args>(args)..., components_ptr(tao::seq::make_index_sequence<sizeof...(comps)> {}));
+        return D<std::add_pointer_t<comps>...>(std::forward<Args>(args)..., components);
     }
 
     constexpr inline void clear() noexcept
@@ -148,9 +148,9 @@ public:
     }
 
     template <typename T>
-    constexpr inline auto get() const noexcept -> std::add_lvalue_reference_t<orchestrator_t<T>>
+    constexpr inline std::add_lvalue_reference_t<orchestrator_t<T>> get() const noexcept
     {
-        return tao::get<std::add_lvalue_reference_t<orchestrator_t<T>>>(components);
+        return *tao::get<std::add_pointer_t<orchestrator_t<T>>>(components);
     }
 
     template <typename T>
@@ -177,32 +177,32 @@ public:
     }
 
     template <typename T, typename... Args, typename = std::enable_if_t<!is_partitioned_storage(orchestrator_t<T>::tag)>>
-    constexpr auto args(Args&&... args) noexcept -> detail::scheme_arguments<orchestrator_t<T>, std::add_lvalue_reference_t<orchestrator_t<T>>, std::decay_t<Args>...>
+    constexpr auto args(Args&&... args) noexcept -> detail::scheme_arguments<orchestrator_t<T>, std::add_pointer_t<orchestrator_t<T>>, std::decay_t<Args>...>
     {
         using D = orchestrator_t<T>;
         require<D>();
 
-        return detail::scheme_arguments<orchestrator_t<T>, std::add_lvalue_reference_t<D>, std::decay_t<Args>...> {
-            .comp = tao::get<std::add_lvalue_reference_t<D>>(components),
+        return detail::scheme_arguments<orchestrator_t<T>, std::add_pointer_t<D>, std::decay_t<Args>...> {
+            .comp = tao::get<std::add_pointer_t<D>>(components),
             .args = tao::tuple<std::decay_t<Args>...>(std::forward<Args>(args)...)
         };
     }
 
     template <typename T, typename... Args, typename = std::enable_if_t<is_partitioned_storage(orchestrator_t<T>::tag)>>
-    constexpr auto args(bool predicate, Args&&... args) noexcept -> detail::scheme_arguments<orchestrator_t<T>, std::add_lvalue_reference_t<orchestrator_t<T>>, std::decay_t<Args>...>
+    constexpr auto args(bool predicate, Args&&... args) noexcept -> detail::scheme_arguments<orchestrator_t<T>, std::add_pointer_t<orchestrator_t<T>>, std::decay_t<Args>...>
     {
         using D = orchestrator_t<T>;
         require<D>();
 
-        return detail::scheme_arguments<orchestrator_t<T>, std::add_lvalue_reference_t<D>, std::decay_t<Args>...> {
-            .comp = tao::get<std::add_lvalue_reference_t<D>>(components),
+        return detail::scheme_arguments<orchestrator_t<T>, std::add_pointer_t<D>, std::decay_t<Args>...> {
+            .comp = tao::get<std::add_pointer_t<D>>(components),
             .args = tao::tuple<std::decay_t<Args>...>(std::forward<Args>(args)...),
             .predicate = predicate
         };
     }
 
     template <typename T, typename... Args>
-    T* alloc(uint64_t id, detail::scheme_arguments<orchestrator_t<T>, std::add_lvalue_reference_t<orchestrator_t<T>>, Args...>&& args)
+    T* alloc(uint64_t id, detail::scheme_arguments<orchestrator_t<T>, std::add_pointer_t<orchestrator_t<T>>, Args...>&& args)
     {
         return create_impl(id, std::move(args));
     }
@@ -269,19 +269,19 @@ public:
 
     constexpr inline std::size_t size() const
     {
-        return tao::get<0>(components).size();
+        return tao::get<0>(components)->size();
     }
 
     template <typename T = std::tuple_element_t<0, std::tuple<comps...>>, typename = std::enable_if_t<is_partitioned_storage(orchestrator_t<T>::tag)>>
     constexpr inline std::size_t size_until_partition() const
     {
-        return tao::get<0>(components).size_until_partition();
+        return tao::get<0>(components)->size_until_partition();
     }
 
     template <typename T = std::tuple_element_t<0, std::tuple<comps...>>, typename = std::enable_if_t<is_partitioned_storage(orchestrator_t<T>::tag)>>
     constexpr inline std::size_t size_from_partition() const
     {
-        return tao::get<0>(components).size_from_partition();
+        return tao::get<0>(components)->size_from_partition();
     }
 
     //template <typename Sorter, typename UnaryPredicate>
@@ -307,12 +307,6 @@ public:
     }
 
 private:
-    template <std::size_t... I>
-    inline constexpr auto components_ptr(std::index_sequence<I...>) noexcept
-    {
-        return tao::tuple(&tao::get<I>(components)...);
-    }
-
     template <typename... Ts>
     inline constexpr auto move_impl(scheme<comps...>& to, Ts&&... entities) noexcept
     {
@@ -335,11 +329,11 @@ private:
         auto entity = tao::apply([&scheme_args, &id](auto&&... args) {
             if constexpr (is_partitioned_storage(T::orchestrator_t::tag))
             {
-                return scheme_args.comp.push(scheme_args.predicate, id, std::forward<std::decay_t<decltype(args)>>(args)...);
+                return scheme_args.comp->push(scheme_args.predicate, id, std::forward<std::decay_t<decltype(args)>>(args)...);
             }
             else
             {
-                return scheme_args.comp.push(id, std::forward<std::decay_t<decltype(args)>>(args)...);
+                return scheme_args.comp->push(id, std::forward<std::decay_t<decltype(args)>>(args)...);
             }
         }, scheme_args.args);
 
