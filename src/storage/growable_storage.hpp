@@ -96,7 +96,9 @@ void growable_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 template <pool_item_derived T, uint32_t N>
 void growable_storage<T, N>::release(T* obj) noexcept
 {
+    assert(obj >= &_data[0] && obj < &_data[0] + size() && "Attempting to release an object from another storage");
     assert(_data.size() > 0 && "Attempting to release from an empty vector");
+
     if (obj != &_data.back())
     {
         *obj = std::move(_data.back());

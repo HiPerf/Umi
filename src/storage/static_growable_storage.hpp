@@ -135,7 +135,10 @@ void static_growable_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 
 template <pool_item_derived T, uint32_t N>
 void static_growable_storage<T, N>::release(T* obj) noexcept
-{   
+{
+    assert(((obj >= &_data[0] && obj < _current) || (obj >= &_growable[0] && obj < &_growable[0] + _growable.size())) 
+        && "Attempting to release an object from another storage");
+
     if (is_static(obj))
     {
         if (auto candidate = --_current; obj != candidate)

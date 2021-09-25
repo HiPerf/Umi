@@ -96,6 +96,8 @@ void static_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 template <pool_item_derived T, uint32_t N>
 void static_storage<T, N>::release(T* obj) noexcept
 {
+    assert(obj >= &_data[0] && obj < _current && "Attempting to release an object from another storage");
+
     if (auto candidate = --_current; obj != candidate)
     {
         *obj = std::move(*candidate);

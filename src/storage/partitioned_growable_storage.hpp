@@ -145,6 +145,8 @@ void partitioned_growable_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 template <pool_item_derived T, uint32_t N>
 void partitioned_growable_storage<T, N>::release(T* obj) noexcept
 {
+    assert(obj >= &_data[0] && obj < &_data[0] + size() && "Attempting to release an object from another storage");
+
     if (partition(obj))
     {
         // True predicate, move partition one down and move that one
