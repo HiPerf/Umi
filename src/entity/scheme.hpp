@@ -132,9 +132,15 @@ public:
         components(&store.template get<comps>()...)
     {}
 
-    // Allow move, not copy
-    scheme(scheme&& other) noexcept = default;
-    scheme& operator=(scheme&& rhs) noexcept = default;
+    template <typename... T>
+    constexpr void reset_store(scheme_store<T...>& store) noexcept
+    {
+        components = tao::tuple<std::add_pointer_t<comps>...>(&store.template get<comps>()...);
+    }
+
+    // Disallow everything, uppon move it must be manually called
+    scheme(scheme&& other) noexcept = delete;
+    scheme& operator=(scheme&& rhs) noexcept = delete;
 
     template <template <typename...> typename D, typename... Args>
     constexpr auto make_updater(Args&&... args) noexcept
