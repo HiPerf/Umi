@@ -2,9 +2,7 @@
 
 #include "storage/storage.hpp"
 
-#include <boost/fiber/fiber.hpp>
-#include <boost/fiber/mutex.hpp>
-#include <boost/fiber/condition_variable.hpp>
+#include <boost/fiber/barrier.hpp>
 #include <boost/range.hpp>
 #include <boost/range/combine.hpp>
 
@@ -12,65 +10,162 @@
 #include <tao/tuple/tuple.hpp>
 
 #include <tuple>
+#include <vector>
 
 
-struct waitable
+struct multi_waitable
 {
     friend struct scheme_view;
     friend struct scheme_view_until_partition;
     friend struct scheme_view_from_partition;
 
 public:
-    waitable() noexcept :
-        _pending_updates(0),
-        _updates_mutex(),
-        _updates_cv()
-    {}
+    using barrier_t = const std::shared_ptr<boost::fibers::barrier>&;
 
-    waitable(waitable&& other) noexcept :
-        _pending_updates(static_cast<uint64_t>(other._pending_updates)),
-        _updates_mutex(),
-        _updates_cv()
+    multi_waitable() noexcept = default;
+
+    multi_waitable(multi_waitable && other) noexcept :
+        _barriers(std::move(other._barriers))
     {
         assert(other.done() && "Cannot move while updates are pending");
     }
 
-    waitable& operator=(waitable&& rhs) noexcept
+    multi_waitable& operator=(multi_waitable && rhs) noexcept
     {
         assert(rhs.done() && "Cannot move while updates are pending");
-        _pending_updates = static_cast<uint64_t>(rhs._pending_updates);
+        _barriers = std::move(rhs._barriers);
         return *this;
     }
 
     inline void wait() noexcept
     {
         // No need to join if there is nothing to wait for
-        if (_pending_updates > 0)
-        {
-            boost::fibers::fiber([this]() mutable
-                {
-                    _updates_mutex.lock();
-                    _updates_cv.wait(_updates_mutex, [this]() { return _pending_updates == 0; });
-                    _updates_mutex.unlock();
-                }).join();
-        }
+        assert(!_barriers.empty() && "Can't wait if there are no barriers");
+
+        // Elements at the front are more likely to be done
+        _barriers.back()->wait();
+        _barriers.pop_back();
     }
 
     inline bool done() const noexcept
     {
-        return _pending_updates == 0;
+        return _barriers.empty();
+    }
+
+protected:
+    const std::shared_ptr<boost::fibers::barrier>& new_waitable(uint16_t size)
+    {
+        return _barriers.emplace_back(std::make_shared<boost::fibers::barrier>(size + 1));
     }
 
 private:
-    std::atomic<uint64_t> _pending_updates;
-    boost::fibers::mutex _updates_mutex;
-    boost::fibers::condition_variable_any _updates_cv;
+    std::vector<std::shared_ptr<boost::fibers::barrier>> _barriers;
+};
+
+#include <boost/config.hpp>
+
+#include <boost/fiber/condition_variable.hpp>
+#include <boost/fiber/detail/config.hpp>
+#include <boost/fiber/mutex.hpp>
+
+class reusable_barrier {
+private:
+    std::size_t initial_;
+    std::size_t current_;
+    std::size_t cycle_{ 0 };
+    boost::fibers::mutex mtx_{};
+    boost::fibers::condition_variable cond_{};
+
+public:
+    reusable_barrier() :
+        initial_{ 0 },
+        current_{ 0 }
+    {}
+
+    explicit reusable_barrier(std::size_t initial) :
+        initial_{ initial },
+        current_{ initial_ } 
+    {}
+
+    reusable_barrier(reusable_barrier const&) = delete;
+    reusable_barrier& operator=(reusable_barrier const&) = delete;
+
+    bool wait() {
+        std::unique_lock< boost::fibers::mutex > lk{ mtx_ };
+        const std::size_t cycle = cycle_;
+        if (0 == --current_) {
+            ++cycle_;
+            current_ = initial_;
+            lk.unlock(); // no pessimization
+            cond_.notify_all();
+            return true;
+        }
+
+        cond_.wait(lk, [&] { return cycle != cycle_; });
+        return false;
+    }
+
+    void reset(std::size_t initial)
+    {
+        initial_ = initial;
+        current_ = initial;
+    }
+};
+
+struct single_waitable
+{
+    friend struct scheme_view;
+    friend struct scheme_view_until_partition;
+    friend struct scheme_view_from_partition;
+
+public:
+    using barrier_t = reusable_barrier*;
+
+    single_waitable() noexcept = default;
+
+    single_waitable(single_waitable && other) noexcept :
+        _barrier(),
+        _done(other._done)
+    {
+        assert(other.done() && "Cannot move while updates are pending");
+    }
+
+    single_waitable& operator=(single_waitable&& rhs) noexcept
+    {
+        assert(rhs.done() && "Cannot move while updates are pending");
+        _done = std::move(rhs._done);
+        return *this;
+    }
+
+    inline void wait() noexcept
+    {
+        // Elements at the front are more likely to be done
+        _barrier.wait();
+        _done = true;
+    }
+
+    inline bool done() const noexcept
+    {
+        return _done;
+    }
+
+protected:
+    reusable_barrier* new_waitable(uint16_t size)
+    {
+        _done = false;
+        _barrier.reset(size + 1);
+        return &_barrier;
+    }
+
+private:
+    reusable_barrier _barrier;
+    bool _done;
 };
 
 struct scheme_view
 {
-    template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void continuous(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) || 
@@ -78,58 +173,48 @@ struct scheme_view
             "Use continuous_by when the scheme contains mixed layouts"
         );
 
-        // Early exit
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0));
         if (scheme.size() == 0)
         {
             return;
         }
-        
-        waitable._pending_updates += scheme.size();
 
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
             {
                 for (auto combined : ::ranges::views::zip(scheme.template get<types>().range()...))
                 {
                     std::apply(callback, combined);
-                    --waitable._pending_updates;
                 }
 
-                if (waitable._pending_updates == 0)
-                {
-                    waitable._updates_cv.notify_all();
-                }
+                barrier->wait();
             }).detach();
     }
 
-    template <typename By, template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, typename By, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        // Early exit
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0));
         if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
             {
                 auto& component = scheme.template get<By>();
                 for (auto obj : component.range())
                 {
                     std::apply(callback, scheme.search(obj->id()));
-                    --waitable._pending_updates;
                 }
 
-                if (waitable._pending_updates == 0)
-                {
-                    waitable._updates_cv.notify_all();
-                }
+                barrier->wait();
             }).detach();
     }
 
-    template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void parallel(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void parallel(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) || 
@@ -137,57 +222,47 @@ struct scheme_view
             "Use parallel_by when the scheme contains mixed layouts"
         );
 
-        // Early exit
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size();
-
         // TODO(gpascualg): Do we need this outter fiber?
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
             {
                 for (auto combined : ::ranges::views::zip(scheme.template get<types>().range()...))
                 {
                     // TODO(gpascualg): Is it safe to get a reference to combined here?
-                    boost::fibers::fiber([&waitable, combined, callback = std::move(callback)]() mutable
+                    boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
                         {
                             std::apply(callback, combined);
-                            
-                            if (--waitable._pending_updates == 0)
-                            {
-                                waitable._updates_cv.notify_all();
-                            }
+                            barrier->wait();
                         }).detach();
                 }
             }).detach();
     }
 
-    template <typename By, template <typename...> class S, typename O, typename C, typename... types>
-    inline static constexpr void parallel_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, typename By, template <typename...> class S, typename O, typename C, typename... types>
+    inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        // Early exit
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
             {
                 auto& component = scheme.template get<By>();
                 for (auto obj : component.range())
                 {
-                    boost::fibers::fiber([&waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
+                    boost::fibers::fiber([barrier, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
                         {
                             std::apply(callback, scheme.search(id));
-                            
-                            if (--waitable._pending_updates == 0)
-                            {
-                                waitable._updates_cv.notify_all();
-                            }
+                            barrier->wait();
                         }).detach();
                 }
             }).detach();
@@ -199,8 +274,8 @@ private:
 
 struct scheme_view_until_partition
 {
-    template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void continuous(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) ||
@@ -208,58 +283,48 @@ struct scheme_view_until_partition
             "Use continuous_by when the scheme contains mixed layouts"
             );
 
-        // Early exit
-        if (scheme.size_until_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0));
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_until_partition();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_until_partition()...))
             {
                 std::apply(callback, combined);
-                --waitable._pending_updates;
             }
 
-            if (waitable._pending_updates == 0)
-            {
-                waitable._updates_cv.notify_all();
-            }
+            barrier->wait();
         }).detach();
     }
 
-    template <typename By, template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, typename By, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        // Early exit
-        if (scheme.size_until_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 1));
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_until_partition();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             auto& component = scheme.template get<By>();
             for (auto obj : component.range_until_partition())
             {
                 std::apply(callback, scheme.search(obj->id()));
-                --waitable._pending_updates;
             }
 
-            if (waitable._pending_updates == 0)
-            {
-                waitable._updates_cv.notify_all();
-            }
+            barrier->wait();
         }).detach();
     }
 
-    template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void parallel(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void parallel(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) ||
@@ -267,57 +332,47 @@ struct scheme_view_until_partition
             "Use parallel_by when the scheme contains mixed layouts"
             );
 
-        // Early exit
-        if (scheme.size_until_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_until_partition();
-
         // TODO(gpascualg): Do we need this outter fiber?
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_until_partition()...))
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
-                boost::fibers::fiber([&waitable, combined, callback = std::move(callback)]() mutable
+                boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
                 {
                     std::apply(callback, combined);
-
-                    if (--waitable._pending_updates == 0)
-                    {
-                        waitable._updates_cv.notify_all();
-                    }
+                    barrier->wait();
                 }).detach();
             }
         }).detach();
     }
 
-    template <typename By, template <typename...> class S, typename O, typename C, typename... types>
-    inline static constexpr void parallel_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, typename By, template <typename...> class S, typename O, typename C, typename... types>
+    inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        // Early exit
-        if (scheme.size_until_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_until_partition();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             auto& component = scheme.template get<By>();
             for (auto obj : component.range_until_partition())
             {
-                boost::fibers::fiber([&waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
+                boost::fibers::fiber([barrier, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
                 {
                     std::apply(callback, scheme.search(id));
-
-                    if (--waitable._pending_updates == 0)
-                    {
-                        waitable._updates_cv.notify_all();
-                    }
+                    barrier->wait();
                 }).detach();
             }
         }).detach();
@@ -329,8 +384,8 @@ private:
 
 struct scheme_view_from_partition
 {
-    template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void continuous(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) ||
@@ -338,58 +393,48 @@ struct scheme_view_from_partition
             "Use continuous_by when the scheme contains mixed layouts"
             );
 
-        // Early exit
-        if (scheme.size_from_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 1));
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_from_partition();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_from_partition()...))
             {
                 std::apply(callback, combined);
-                --waitable._pending_updates;
             }
 
-            if (waitable._pending_updates == 0)
-            {
-                waitable._updates_cv.notify_all();
-            }
+            barrier->wait();
         }).detach();
     }
 
-    template <typename By, template <typename...> class S, typename C, typename... types>
-    inline static constexpr void continuous_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, typename By, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        // Early exit
-        if (scheme.size_from_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_from_partition();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             auto& component = scheme.template get<By>();
             for (auto obj : component.range_from_partition())
             {
                 std::apply(callback, scheme.search(obj->id()));
-                --waitable._pending_updates;
             }
 
-            if (waitable._pending_updates == 0)
-            {
-                waitable._updates_cv.notify_all();
-            }
+            barrier->wait();
         }).detach();
     }
 
-    template <template <typename...> class S, typename C, typename... types>
-    inline static constexpr void parallel(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, template <typename...> class S, typename C, typename... types>
+    inline static constexpr void parallel(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         static_assert(
             (has_storage_tag(types::tag, storage_grow::none, storage_layout::continuous) && ...) ||
@@ -397,57 +442,47 @@ struct scheme_view_from_partition
             "Use parallel_by when the scheme contains mixed layouts"
             );
 
-        // Early exit
-        if (scheme.size_from_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_from_partition();
-
         // TODO(gpascualg): Do we need this outter fiber?
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_from_partition()...))
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
-                boost::fibers::fiber([&waitable, combined, callback = std::move(callback)]() mutable
+                boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
                 {
                     std::apply(callback, combined);
-
-                    if (--waitable._pending_updates == 0)
-                    {
-                        waitable._updates_cv.notify_all();
-                    }
+                    barrier->wait();
                 }).detach();
             }
         }).detach();
     }
 
-    template <typename By, template <typename...> class S, typename O, typename C, typename... types>
-    inline static constexpr void parallel_by(waitable& waitable, S<types...>& scheme, C&& callback) noexcept
+    template <typename W, typename By, template <typename...> class S, typename O, typename C, typename... types>
+    inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
-        // Early exit
-        if (scheme.size_from_partition() == 0)
+        // Create a barrier, exit if we have nothing to do
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
+        if (scheme.size() == 0)
         {
             return;
         }
 
-        waitable._pending_updates += scheme.size_from_partition();
-
-        boost::fibers::fiber([&waitable, &scheme, callback = std::move(callback)]() mutable
+        boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
             auto& component = scheme.template get<By>();
             for (auto obj : component.range_from_partition())
             {
-                boost::fibers::fiber([&waitable, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
+                boost::fibers::fiber([barrier, &scheme, id = obj->id(), callback = std::move(callback)]() mutable
                 {
                     std::apply(callback, scheme.search(id));
-
-                    if (--waitable._pending_updates == 0)
-                    {
-                        waitable._updates_cv.notify_all();
-                    }
+                    barrier->wait();
                 }).detach();
             }
         }).detach();
