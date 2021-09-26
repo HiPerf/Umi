@@ -76,10 +76,11 @@ void test_iteration_with_single_storage()
                 scheme.create(i, get_args<client, S<client, 128>>(scheme), get_args<npc, S<npc, 128>>(scheme));
             }
 
+            // Waitable lifespan must be greater than its fibers
+            single_waitable waitable;
+
             THEN("they can be iterated continuously with a view")
             {
-                waitable waitable;
-
                 auto idx = 0;
                 scheme_view::continuous(waitable, scheme, [&idx](auto client, auto npc) 
                     {
@@ -91,14 +92,13 @@ void test_iteration_with_single_storage()
                         idx += 1;
                     });
 
+                waitable.wait();
                 REQUIRE(waitable.done());
                 REQUIRE(idx == 2);
             }
 
             THEN("they can be iterated continuously with a view")
             {
-                waitable waitable;
-
                 auto idx = 0;
                 scheme_view::parallel(waitable, scheme, [&idx](auto client, auto npc) 
                     {
@@ -110,6 +110,7 @@ void test_iteration_with_single_storage()
                         idx += 1;
                     });
 
+                waitable.wait();
                 REQUIRE(waitable.done());
                 REQUIRE(idx == 2);
             }
