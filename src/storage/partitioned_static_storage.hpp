@@ -21,30 +21,8 @@ public:
     partitioned_static_storage() noexcept;
     ~partitioned_static_storage() noexcept;
 
-    partitioned_static_storage(partitioned_static_storage&& other) noexcept :
-        _data(std::move(other._data)),
-        _current(std::move(other._current)),
-        _partition(std::move(other._partition))
-    {
-        for (auto component : range())
-        {
-            component->refresh_ticket();
-        }
-    }
-
-    partitioned_static_storage& operator=(partitioned_static_storage&& other) noexcept
-    {
-        _data = std::move(other._data);
-        _current = std::move(other._current);
-        _partition = std::move(other._partition);
-
-        for (auto component : range())
-        {
-            component->refresh_ticket();
-        }
-
-        return *this;
-    }
+    partitioned_static_storage(partitioned_static_storage&& other) noexcept = default;
+    partitioned_static_storage& operator=(partitioned_static_storage&& other) noexcept = default;
 
     template <typename... Args>
     T* push(bool predicate, Args&&... args) noexcept;

@@ -22,30 +22,8 @@ public:
     static_growable_storage() noexcept;
     ~static_growable_storage() noexcept;
 
-    static_growable_storage(static_growable_storage&& other) noexcept :
-        _data(std::move(other._data)),
-        _current(std::move(other._current)),
-        _growable(std::move(other._growable))
-    {
-        for (auto component : range())
-        {
-            component->refresh_ticket();
-        }
-    }
-
-    static_growable_storage& operator=(static_growable_storage&& other) noexcept
-    {
-        _data = std::move(other._data);
-        _current = std::move(other._current);
-        _growable = std::move(other._growable);
-
-        for (auto component : range())
-        {
-            component->refresh_ticket();
-        }
-
-        return *this;
-    }
+    static_growable_storage(static_growable_storage&& other) noexcept = default;
+    static_growable_storage& operator=(static_growable_storage&& other) noexcept = default;
 
     template <typename... Args>
     T* push(Args&&... args) noexcept;
