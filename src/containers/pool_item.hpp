@@ -9,6 +9,8 @@ template <typename T>
 class pool_item
 {
 public:
+    using ticket_t = typename ::ticket<T>::ptr;
+
     pool_item() noexcept;
     pool_item(const pool_item&) = delete;
     pool_item(pool_item&& other) noexcept;
