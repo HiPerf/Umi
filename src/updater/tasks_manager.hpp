@@ -26,18 +26,15 @@ class tasks_manager
 {
 public:
     tasks_manager(uint16_t max_size) :
-        _current(0),
         _tasks(detail::make_tasks(max_size, std::make_index_sequence<max_threads>()))
     {}
 
     tasks_manager(tasks_manager&& other) noexcept :
-        _current(static_cast<uint16_t>(other._current)),
         _tasks(std::move(other._tasks))
     {}
 
     tasks_manager& operator=(tasks_manager&& rhs) noexcept
     {
-        _current = static_cast<uint16_t>(rhs._current);
         _tasks = std::move(rhs._tasks);
         return *this;
     }
@@ -61,20 +58,25 @@ public:
 
     inline tasks& get_scheduler() noexcept
     {
-        thread_local uint16_t index = _current++;
+        thread_local uint16_t index = get_count()++;
         return _tasks[index];
     }
 
 protected:
+    inline std::atomic<uint16_t>& get_count() noexcept
+    {
+        static std::atomic<uint16_t> current = 0;
+        return current;
+    }
+
     void execute_tasks() noexcept
     {
-        for (uint16_t i = 0; i < _current; ++i)
+        for (uint16_t i = 0; i < get_count(); ++i)
         {
             _tasks[i].execute();
         }
     }
 
 protected:
-    std::atomic<uint16_t> _current;
     std::array<tasks, max_threads> _tasks;
 };
