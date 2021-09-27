@@ -102,7 +102,7 @@ struct entity_tuple : public tao::tuple<comps...>
     }
 
     template <typename T>
-    inline auto get() noexcept
+    inline constexpr auto get() noexcept
     {
         return tao::get<T*>(downcast());
     }
