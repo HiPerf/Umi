@@ -9,7 +9,7 @@
 #include <containers/concepts/has_scheme_information.hpp>
 #include <containers/concepts/has_sync.hpp>
 #include <containers/concepts/has_update.hpp>
-
+#include <containers/concepts/scheme_destroyable.hpp>
 
 
 template<typename T, typename... Args>

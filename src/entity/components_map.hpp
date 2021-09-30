@@ -1,11 +1,12 @@
 #pragma once
 
+#include <traits/ctti.hpp>
+
 #include "containers/ticket.hpp"
 #include "common/tao.hpp"
 #include "entity/entity.hpp"
 #include "traits/contains.hpp"
 
-#include <ctti/type_id.hpp>
 #include <inttypes.h>
 
 
@@ -28,7 +29,7 @@ public:
     {
         tao::apply([this](auto... components) {
             (..., _components.emplace(
-                ctti::type_id<bare_t<decltype(components)>>().hash(),
+                type_hash<bare_t<decltype(components)>>(),
                 [ticket = components->ticket()]() {
                     return reinterpret_cast<void*>(ticket->get()->derived());
                 })
@@ -39,7 +40,7 @@ public:
     template <typename T>
     inline T* get() const
     {
-        if (auto it = _components.find(ctti::type_id<T>().hash()); it != _components.end())
+        if (auto it = _components.find(type_hash<bare_t<T>>()); it != _components.end())
         {
             return reinterpret_cast<T*>(it->second());
         }
@@ -50,7 +51,7 @@ public:
     template <typename T>
     inline void push(entity<T>* entity)
     {
-        _components.emplace(ctti::type_id<bare_t<T>>().hash(), [ticket = entity->ticket()]() {
+        _components.emplace(type_hash<bare_t<T>>(), [ticket = entity->ticket()]() {
             return ticket->get()->derived();
         });
     }
@@ -59,5 +60,5 @@ protected:
     explicit components_map(const components_map& other) = default;
 
 private:
-    std::unordered_map<ctti::detail::hash_t, std::function<void*()>> _components;
+    std::unordered_map<uint32_t, std::function<void*()>> _components;
 };

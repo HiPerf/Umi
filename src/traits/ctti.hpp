@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string_view>
+#include <type_traits>
+
 // If you can't use C++17's standard library, you'll need to use the GSL 
 // string_view or implement your own struct (which would not be very difficult,
 // since we only need a few methods here)
@@ -55,7 +57,7 @@ template <typename T>
 constexpr uint32_t type_hash() 
 {
     constexpr auto name = type_name<T>();
-    constexpr uint32_t hash = 2166136261;
+    uint32_t hash = 2166136261;
 
     for (auto c : name)
     {

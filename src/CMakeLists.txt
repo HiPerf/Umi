@@ -15,6 +15,13 @@ set(CORE_SOURCES
     containers/thread_local_tasks.cpp
     containers/thread_local_tasks.hpp
     containers/ticket.hpp
+    containers/concepts/constructable.hpp
+    containers/concepts/destroyable.hpp
+    containers/concepts/entity_destroyable.hpp
+    containers/concepts/has_scheme_created.hpp
+    containers/concepts/has_scheme_information.hpp
+    containers/concepts/has_sync.hpp
+    containers/concepts/has_update.hpp
     entity/components_map.hpp
     entity/entity.hpp
     entity/scheme.hpp

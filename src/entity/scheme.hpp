@@ -236,20 +236,27 @@ public:
     template <typename T>
     constexpr void destroy(T* object)
     {
-        destroy(object->template get<typename comps::derived_t>()...);
+        if constexpr (sizeof...(comps) == 0)
+        {
+            destroy_impl(object);
+        }
+        else
+        {
+            using remaining_t = remove_t<T, typename comps::derived_t...>;
+            destroy_proxy<T, remaining_t>(object, std::make_index_sequence<std::tuple_size_v<remaining_t>> {});
+        }
     }
 
     template <typename... Args>
     constexpr void destroy(Args... args)
     {
-        static_assert(sizeof...(Args) == sizeof...(comps), "Must provide the whole entity components");
-        (..., get<orchestrator_t<std::remove_pointer_t<Args>>>().pop(args));
+        destroy_impl(std::forward<Args>(args)...);
     }
     
     constexpr void destroy(entity_tuple_t entity)
     {
         tao::apply([this](auto... args) {
-            destroy(args...);
+            destroy_impl(args...);
         }, entity.downcast());
     }
 
@@ -347,6 +354,23 @@ private:
         entity->base()->scheme_information(*this);
 
         return entity;
+    }
+
+    template <typename T, typename tuple, std::size_t... I>
+    constexpr inline void destroy_proxy(T* object, std::index_sequence<I...>)
+    {
+        destroy_impl(object, object->template get<std::tuple_element_t<I, tuple>>()...);
+    }
+
+    template <typename... Args>
+    constexpr inline void destroy_impl(Args... args)
+    {
+        static_assert(sizeof...(Args) == sizeof...(comps), "Must provide the whole entity components");
+        // First call each entity_destroy
+        (..., args->entity_destroy(std::forward<Args>(args)...));
+
+        // Now pop
+        (..., get<orchestrator_t<std::remove_pointer_t<Args>>>().pop(args));
     }
 };
 

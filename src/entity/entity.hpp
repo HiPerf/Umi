@@ -94,6 +94,9 @@ private:
     constexpr inline void construct(entity_id_t id, Args&&... args);
 
     template <typename... Args>
+    constexpr inline void entity_destroy(Args... args);
+
+    template <typename... Args>
     constexpr inline void destroy(Args&&... args);
 
     constexpr inline void scheme_created(const std::shared_ptr<components_map>& map);
@@ -122,6 +125,16 @@ constexpr inline void entity<derived_t>::construct(entity_id_t id, Args&&... arg
         static_cast<derived_t&>(*this).construct(std::forward<Args>(args)...);
     }
 #endif
+}
+
+template <typename derived_t>
+template <typename... Args>
+constexpr inline void entity<derived_t>::entity_destroy(Args... args)
+{
+    if constexpr (entity_destroyable_v<entity<derived_t>, derived_t, Args...>)
+    {
+        static_cast<derived_t&>(*this).entity_destroy(std::forward<Args>(args)...);
+    }
 }
 
 template <typename derived_t>

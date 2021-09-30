@@ -2,6 +2,7 @@
 
 #include <tao/tuple/tuple.hpp>
 
+#include <tuple>
 #include <type_traits>
 
 
@@ -24,51 +25,18 @@ struct base_dic<Candidate, tao::tuple<>>
   using type = Candidate;
 };
 
-//
-//template <bool B, template <typename...> class TrueTemplate, template <typename...> class FalseTemplate, typename ArgsTuple>
-//struct lazy_conditional;
-//
-//template <template <typename...> class TrueTemplate, template <typename...> class FalseTemplate, typename ... Args>
-//struct lazy_conditional<true, TrueTemplate, FalseTemplate, std::tuple<Args...>>
-//{
-//    using type = TrueTemplate<Args...>;
-//};
-//
-//template <template <typename...> class TrueTemplate, template <typename...> class FalseTemplate, typename ... Args>
-//struct lazy_conditional<false, TrueTemplate, FalseTemplate, std::tuple<Args...>>
-//{
-//    using type = FalseTemplate<Args...>;
-//};
-//
-//template <bool Valid, class Candidate, class In>
-//struct extended_type_impl;
-//
-//template <bool Valid, class Candidate, class InCar, class... InCdr>
-//struct extended_type_impl<Valid, Candidate, tao::tuple<InCar, InCdr...>>
-//{
-//    using type = typename lazy_conditional<
-//        std::is_same_v<Candidate, typename InCar::base_t> || std::is_same_v<Candidate, typename InCar::derived_t>,
-//        typename extended_type_impl<true, InCar, tao::tuple<>>::type,
-//        typename extended_type_impl<false, Candidate, tao::tuple<InCdr...>>::type
-//    >::type;
-//};
-//
-//template <class Candidate>
-//struct extended_type_impl<true, Candidate, tao::tuple<>>
-//{
-//    using type = typename Candidate;
-//};
-//
-//template <class Candidate>
-//struct extended_type_impl<false, Candidate, tao::tuple<>>
-//{
-//    using type = typename Candidate;
-//
-//    
-//};
-//
-//template <class Candidate, class In>
-//using extended_type = extended_type_impl<false, Candidate, In>;
+
+template<typename...Ts>
+using tuple_cat_t = decltype(std::tuple_cat(std::declval<Ts>()...));
+
+template<typename T, typename...Ts>
+using remove_t = tuple_cat_t<
+    typename std::conditional<
+    std::is_same<T, Ts>::value,
+    std::tuple<>,
+    std::tuple<Ts>
+    >::type...
+>;
 
 
 template <typename Candidate, typename InCar, typename... InCdr>
