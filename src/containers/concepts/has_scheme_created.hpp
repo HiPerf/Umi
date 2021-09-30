@@ -1,21 +1,36 @@
 #pragma once
 
-#include <containers/concepts/method_traits.hpp>
+#include <type_traits>
 
+template<typename, typename T>
+struct has_scheme_created {
+    static_assert(
+        std::integral_constant<T, false>::value,
+        "Second template parameter needs to be of function type.");
+};
 
-template <typename T, typename D>
-concept has_scheme_created = std::is_base_of_v<T, D> && 
-    std::is_same_v<typename detail::tester<decltype(&D::scheme_created)>::result, std::true_type> &&
-    requires(D d)
-    {
-        { d.scheme_created() };
-    };
+// specialization that does the checking
 
-template <typename T, typename D>
-struct has_scheme_created_scope
-{
-    inline static constexpr bool value = has_scheme_created<T, D>;
+template<typename C, typename Ret>
+struct has_scheme_created<C, Ret()> {
+private:
+
+    template<typename T>
+    static constexpr auto check(T*) -> typename std::is_same<
+        decltype(
+            (std::declval<T>().*(static_cast<Ret(T::*)()>(&T::scheme_created)))()
+            ),
+        Ret    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    >::type;  // attempt to call it and see if the return type is correct
+
+    template<typename>
+    static constexpr std::false_type check(...);
+
+    typedef decltype(check<C>(0)) type;
+
+public:
+    static constexpr bool value = type::value;
 };
 
 template <typename T, typename D>
-inline constexpr bool has_scheme_created_v = has_scheme_created_scope<T, D>::value;
+inline constexpr bool has_scheme_created_v = std::is_base_of_v<T, D> && has_scheme_created<D, void()>::value;

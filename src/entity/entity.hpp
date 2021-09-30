@@ -119,6 +119,7 @@ constexpr inline void entity<derived_t>::construct(entity_id_t id, Args&&... arg
 
 #if (__DEBUG__ || FORCE_ALL_CONSTRUCTORS) && !DISABLE_DEBUG_CONSTRUCTOR
     static_cast<derived_t&>(*this).construct(std::forward<Args>(args)...);
+    static_assert(constructable_v<entity<derived_t>, derived_t, Args...>, "Method can be called but is not conceptually correct");
 #else
     if constexpr (constructable_v<entity<derived_t>, derived_t, Args...>)
     {
