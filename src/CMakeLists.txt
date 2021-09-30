@@ -38,6 +38,7 @@ set(CORE_SOURCES
     storage/storage.hpp
     traits/base_dic.hpp
     traits/contains.hpp
+    traits/ctti.hpp
     traits/has_type.hpp
     traits/shared_function.hpp
     traits/tuple.hpp
