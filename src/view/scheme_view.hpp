@@ -305,7 +305,7 @@ struct scheme_view_until_partition
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 1));
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0));
         if (scheme.size_until_partition() == 0)
         {
             return;
@@ -394,7 +394,7 @@ struct scheme_view_from_partition
             );
 
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 1));
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0));
         if (scheme.size_from_partition() == 0)
         {
             return;
@@ -415,7 +415,7 @@ struct scheme_view_from_partition
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0));
         if (scheme.size_from_partition() == 0)
         {
             return;
