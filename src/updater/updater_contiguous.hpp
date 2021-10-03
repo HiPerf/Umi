@@ -29,7 +29,7 @@ protected:
     {
         for (auto obj : vector->range())
         {
-            obj->base()->update(std::forward<Args>(args)...);
+            obj->base()->base_update(std::forward<Args>(args)...);
         }
 
         updater_t::_updates_mutex.lock();

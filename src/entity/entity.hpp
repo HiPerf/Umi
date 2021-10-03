@@ -85,24 +85,24 @@ public:
 
 private:
     template <typename... Args>
-    constexpr inline void update(Args&&... args);
+    constexpr inline void base_update(Args&&... args);
 
     template <typename... Args>
-    constexpr inline void sync(Args&&... args);
+    constexpr inline void base_sync(Args&&... args);
 
     template <typename... Args>
-    constexpr inline void construct(entity_id_t id, Args&&... args);
+    constexpr inline void base_construct(entity_id_t id, Args&&... args);
 
     template <typename... Args>
-    constexpr inline void entity_destroy(Args... args);
+    constexpr inline void base_entity_destroy(Args... args);
 
     template <typename... Args>
-    constexpr inline void destroy(Args&&... args);
+    constexpr inline void base_destroy(Args&&... args);
 
-    constexpr inline void scheme_created(const std::shared_ptr<components_map>& map);
+    constexpr inline void base_scheme_created(const std::shared_ptr<components_map>& map);
 
     template <template <typename...> typename S, typename... comps>
-    constexpr inline void scheme_information(S<comps...>& scheme);
+    constexpr inline void base_scheme_information(S<comps...>& scheme);
 
 protected:
     entity_id_t _id;
@@ -113,7 +113,7 @@ protected:
 
 template <typename derived_t>
 template <typename... Args>
-constexpr inline void entity<derived_t>::construct(entity_id_t id, Args&&... args)
+constexpr inline void entity<derived_t>::base_construct(entity_id_t id, Args&&... args)
 {
     _id = id;
 
@@ -130,7 +130,7 @@ constexpr inline void entity<derived_t>::construct(entity_id_t id, Args&&... arg
 
 template <typename derived_t>
 template <typename... Args>
-constexpr inline void entity<derived_t>::entity_destroy(Args... args)
+constexpr inline void entity<derived_t>::base_entity_destroy(Args... args)
 {
     if constexpr (entity_destroyable_v<entity<derived_t>, derived_t, Args...>)
     {
@@ -140,7 +140,7 @@ constexpr inline void entity<derived_t>::entity_destroy(Args... args)
 
 template <typename derived_t>
 template <typename... Args>
-constexpr inline void entity<derived_t>::destroy(Args&&... args)
+constexpr inline void entity<derived_t>::base_destroy(Args&&... args)
 {
     if constexpr (destroyable_v<entity<derived_t>, derived_t, Args...>)
     {
@@ -150,7 +150,7 @@ constexpr inline void entity<derived_t>::destroy(Args&&... args)
 
 template <typename derived_t>
 template <typename... Args>
-constexpr inline void entity<derived_t>::update(Args&&... args)
+constexpr inline void entity<derived_t>::base_update(Args&&... args)
 {
     if constexpr (::has_update_v<entity<derived_t>, derived_t, Args...>)
     {
@@ -160,7 +160,7 @@ constexpr inline void entity<derived_t>::update(Args&&... args)
 
 template <typename derived_t>
 template <typename... Args>
-constexpr inline void entity<derived_t>::sync(Args&&... args)
+constexpr inline void entity<derived_t>::base_sync(Args&&... args)
 {
     if constexpr (::has_sync_v<entity<derived_t>, derived_t, Args...>)
     {
@@ -169,7 +169,7 @@ constexpr inline void entity<derived_t>::sync(Args&&... args)
 }
 
 template <typename derived_t>
-constexpr inline void entity<derived_t>::scheme_created(const std::shared_ptr<components_map>& map)
+constexpr inline void entity<derived_t>::base_scheme_created(const std::shared_ptr<components_map>& map)
 {
     _components = map;
 
@@ -181,7 +181,7 @@ constexpr inline void entity<derived_t>::scheme_created(const std::shared_ptr<co
 
 template <typename derived_t>
 template <template <typename...> typename S, typename... comps>
-constexpr inline void entity<derived_t>::scheme_information(S<comps...>& scheme)
+constexpr inline void entity<derived_t>::base_scheme_information(S<comps...>& scheme)
 {
     _scheme = &scheme;
 

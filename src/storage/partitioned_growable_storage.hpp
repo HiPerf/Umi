@@ -106,7 +106,7 @@ T* partitioned_growable_storage<T, N>::push(bool predicate, Args&&... args) noex
         obj = &_data[_partition_pos++];
     }
     
-    static_cast<base_t&>(*obj).construct(std::forward<Args>(args)...); 
+    static_cast<base_t&>(*obj).base_construct(std::forward<Args>(args)...); 
     static_cast<base_t&>(*obj).recreate_ticket();
     return obj;
 }
@@ -137,7 +137,7 @@ template <pool_item_derived T, uint32_t N>
 template <typename... Args>
 void partitioned_growable_storage<T, N>::pop(T* obj, Args&&... args) noexcept
 {
-    static_cast<base_t&>(*obj).destroy(std::forward<Args>(args)...); 
+    static_cast<base_t&>(*obj).base_destroy(std::forward<Args>(args)...); 
     static_cast<base_t&>(*obj).invalidate_ticket();
     release(obj);
 }
@@ -207,7 +207,7 @@ void partitioned_growable_storage<T, N>::clear() noexcept
 {
     for (auto& obj : _data)
     {
-        static_cast<base_t&>(obj).destroy();
+        static_cast<base_t&>(obj).base_destroy();
         static_cast<base_t&>(obj).invalidate_ticket();
     }
 

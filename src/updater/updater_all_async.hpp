@@ -30,7 +30,7 @@ protected:
         for (auto obj : vector->range())
         {
             boost::fibers::fiber([this, obj, ...args{ std::forward<Args>(args) }]() mutable {
-                obj->base()->update(std::forward<Args>(args)...);
+                obj->base()->base_update(std::forward<Args>(args)...);
 
                 updater_t::_updates_mutex.lock();
                 --updater_t::_pending_updates;

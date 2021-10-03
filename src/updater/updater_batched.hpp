@@ -50,7 +50,7 @@ protected:
                 int num_updates = 0;
                 for (; it != end; ++it, ++num_updates)
                 {
-                    (*it)->base()->update(std::forward<Args>(args)...);
+                    (*it)->base()->base_update(std::forward<Args>(args)...);
                 }
 
                 updater_t::_updates_mutex.lock();

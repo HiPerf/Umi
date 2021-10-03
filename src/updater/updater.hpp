@@ -104,7 +104,7 @@ protected:
         {
             for (auto obj : vector->range())
             {
-                obj->base()->sync(std::forward<std::decay_t<Args>>(args)...);
+                obj->base()->base_sync(std::forward<std::decay_t<Args>>(args)...);
             }
         }
     }

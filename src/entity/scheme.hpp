@@ -227,7 +227,7 @@ public:
 
         // Notify of complete scheme creation
         tao::apply([&map](auto&&... entities) mutable {
-            (..., entities->base()->scheme_created(map));
+            (..., entities->base()->base_scheme_created(map));
         }, entities.downcast());
 
         return entities;
@@ -324,7 +324,7 @@ private:
     inline constexpr auto move_impl(scheme<comps...>& to, Ts&&... entities) noexcept
     {
         return tao::apply([this](auto... entities) mutable {
-            (entities->base()->scheme_information(*this), ...);
+            (entities->base()->base_scheme_information(*this), ...);
             return entity_tuple_t(entities...);
         }, tao::tuple(get<comps>().move(to.get<comps>(), entities)...));
     }
@@ -351,7 +351,7 @@ private:
         }, scheme_args.args);
 
         // Notify of creation
-        entity->base()->scheme_information(*this);
+        entity->base()->base_scheme_information(*this);
 
         return entity;
     }
@@ -367,7 +367,7 @@ private:
     {
         static_assert(sizeof...(Args) == sizeof...(comps), "Must provide the whole entity components");
         // First call each entity_destroy
-        (..., args->entity_destroy(std::forward<Args>(args)...));
+        (..., args->base_entity_destroy(std::forward<Args>(args)...));
 
         // Now pop
         (..., get<orchestrator_t<std::remove_pointer_t<Args>>>().pop(args));
