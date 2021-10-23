@@ -38,12 +38,6 @@ public:
         return _id;
     }
 
-    template <typename S>
-    inline std::decay_t<S>* scheme() const noexcept
-    {
-        return xxx::any_ptr_cast<std::decay_t<S>>(_scheme);
-    }
-
     inline std::shared_ptr<components_map>& components() noexcept
     {
         return _components;
@@ -106,7 +100,6 @@ private:
 
 protected:
     entity_id_t _id;
-    xxx::any_ptr _scheme;
     std::shared_ptr<components_map> _components;
 };
 
@@ -183,8 +176,6 @@ template <typename derived_t>
 template <template <typename...> typename S, typename... comps>
 constexpr inline void entity<derived_t>::base_scheme_information(S<comps...>& scheme)
 {
-    _scheme = &scheme;
-
     if constexpr (has_scheme_information_v<entity<derived_t>, derived_t, S, comps...>)
     {
         static_cast<derived_t&>(*this).scheme_information(scheme);

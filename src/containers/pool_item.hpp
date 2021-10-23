@@ -4,7 +4,6 @@
 #include "containers/ticket.hpp"
 
 
-
 template <typename T>
 class pool_item
 {
@@ -77,3 +76,4 @@ void pool_item<T>::invalidate()
     _ticket->invalidate();
     _ticket = nullptr;
 }
+

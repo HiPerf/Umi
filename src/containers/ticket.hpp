@@ -37,6 +37,12 @@ private:
     std::atomic<uint32_t> _refs;
 };
 
+template <typename T>
+class entity;
+
+template <typename T>
+using ticket_of_t = typename ::ticket<entity<T>>::ptr;
+
 
 template <typename T>
 ticket<T>::ticket(T* ptr) :

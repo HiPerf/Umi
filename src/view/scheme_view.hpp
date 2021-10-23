@@ -14,6 +14,7 @@
 #include <tao/tuple/tuple.hpp>
 
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 
@@ -165,6 +166,7 @@ private:
     reusable_barrier _barrier;
     bool _done;
 };
+
 
 struct scheme_view
 {
@@ -335,7 +337,7 @@ struct partial_scheme_view
             (has_storage_tag(S<types...>::template orchestrator_t<components>::tag, storage_grow::none, storage_layout::continuous) && ...) ||
             (has_storage_tag(S<types...>::template orchestrator_t<components>::tag, storage_grow::none, storage_layout::partitioned) && ...),
             "Use parallel_by when the scheme contains mixed layouts"
-        );
+            );
 
         // Create a barrier, exit if we have nothing to do
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
