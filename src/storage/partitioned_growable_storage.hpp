@@ -105,9 +105,9 @@ T* partitioned_growable_storage<T, N>::push(bool predicate, Args&&... args) noex
         // Increment partition and write
         obj = &_data[_partition_pos++];
     }
-    
-    static_cast<base_t&>(*obj).base_construct(std::forward<Args>(args)...); 
+
     static_cast<base_t&>(*obj).recreate_ticket();
+    static_cast<base_t&>(*obj).base_construct(std::forward<Args>(args)...);
     return obj;
 }
 

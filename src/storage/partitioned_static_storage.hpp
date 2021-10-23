@@ -106,8 +106,8 @@ T* partitioned_static_storage<T, N>::push(bool predicate, Args&&... args) noexce
     }
 
     ++_current;
-    static_cast<base_t&>(*obj).base_construct(std::forward<Args>(args)...); 
     static_cast<base_t&>(*obj).recreate_ticket();
+    static_cast<base_t&>(*obj).base_construct(std::forward<Args>(args)...);
     return obj;
 }
 

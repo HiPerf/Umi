@@ -71,8 +71,8 @@ template <typename... Args>
 T* static_storage<T, N>::push(Args&&... args) noexcept
 {
     assert(_current < &_data[0] + N && "Writing out of bounds");
-    static_cast<base_t&>(*_current).base_construct(std::forward<Args>(args)...); 
     static_cast<base_t&>(*_current).recreate_ticket();
+    static_cast<base_t&>(*_current).base_construct(std::forward<Args>(args)...);
     return _current++;
 }
 
