@@ -14,6 +14,7 @@
 #include <range/v3/view/zip.hpp>
 
 #include <tao/tuple/tuple.hpp>
+#include <spdlog/spdlog.h>
 
 
 template <typename... vectors>
@@ -42,9 +43,27 @@ struct scheme_store
 {
     template <typename T> using orchestrator_t = orchestrator_type<T, comps...>;
 
-    constexpr scheme_store() noexcept = default;
-    scheme_store(scheme_store&&) noexcept = default;
-    scheme_store& operator=(scheme_store&&) noexcept = default;
+    //constexpr scheme_store() noexcept = default;
+    //scheme_store(scheme_store&&) noexcept = default;
+    //scheme_store& operator=(scheme_store&&) noexcept = default;
+
+    constexpr scheme_store() noexcept :
+        components()
+    {
+        spdlog::critical("CONSTRUCTED STORE");
+    }
+    scheme_store(scheme_store&& other) noexcept :
+        components(std::move(other.components))
+    {
+        spdlog::critical("MOVED STORE");
+    }
+    
+    scheme_store& operator=(scheme_store&& other) noexcept
+    {
+        spdlog::critical("OPERATOR= STORE");
+        components = std::move(other.components);
+        return *this;
+    }
 
     template <typename T>
     constexpr inline auto get() noexcept -> std::add_lvalue_reference_t<orchestrator_t<T>>
@@ -130,11 +149,14 @@ public:
     template <typename... T>
     constexpr scheme(scheme_store<T...>& store) noexcept :
         components(&store.template get<comps>()...)
-    {}
+    {
+        spdlog::critical("SCHEME CONSTRUCTOR");
+    }
 
     template <typename... T>
     constexpr void reset_store(scheme_store<T...>& store) noexcept
     {
+        spdlog::critical("SCHEME RESET STORE");
         components = tao::tuple<std::add_pointer_t<comps>...>(&store.template get<comps>()...);
     }
 
