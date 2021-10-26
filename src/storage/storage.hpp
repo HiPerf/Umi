@@ -118,8 +118,9 @@ public:
 #if !defined(NDEBUG)
         assert(!_is_write_locked && "Attempting to change partition while iterating");
 #endif
-
-        spdlog::critical("ORCHESTRATOR CHANGE PARTITION");
+#if defined(UMI_ENABLE_DEBUG_LOGS)
+        spdlog::trace("ORCHESTRATOR CHANGE PARTITION");
+#endif
         return _storage.change_partition(predicate, obj);
     }
 
@@ -175,8 +176,10 @@ T* orchestrator<storage, T, N>::push(Args&&... args) noexcept
 #if !defined(NDEBUG)
     assert(!_is_write_locked && "Attempting to push while iterating");
 #endif
+#if defined(UMI_ENABLE_DEBUG_LOGS)
+    spdlog::trace("ORCHESTRATOR PUSH");
+#endif
 
-    spdlog::critical("ORCHESTRATOR PUSH");
     T* obj = _storage.push(std::forward<Args>(args)...);
     _tickets.emplace(obj->id(), obj->ticket());
     return obj;
@@ -188,8 +191,10 @@ void orchestrator<storage, T, N>::pop(T* obj) noexcept
 #if !defined(NDEBUG)
     assert(!_is_write_locked && "Attempting to pop while iterating");
 #endif
+#if defined(UMI_ENABLE_DEBUG_LOGS)
+    spdlog::trace("ORCHESTRATOR POP");
+#endif
 
-    spdlog::critical("ORCHESTRATOR POP");
     _tickets.erase(obj->id());
     _storage.pop(obj);
 }
@@ -200,8 +205,10 @@ void orchestrator<storage, T, N>::clear() noexcept
 #if !defined(NDEBUG)
     assert(!_is_write_locked && "Attempting to clear while iterating");
 #endif
+#if defined(UMI_ENABLE_DEBUG_LOGS)
+    spdlog::trace("ORCHESTRATOR CLEAR");
+#endif
 
-    spdlog::critical("ORCHESTRATOR CLEAR");
     _tickets.clear();
     _storage.clear();
 }
@@ -210,7 +217,10 @@ template <template <typename, uint32_t> typename storage, typename T, uint32_t N
 template <template <typename, uint32_t> typename S, uint32_t M, typename... Args>
 T* orchestrator<storage, T, N>::move(orchestrator<S, T, M>& other, T* obj, Args... args) noexcept
 {
-    spdlog::critical("ORCHESTRATOR MOVE");
+#if defined(UMI_ENABLE_DEBUG_LOGS)
+    spdlog::trace("ORCHESTRATOR MOVE");
+#endif
+
     // Change vectors
     T* new_ptr = nullptr;
     if constexpr (has_storage_tag(orchestrator<S, T, M>::tag, storage_grow::none, storage_layout::partitioned))

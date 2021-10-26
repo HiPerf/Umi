@@ -147,6 +147,9 @@ public:
         // Elements at the front are more likely to be done
         _barrier.wait();
         _done = true;
+#if !defined(NDEBUG)
+        _on_done();
+#endif
     }
 
     inline bool done() const noexcept
@@ -155,16 +158,31 @@ public:
     }
 
 protected:
+#if !defined(NDEBUG)
+    template <typename C>
+    reusable_barrier* new_waitable(uint16_t size, C&& on_done)
+    {
+        _done = false;
+        _barrier.reset(size + 1);
+        _on_done = std::move(on_done);
+        return &_barrier;
+    }
+#else
     reusable_barrier* new_waitable(uint16_t size)
     {
         _done = false;
         _barrier.reset(size + 1);
         return &_barrier;
     }
+#endif
 
 private:
     reusable_barrier _barrier;
     bool _done;
+
+#if !defined(NDEBUG)
+    std::function<void()> _on_done;
+#endif
 };
 
 
@@ -180,7 +198,13 @@ struct scheme_view
             );
 
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0), [&scheme]() {
+                (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0));
+#endif
         if (scheme.size() == 0)
         {
             return;
@@ -194,10 +218,6 @@ struct scheme_view
                 std::apply(callback, combined);
             }
 
-#if !defined(NDEBUG)
-            (..., scheme.template get<types>().unlock_writes());
-#endif
-
             barrier->wait();
         }).detach();
     }
@@ -206,7 +226,13 @@ struct scheme_view
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0));
+#endif
         if (scheme.size() == 0)
         {
             return;
@@ -219,10 +245,6 @@ struct scheme_view
             {
                 std::apply(callback, scheme.search(obj->id()));
             }
-
-#if !defined(NDEBUG)
-            (..., scheme.template get<types>().unlock_writes());
-#endif
 
             barrier->wait();
         }).detach();
@@ -239,18 +261,19 @@ struct scheme_view
 
         // Create a barrier, exit if we have nothing to 
 #if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size(), [&scheme](){
+            (..., scheme.template get<types>().unlock_writes());
+        });
         if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
         {
             return;
-    }
+        }
 #endif
 
         // TODO(gpascualg): Do we need this outter fiber?
@@ -266,11 +289,6 @@ struct scheme_view
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<types>().unlock_writes());
-#endif
         }).detach();
 }
 
@@ -279,12 +297,13 @@ struct scheme_view
     {
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size(), [&scheme](){
+            (..., scheme.template get<types>().unlock_writes());
+        });
         if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
@@ -304,11 +323,6 @@ struct scheme_view
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<types>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -329,8 +343,13 @@ struct partial_scheme_view
             );
 
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0));
-        if (scheme.size() == 0)
+#endif        if (scheme.size() == 0)
         {
             return;
         }
@@ -343,10 +362,6 @@ struct partial_scheme_view
                 std::apply(callback, combined);
             }
 
-#if !defined(NDEBUG)
-            (..., scheme.template get<components>().unlock_writes());
-#endif
-
             barrier->wait();
         }).detach();
     }
@@ -355,8 +370,13 @@ struct partial_scheme_view
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size() > 0));
-        if (scheme.size() == 0)
+#endif        if (scheme.size() == 0)
         {
             return;
         }
@@ -368,10 +388,6 @@ struct partial_scheme_view
             {
                 std::apply(callback, scheme.search(obj->id()));
             }
-
-#if !defined(NDEBUG)
-            (..., scheme.template get<components>().unlock_writes());
-#endif
 
             barrier->wait();
         }).detach();
@@ -388,12 +404,13 @@ struct partial_scheme_view
 
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size(), [&scheme](){
+            (..., scheme.template get<components>().unlock_writes());
+        });
         if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
@@ -415,11 +432,6 @@ struct partial_scheme_view
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<components>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -428,12 +440,13 @@ struct partial_scheme_view
     {
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size(), [&scheme](){
+            (..., scheme.template get<components>().unlock_writes());
+        });
         if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
@@ -453,11 +466,6 @@ struct partial_scheme_view
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<components>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -477,7 +485,13 @@ struct scheme_view_until_partition
             );
 
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0));
+#endif
         if (scheme.size_until_partition() == 0)
         {
             return;
@@ -491,10 +505,6 @@ struct scheme_view_until_partition
                 std::apply(callback, combined);
             }
 
-#if !defined(NDEBUG)
-            (..., scheme.template get<types>().unlock_writes());
-#endif
-
             barrier->wait();
         }).detach();
     }
@@ -503,7 +513,13 @@ struct scheme_view_until_partition
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0));
+#endif
         if (scheme.size_until_partition() == 0)
         {
             return;
@@ -516,10 +532,6 @@ struct scheme_view_until_partition
             {
                 std::apply(callback, scheme.search(obj->id()));
             }
-
-#if !defined(NDEBUG)
-            (..., scheme.template get<types>().unlock_writes());
-#endif
 
             barrier->wait();
         }).detach();
@@ -536,12 +548,13 @@ struct scheme_view_until_partition
 
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_until_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition(), [&scheme](){
+            (..., scheme.template get<types>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
         if (scheme.size() == 0)
@@ -563,11 +576,6 @@ struct scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<types>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -576,12 +584,13 @@ struct scheme_view_until_partition
     {
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_until_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition(), [&scheme](){
+            (..., scheme.template get<types>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
         if (scheme.size() == 0)
@@ -601,13 +610,8 @@ struct scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<types>().unlock_writes());
-#endif
         }).detach();
-    }
+}
 
 private:
     scheme_view_until_partition();
@@ -626,7 +630,13 @@ struct partial_scheme_view_until_partition
             );
 
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0));
+#endif
         if (scheme.size_until_partition() == 0)
         {
             return;
@@ -640,10 +650,6 @@ struct partial_scheme_view_until_partition
                 std::apply(callback, combined);
             }
 
-#if !defined(NDEBUG)
-            (..., scheme.template get<components>().unlock_writes());
-#endif
-
             barrier->wait();
         }).detach();
     }
@@ -652,7 +658,13 @@ struct partial_scheme_view_until_partition
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_until_partition() > 0));
+#endif
         if (scheme.size_until_partition() == 0)
         {
             return;
@@ -665,10 +677,6 @@ struct partial_scheme_view_until_partition
             {
                 std::apply(callback, scheme.search(obj->id()));
             }
-
-#if !defined(NDEBUG)
-            (..., scheme.template get<components>().unlock_writes());
-#endif
 
             barrier->wait();
         }).detach();
@@ -685,12 +693,13 @@ struct partial_scheme_view_until_partition
 
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_until_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition(), [&scheme](){
+            (..., scheme.template get<components>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
         if (scheme.size() == 0)
@@ -712,11 +721,6 @@ struct partial_scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<components>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -725,12 +729,13 @@ struct partial_scheme_view_until_partition
     {
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_until_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition(), [&scheme](){
+            (..., scheme.template get<components>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
         if (scheme.size() == 0)
@@ -750,11 +755,6 @@ struct partial_scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<components>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -774,7 +774,13 @@ struct scheme_view_from_partition
             );
 
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0));
+#endif
         if (scheme.size_from_partition() == 0)
         {
             return;
@@ -788,10 +794,6 @@ struct scheme_view_from_partition
                 std::apply(callback, combined);
             }
 
-#if !defined(NDEBUG)
-            (..., scheme.template get<types>().unlock_writes());
-#endif
-
             barrier->wait();
         }).detach();
     }
@@ -800,7 +802,13 @@ struct scheme_view_from_partition
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0), [&scheme]() {
+            (..., scheme.template get<types>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0));
+#endif
         if (scheme.size_from_partition() == 0)
         {
             return;
@@ -813,10 +821,6 @@ struct scheme_view_from_partition
             {
                 std::apply(callback, scheme.search(obj->id()));
             }
-
-#if !defined(NDEBUG)
-            (..., scheme.template get<types>().unlock_writes());
-#endif
 
             barrier->wait();
         }).detach();
@@ -833,12 +837,13 @@ struct scheme_view_from_partition
 
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_from_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition(), [&scheme](){
+            (..., scheme.template get<types>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
         if (scheme.size() == 0)
@@ -860,11 +865,6 @@ struct scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<types>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -873,12 +873,13 @@ struct scheme_view_from_partition
     {
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_from_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition(), [&scheme](){
+            (..., scheme.template get<types>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
         if (scheme.size() == 0)
@@ -898,13 +899,8 @@ struct scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<types>().unlock_writes());
-#endif
         }).detach();
-    }
+}
 
 private:
     scheme_view_from_partition();
@@ -923,7 +919,13 @@ struct partial_scheme_view_from_partition
             );
 
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0), [&scheme]() {
+            (..., scheme.template get<components>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0));
+#endif
         if (scheme.size_from_partition() == 0)
         {
             return;
@@ -937,10 +939,6 @@ struct partial_scheme_view_from_partition
                 std::apply(callback, combined);
             }
 
-#if !defined(NDEBUG)
-            (..., scheme.template get<components>().unlock_writes());
-#endif
-
             barrier->wait();
         }).detach();
     }
@@ -949,7 +947,13 @@ struct partial_scheme_view_from_partition
     inline static constexpr void continuous_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0), [&scheme]() {
+            (..., scheme.template get<components>().unlock_writes());
+            });
+#else
         typename W::barrier_t barrier = waitable.new_waitable(int(scheme.size_from_partition() > 0));
+#endif
         if (scheme.size_from_partition() == 0)
         {
             return;
@@ -962,10 +966,6 @@ struct partial_scheme_view_from_partition
             {
                 std::apply(callback, scheme.search(obj->id()));
             }
-
-#if !defined(NDEBUG)
-            (..., scheme.template get<components>().unlock_writes());
-#endif
 
             barrier->wait();
         }).detach();
@@ -982,12 +982,13 @@ struct partial_scheme_view_from_partition
 
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_from_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition(), [&scheme](){
+            (..., scheme.template get<components>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
         if (scheme.size() == 0)
@@ -1009,11 +1010,6 @@ struct partial_scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<components>().unlock_writes());
-#endif
         }).detach();
     }
 
@@ -1022,12 +1018,13 @@ struct partial_scheme_view_from_partition
     {
         // Create a barrier, exit if we have nothing to do
 #if !defined(NDEBUG)
-        if (scheme.size_from_partition() == 0)
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition(), [&scheme](){
+            (..., scheme.template get<components>().unlock_writes());
+        });
+        if (scheme.size() == 0)
         {
-            typename W::barrier_t barrier = waitable.new_waitable(0);
             return;
         }
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
 #else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
         if (scheme.size() == 0)
@@ -1047,11 +1044,6 @@ struct partial_scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
-
-#if !defined(NDEBUG)
-            barrier->wait();
-            (..., scheme.template get<components>().unlock_writes());
-#endif
         }).detach();
     }
 

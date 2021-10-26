@@ -34,13 +34,19 @@ tasks& tasks::operator=(tasks&& other) noexcept
 void tasks::execute() noexcept
 {
     uint16_t current = _begin;
-    
-    //spdlog::trace("{:x} EXEC PROG ({:d} / {:d} / {:d})", (intptr_t)(void*)this, _begin, _write_head, _end);
+
+#if defined(UMI_ENABLE_DEBUG_EXTRA_LOGS)
+    spdlog::trace("{:x} EXEC PROG ({:d} / {:d} / {:d})", (intptr_t)(void*)this, _begin, _write_head, _end);
+#endif
+
     for (; current != (_end % _max_size); current = (current + 1) % _max_size)
     {
         std::move(_container[current])();
     }
 
     _begin = current;
-    //spdlog::trace("{:x} EXEC DONE ({:d} / {:d} / {:d})", (intptr_t)(void*)this, _begin, _write_head, _end);
+
+#if defined(UMI_ENABLE_DEBUG_EXTRA_LOGS)
+    spdlog::trace("{:x} EXEC DONE ({:d} / {:d} / {:d})", (intptr_t)(void*)this, _begin, _write_head, _end);
+#endif
 }

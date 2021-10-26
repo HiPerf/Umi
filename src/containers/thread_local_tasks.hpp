@@ -47,12 +47,17 @@ void tasks::schedule(T&& task) noexcept
     // TODO(gpascualg): Assert we have not reached max queued tasks (ie. _write_head != _begin)
 
     // Write task
-    //spdlog::trace("{:x} WRITE PROG AT {:d} ({:d} / {:d} / {:d})", (intptr_t)(void*)this, current, _begin, _write_head, _end);
+#if defined(UMI_ENABLE_DEBUG_EXTRA_LOGS)
+    spdlog::trace("{:x} WRITE PROG AT {:d} ({:d} / {:d} / {:d})", (intptr_t)(void*)this, current, _begin, _write_head, _end);
+#endif
     _container[current % _max_size] = std::move(task);
 
     // Update read head
     current = _end++;
     expected = current + 1;
     _end.compare_exchange_strong(expected, expected % _max_size);
-    //spdlog::trace("{:x} WRITE DONE AT {:d} ({:d} / {:d} / {:d})", (intptr_t)(void*)this, current, _begin, _write_head, _end);
+    
+#if defined(UMI_ENABLE_DEBUG_EXTRA_LOGS)
+    spdlog::trace("{:x} WRITE DONE AT {:d} ({:d} / {:d} / {:d})", (intptr_t)(void*)this, current, _begin, _write_head, _end);
+#endif
 }

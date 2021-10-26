@@ -43,27 +43,29 @@ struct scheme_store
 {
     template <typename T> using orchestrator_t = orchestrator_type<T, comps...>;
 
-    //constexpr scheme_store() noexcept = default;
-    //scheme_store(scheme_store&&) noexcept = default;
-    //scheme_store& operator=(scheme_store&&) noexcept = default;
-
+#if !defined(UMI_ENABLE_DEBUG_LOGS)
+    constexpr scheme_store() noexcept = default;
+    scheme_store(scheme_store&&) noexcept = default;
+    scheme_store& operator=(scheme_store&&) noexcept = default;
+#else
     constexpr scheme_store() noexcept :
         components()
     {
-        spdlog::critical("CONSTRUCTED STORE");
+        spdlog::trace("CONSTRUCTED STORE");
     }
     scheme_store(scheme_store&& other) noexcept :
         components(std::move(other.components))
     {
-        spdlog::critical("MOVED STORE");
+        spdlog::trace("MOVED STORE");
     }
     
     scheme_store& operator=(scheme_store&& other) noexcept
     {
-        spdlog::critical("OPERATOR= STORE");
+        spdlog::trace("OPERATOR= STORE");
         components = std::move(other.components);
         return *this;
     }
+#endif
 
     template <typename T>
     constexpr inline auto get() noexcept -> std::add_lvalue_reference_t<orchestrator_t<T>>
@@ -150,13 +152,17 @@ public:
     constexpr scheme(scheme_store<T...>& store) noexcept :
         components(&store.template get<comps>()...)
     {
-        spdlog::critical("SCHEME CONSTRUCTOR");
+#if defined(UMI_ENABLE_DEBUG_LOGS)
+        spdlog::trace("SCHEME CONSTRUCTOR");
+#endif
     }
 
     template <typename... T>
     constexpr void reset_store(scheme_store<T...>& store) noexcept
     {
-        spdlog::critical("SCHEME RESET STORE");
+#if defined(UMI_ENABLE_DEBUG_LOGS)
+        spdlog::trace("SCHEME RESET STORE");
+#endif
         components = tao::tuple<std::add_pointer_t<comps>...>(&store.template get<comps>()...);
     }
 
