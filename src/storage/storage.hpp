@@ -92,6 +92,7 @@ public:
     template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
     inline auto change_partition(bool predicate, T* obj) noexcept
     {
+        spdlog::critical("ORCHESTRATOR CHANGE PARTITION");
         return _storage.change_partition(predicate, obj);
     }
 
@@ -136,6 +137,7 @@ template <template <typename, uint32_t> typename storage, typename T, uint32_t N
 template <typename... Args>
 T* orchestrator<storage, T, N>::push(Args&&... args) noexcept
 {
+    spdlog::critical("ORCHESTRATOR PUSH");
     T* obj = _storage.push(std::forward<Args>(args)...);
     _tickets.emplace(obj->id(), obj->ticket());
     return obj;
@@ -144,6 +146,7 @@ T* orchestrator<storage, T, N>::push(Args&&... args) noexcept
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 void orchestrator<storage, T, N>::pop(T* obj) noexcept
 {
+    spdlog::critical("ORCHESTRATOR POP");
     _tickets.erase(obj->id());
     _storage.pop(obj);
 }
@@ -151,6 +154,7 @@ void orchestrator<storage, T, N>::pop(T* obj) noexcept
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 void orchestrator<storage, T, N>::clear() noexcept
 {
+    spdlog::critical("ORCHESTRATOR CLEAR");
     _tickets.clear();
     _storage.clear();
 }
@@ -159,6 +163,7 @@ template <template <typename, uint32_t> typename storage, typename T, uint32_t N
 template <template <typename, uint32_t> typename S, uint32_t M, typename... Args>
 T* orchestrator<storage, T, N>::move(orchestrator<S, T, M>& other, T* obj, Args... args) noexcept
 {
+    spdlog::critical("ORCHESTRATOR MOVE");
     // Change vectors
     T* new_ptr = nullptr;
     if constexpr (has_storage_tag(orchestrator<S, T, M>::tag, storage_grow::none, storage_layout::partitioned))

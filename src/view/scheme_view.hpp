@@ -188,7 +188,8 @@ struct scheme_view
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<types>().range()...))
+            auto zip = ::ranges::views::zip(scheme.template get<types>().range()...);
+            for (auto combined : zip)
             {
                 std::apply(callback, combined);
             }
@@ -238,7 +239,8 @@ struct scheme_view
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<types>().range()...))
+            auto zip = ::ranges::views::zip(scheme.template get<types>().range()...);
+            for (auto combined : zip)
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
                 boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
@@ -299,7 +301,8 @@ struct partial_scheme_view
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<components>().range()...))
+            auto zip = ::ranges::views::zip(scheme.template get<components>().range()...);
+            for (auto combined : zip)
             {
                 std::apply(callback, combined);
             }
@@ -349,7 +352,8 @@ struct partial_scheme_view
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<components>().range()...))
+            auto zip = ::ranges::views::zip(scheme.template get<components>().range()...);
+            for (auto combined : zip)
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
                 boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
@@ -409,7 +413,8 @@ struct scheme_view_until_partition
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_until_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<types>().range_until_partition()...);
+            for (auto combined : zip)
             {
                 std::apply(callback, combined);
             }
@@ -459,7 +464,8 @@ struct scheme_view_until_partition
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_until_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<types>().range_until_partition()...);
+            for (auto combined : zip)
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
                 boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
@@ -520,7 +526,8 @@ struct partial_scheme_view_until_partition
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<components>().range_until_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<components>().range_until_partition()...);
+            for (auto combined : zip)
             {
                 std::apply(callback, combined);
             }
@@ -570,7 +577,8 @@ struct partial_scheme_view_until_partition
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<components>().range_until_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<components>().range_until_partition()...);
+            for (auto combined : zip)
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
                 boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
@@ -630,7 +638,8 @@ struct scheme_view_from_partition
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_from_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<types>().range_from_partition()...);
+            for (auto combined : zip)
             {
                 std::apply(callback, combined);
             }
@@ -680,7 +689,8 @@ struct scheme_view_from_partition
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<types>().range_from_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<types>().range_from_partition()...);
+            for (auto combined : zip)
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
                 boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
@@ -741,7 +751,8 @@ struct partial_scheme_view_from_partition
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<components>().range_from_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<components>().range_from_partition()...);
+            for (auto combined : zip)
             {
                 std::apply(callback, combined);
             }
@@ -791,7 +802,8 @@ struct partial_scheme_view_from_partition
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
-            for (auto combined : ::ranges::views::zip(scheme.template get<components>().range_from_partition()...))
+            auto zip = ::ranges::views::zip(scheme.template get<components>().range_from_partition()...);
+            for (auto combined : zip)
             {
                 // TODO(gpascualg): Is it safe to get a reference to combined here?
                 boost::fibers::fiber([barrier, combined, callback = std::move(callback)]() mutable
