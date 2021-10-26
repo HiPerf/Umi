@@ -36,7 +36,7 @@ protected:
     constexpr void update_fiber(T* vector, Args&&... args) noexcept
     {
         int num_groups = static_cast<int>(std::ceil(vector->size() / static_cast<float>(_batch_size)));
-        auto range = vector->range();
+        auto range = vector->unsafe_range();
         uint32_t num_elements = vector->size();
 
         for (int group = 0; group < num_groups; ++group)

@@ -27,7 +27,7 @@ protected:
     template <typename T, typename... Args>
     constexpr void update_fiber(T* vector, Args&&... args) noexcept
     {
-        for (auto obj : vector->range())
+        for (auto obj : vector->unsafe_range())
         {
             boost::fibers::fiber([this, obj, ...args{ std::forward<Args>(args) }]() mutable {
                 obj->base()->base_update(std::forward<Args>(args)...);

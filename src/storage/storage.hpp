@@ -2,6 +2,7 @@
 
 #include "containers/pool_item.hpp"
 
+#include <spdlog/spdlog.h>
 #include <atomic>
 #include <inttypes.h>
 
@@ -72,26 +73,52 @@ public:
     template <template <typename, uint32_t> typename S, uint32_t M, typename... Args>
     T* move(orchestrator<S, T, M>& other, T* obj, Args... args) noexcept;
 
+    [[deprecated]]
+    inline auto unsafe_range() noexcept
+    {
+        return _storage.range();
+    }
+
     inline auto range() noexcept
     {
+#if !defined(NDEBUG)
+        _is_write_locked = true;
+#endif
         return _storage.range();
     }
 
     template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
     inline auto range_until_partition() noexcept
     {
+#if !defined(NDEBUG)
+        _is_write_locked = true;
+#endif
         return _storage.range_until_partition();
     }
     
     template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
     inline auto range_from_partition() noexcept
     {
+#if !defined(NDEBUG)
+        _is_write_locked = true;
+#endif
         return _storage.range_from_partition();
     }
+
+#if !defined(NDEBUG)
+    inline void unlock_writes()
+    {
+        _is_write_locked = false;
+    }
+#endif
 
     template <typename D = storage<T, N>, typename = std::enable_if_t<has_storage_tag(D::tag, storage_grow::none, storage_layout::partitioned)>>
     inline auto change_partition(bool predicate, T* obj) noexcept
     {
+#if !defined(NDEBUG)
+        assert(!_is_write_locked && "Attempting to change partition while iterating");
+#endif
+
         spdlog::critical("ORCHESTRATOR CHANGE PARTITION");
         return _storage.change_partition(predicate, obj);
     }
@@ -111,13 +138,21 @@ public:
 private:
     std::unordered_map<uint64_t, typename ::ticket<entity<typename T::derived_t>>::ptr> _tickets;
     storage<T, N> _storage;
+
+#if !defined(NDEBUG)
+    bool _is_write_locked;
+#endif
 };
 
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 orchestrator<storage, T, N>::orchestrator() noexcept :
     _tickets(),
     _storage()
-{}
+{
+#if !defined(NDEBUG)
+    _is_write_locked = false;
+#endif
+}
 
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 T* orchestrator<storage, T, N>::get(uint64_t id) const noexcept
@@ -137,6 +172,10 @@ template <template <typename, uint32_t> typename storage, typename T, uint32_t N
 template <typename... Args>
 T* orchestrator<storage, T, N>::push(Args&&... args) noexcept
 {
+#if !defined(NDEBUG)
+    assert(!_is_write_locked && "Attempting to push while iterating");
+#endif
+
     spdlog::critical("ORCHESTRATOR PUSH");
     T* obj = _storage.push(std::forward<Args>(args)...);
     _tickets.emplace(obj->id(), obj->ticket());
@@ -146,6 +185,10 @@ T* orchestrator<storage, T, N>::push(Args&&... args) noexcept
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 void orchestrator<storage, T, N>::pop(T* obj) noexcept
 {
+#if !defined(NDEBUG)
+    assert(!_is_write_locked && "Attempting to pop while iterating");
+#endif
+
     spdlog::critical("ORCHESTRATOR POP");
     _tickets.erase(obj->id());
     _storage.pop(obj);
@@ -154,6 +197,10 @@ void orchestrator<storage, T, N>::pop(T* obj) noexcept
 template <template <typename, uint32_t> typename storage, typename T, uint32_t N>
 void orchestrator<storage, T, N>::clear() noexcept
 {
+#if !defined(NDEBUG)
+    assert(!_is_write_locked && "Attempting to clear while iterating");
+#endif
+
     spdlog::critical("ORCHESTRATOR CLEAR");
     _tickets.clear();
     _storage.clear();

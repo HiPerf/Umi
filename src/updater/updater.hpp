@@ -106,6 +106,10 @@ protected:
             {
                 obj->base()->base_sync(std::forward<std::decay_t<Args>>(args)...);
             }
+
+#if !defined(NDEBUG)
+            vector->unlock_writes();
+#endif
         }
     }
 

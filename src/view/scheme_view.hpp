@@ -194,6 +194,10 @@ struct scheme_view
                 std::apply(callback, combined);
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<types>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -216,6 +220,10 @@ struct scheme_view
                 std::apply(callback, scheme.search(obj->id()));
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<types>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -229,12 +237,21 @@ struct scheme_view
             "Use parallel_by when the scheme contains mixed layouts"
             );
 
-        // Create a barrier, exit if we have nothing to do
+        // Create a barrier, exit if we have nothing to 
+#if !defined(NDEBUG)
+        if (scheme.size() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
+#else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
         {
             return;
-        }
+    }
+#endif
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
@@ -249,18 +266,32 @@ struct scheme_view
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<types>().unlock_writes());
+#endif
         }).detach();
-    }
+}
 
     template <typename W, typename By, template <typename...> class S, typename O, typename C, typename... types>
     inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        if (scheme.size() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
+#else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
@@ -273,6 +304,11 @@ struct scheme_view
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<types>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -307,6 +343,10 @@ struct partial_scheme_view
                 std::apply(callback, combined);
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<components>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -329,6 +369,10 @@ struct partial_scheme_view
                 std::apply(callback, scheme.search(obj->id()));
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<components>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -343,11 +387,20 @@ struct partial_scheme_view
             );
 
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        if (scheme.size() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
+#else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
@@ -362,6 +415,11 @@ struct partial_scheme_view
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<components>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -369,11 +427,20 @@ struct partial_scheme_view
     inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
+#if !defined(NDEBUG)
+        if (scheme.size() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size() + 1);
+#else
         typename W::barrier_t barrier = waitable.new_waitable(scheme.size());
         if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
@@ -386,6 +453,11 @@ struct partial_scheme_view
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<components>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -419,6 +491,10 @@ struct scheme_view_until_partition
                 std::apply(callback, combined);
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<types>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -441,6 +517,10 @@ struct scheme_view_until_partition
                 std::apply(callback, scheme.search(obj->id()));
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<types>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -455,11 +535,20 @@ struct scheme_view_until_partition
             );
 
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+#if !defined(NDEBUG)
         if (scheme.size_until_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
@@ -474,6 +563,11 @@ struct scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<types>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -481,11 +575,20 @@ struct scheme_view_until_partition
     inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+#if !defined(NDEBUG)
         if (scheme.size_until_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
@@ -498,6 +601,11 @@ struct scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<types>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -532,6 +640,10 @@ struct partial_scheme_view_until_partition
                 std::apply(callback, combined);
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<components>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -554,6 +666,10 @@ struct partial_scheme_view_until_partition
                 std::apply(callback, scheme.search(obj->id()));
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<components>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -568,11 +684,20 @@ struct partial_scheme_view_until_partition
             );
 
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+#if !defined(NDEBUG)
         if (scheme.size_until_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
@@ -587,6 +712,11 @@ struct partial_scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<components>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -594,11 +724,20 @@ struct partial_scheme_view_until_partition
     inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+#if !defined(NDEBUG)
         if (scheme.size_until_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_until_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
@@ -611,6 +750,11 @@ struct partial_scheme_view_until_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<components>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -644,6 +788,10 @@ struct scheme_view_from_partition
                 std::apply(callback, combined);
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<types>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -666,6 +814,10 @@ struct scheme_view_from_partition
                 std::apply(callback, scheme.search(obj->id()));
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<types>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -680,11 +832,20 @@ struct scheme_view_from_partition
             );
 
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+#if !defined(NDEBUG)
         if (scheme.size_from_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
@@ -699,6 +860,11 @@ struct scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<types>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -706,11 +872,20 @@ struct scheme_view_from_partition
     inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+#if !defined(NDEBUG)
         if (scheme.size_from_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
@@ -723,6 +898,11 @@ struct scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<types>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -757,6 +937,10 @@ struct partial_scheme_view_from_partition
                 std::apply(callback, combined);
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<components>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -779,6 +963,10 @@ struct partial_scheme_view_from_partition
                 std::apply(callback, scheme.search(obj->id()));
             }
 
+#if !defined(NDEBUG)
+            (..., scheme.template get<components>().unlock_writes());
+#endif
+
             barrier->wait();
         }).detach();
     }
@@ -793,11 +981,20 @@ struct partial_scheme_view_from_partition
             );
 
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+#if !defined(NDEBUG)
         if (scheme.size_from_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         // TODO(gpascualg): Do we need this outter fiber?
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
@@ -812,6 +1009,11 @@ struct partial_scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<components>().unlock_writes());
+#endif
         }).detach();
     }
 
@@ -819,11 +1021,20 @@ struct partial_scheme_view_from_partition
     inline static constexpr void parallel_by(W& waitable, S<types...>& scheme, C&& callback) noexcept
     {
         // Create a barrier, exit if we have nothing to do
-        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+#if !defined(NDEBUG)
         if (scheme.size_from_partition() == 0)
+        {
+            typename W::barrier_t barrier = waitable.new_waitable(0);
+            return;
+        }
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition() + 1);
+#else
+        typename W::barrier_t barrier = waitable.new_waitable(scheme.size_from_partition());
+        if (scheme.size() == 0)
         {
             return;
         }
+#endif
 
         boost::fibers::fiber([barrier, &scheme, callback = std::move(callback)]() mutable
         {
@@ -836,6 +1047,11 @@ struct partial_scheme_view_from_partition
                     barrier->wait();
                 }).detach();
             }
+
+#if !defined(NDEBUG)
+            barrier->wait();
+            (..., scheme.template get<components>().unlock_writes());
+#endif
         }).detach();
     }
 
