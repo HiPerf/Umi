@@ -160,10 +160,9 @@ T* orchestrator<storage, T, N>::get(uint64_t id) const noexcept
 {
     if (auto it = _tickets.find(id); it != _tickets.end())
     {
-        if (auto ticket = it->second; ticket->valid())
-        {
-            return ticket->get()->derived();
-        }
+        // TODO(gpascualg): Why would a ticket inside here be invalid?
+	assert(it->second->valid() && "Orchestrator has an invalid ticket");
+        return it->second->get()->derived();
     }
 
     return nullptr;
