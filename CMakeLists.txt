@@ -12,6 +12,7 @@ option(BUILD_SAMPLE_CLIENT          "Build client sample"       OFF)
 option(BUILD_SAMPLE_SERVER          "Build server sample"       ON)
 option(KUMO_GENERATE_CLIENT_FILES   "Create Kumo client files"  OFF)
 option(Boost_USE_STATIC_LIBS        "Use Boost static libs"     ON)
+option(BUILD_PALANTEER_VIEWER       "Build viewer"              ON)
 
 set(BOOST_VERSION                   "1.73"                      CACHE STRING    "Boost version")
 set(KUMO_CLIENT_PATH                ""                          CACHE PATH      "Path for Kumo to generate client code")

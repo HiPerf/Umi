@@ -113,7 +113,7 @@ target_link_libraries(umi_core_lib PUBLIC spdlog)
 # ---------------------------------
 # ########## PALANTEER ############
 # ---------------------------------
-set(PALANTEER_BUILD_VIEWER                  ON CACHE INTERNAL "")
+set(PALANTEER_BUILD_VIEWER                  ${BUILD_PALANTEER_VIEWER} CACHE INTERNAL "")
 set(PALANTEER_BUILD_CPP_EXAMPLE             OFF CACHE INTERNAL "")
 set(PALANTEER_BUILD_PYTHON_INSTRUMENTATION  OFF CACHE INTERNAL "")
 set(PALANTEER_BUILD_SERVER_SCRIPTING        OFF CACHE INTERNAL "")
