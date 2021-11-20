@@ -7,8 +7,48 @@
 #include <mutex>
 
 
+class fiber_hash_prop : public boost::fibers::fiber_properties {
+public:
+    fiber_hash_prop(boost::fibers::context* ctx) :
+        fiber_properties(ctx),
+        _hash(2166136261),
+        _name("Unnamed fiber")
+    {}
+
+    void with_name(std::string_view name)
+    {
+        _name = std::string(name);
+        _hash = 2166136261;
+        for (auto c : name)
+        {
+            _hash = _hash ^ c;
+            _hash = _hash * 16777619;
+        }
+    }
+
+    uint32_t hash()
+    {
+        return _hash;
+    }
+
+    const char* name()
+    {
+        return _name.c_str();
+    }
+
+private:
+    uint32_t _hash;
+    std::string _name;
+};
+
+#ifndef NDEBUG
+    using exclusive_work_stealing_base_class = boost::fibers::algo::algorithm_with_properties<fiber_hash_prop>;
+#else
+    using exclusive_work_stealing_base_class = boost::fibers::algo::algorithm;
+#endif
+
 template <int SLOT>
-class BOOST_FIBERS_DECL exclusive_work_stealing : public boost::fibers::algo::algorithm {
+class BOOST_FIBERS_DECL exclusive_work_stealing : public exclusive_work_stealing_base_class {
 private:
     static std::atomic< std::uint32_t >                     counter_;
     static std::vector< boost::intrusive_ptr< exclusive_work_stealing > >    schedulers_;
@@ -38,7 +78,11 @@ public:
     exclusive_work_stealing& operator=(exclusive_work_stealing const&) = delete;
     exclusive_work_stealing& operator=(exclusive_work_stealing&&) = delete;
 
+#ifndef NDEBUG
+    void awakened(boost::fibers::context* ctx, fiber_hash_prop& props) noexcept override;
+#else
     void awakened(boost::fibers::context*) noexcept override;
+#endif
 
     boost::fibers::context* pick_next() noexcept override;
 

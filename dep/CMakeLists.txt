@@ -106,3 +106,30 @@ if(NOT spdlog_POPULATED)
 endif()
 
 target_link_libraries(umi_core_lib PUBLIC spdlog)
+
+
+
+
+# ---------------------------------
+# ########## PALANTEER ############
+# ---------------------------------
+set(PALANTEER_BUILD_VIEWER                  ON CACHE INTERNAL "")
+set(PALANTEER_BUILD_CPP_EXAMPLE             OFF CACHE INTERNAL "")
+set(PALANTEER_BUILD_PYTHON_INSTRUMENTATION  OFF CACHE INTERNAL "")
+set(PALANTEER_BUILD_SERVER_SCRIPTING        OFF CACHE INTERNAL "")
+
+
+FetchContent_Declare(
+    palanteer
+    GIT_REPOSITORY https://github.com/dfeneyrou/palanteer
+    GIT_TAG        b2f306c6628fefc9bd09d4fa2bb6d72a95740e26
+)
+
+FetchContent_GetProperties(palanteer)
+if(NOT palanteer_POPULATED)
+    FetchContent_Populate(palanteer)
+    add_subdirectory(${palanteer_SOURCE_DIR} ${palanteer_BINARY_DIR})
+endif()
+
+target_link_libraries(umi_core_lib PUBLIC libpalanteer)
+target_compile_definitions(umi_core_lib PUBLIC USE_PL=1 PL_VIRTUAL_THREADS=1)

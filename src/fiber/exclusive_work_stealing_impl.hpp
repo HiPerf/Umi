@@ -8,12 +8,18 @@
 #include "fiber/exclusive_work_stealing.hpp"
 
 #include <random>
+#include <set>
+
+#include <palanteer.h>
 
 #include <boost/assert.hpp>
 #include <boost/context/detail/prefetch.hpp>
 
 #include "boost/fiber/detail/thread_barrier.hpp"
 #include "boost/fiber/type.hpp"
+
+
+inline std::set<uint32_t> known_fiber_hashes = {};
 
 
 template <int SLOT>
@@ -50,8 +56,12 @@ exclusive_work_stealing<SLOT>::exclusive_work_stealing(std::uint32_t thread_coun
 }
 
 template <int SLOT>
-void
-exclusive_work_stealing<SLOT>::awakened(boost::fibers::context* ctx) noexcept {
+#ifndef NDEBUG
+void exclusive_work_stealing<SLOT>::awakened(boost::fibers::context* ctx, fiber_hash_prop& props) noexcept
+#else
+void exclusive_work_stealing<SLOT>::awakened(boost::fibers::context*) noexcept
+#endif
+{
     if (!ctx->is_context(boost::fibers::type::pinned_context)) {
         ctx->detach();
     }
@@ -110,6 +120,21 @@ exclusive_work_stealing<SLOT>::pick_next() noexcept {
                 boost::fibers::context::active()->attach(victim);
             }
         }
+    }
+
+    if (nullptr != victim)
+    {
+        boost::fibers::fiber_properties* props = victim->get_properties();
+        fiber_hash_prop& hash_probs = dynamic_cast<fiber_hash_prop&>(*props);
+
+        if (known_fiber_hashes.insert(hash_probs.hash()).second)
+        {
+            plDeclareVirtualThread(hash_probs.hash(), hash_probs.name());
+        }
+
+        // plDetachVirtualThread(victim->is_resumable());
+        plDetachVirtualThread(false);
+        plAttachVirtualThread(hash_probs.hash());
     }
     return victim;
 }
