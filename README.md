@@ -1,3 +1,12 @@
+# Deprecated
+
+This is an old implementation of Umi which used Boost::fiber. It has been preceeded by a newer version which uses our own implementation of fibers, Tamashii.
+
+Eventhough a new branch could have been created for this version, it has been decided to create a new repository. The number of changes is too great to consider the new Umi a simple version change, thus a new start was deemed more appropiate.
+
+https://github.com/NetPunkSoftware/Umi
+
+
 # Build
 
 Using CMake:
